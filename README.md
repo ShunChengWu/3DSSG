@@ -59,9 +59,9 @@ See README.md under `data_processing` folder
 # License
 [![License](https://img.shields.io/badge/License-BSD%202--Clause-orange.svg)](https://opensource.org/licenses/BSD-2-Clause)
 
-files under ./src/pointnet/* are with Apache License, Version 2.0
+files under `./src/pointnet/*` are with Apache License, Version 2.0
 
-./src/network_PointNet.py is modifed from https://github.com/charlesq34/pointnet under MIT License
+`./src/network_PointNet.py` is modifed from https://github.com/charlesq34/pointnet under MIT License
 
 
 # Repository structure

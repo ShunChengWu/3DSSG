@@ -41,7 +41,7 @@ Use one of the executable `rio_renderer_render_all` and `align_poses`  in the 3R
 
 2. Generate estimated segment map.   
    Run InSeg incremental segmentation method to generate `inseg.ply` files. 
-    1. clone repo to `${PATH_SGFUSION}`and compile
+    1. clone `https://github.com/ShunChengWu/SceneGraphFusion` to `${PATH_SGFUSION}`and compile
     2. change `exe_path` in `./script/RUN_GenSeg.py` to `${PATH_SGFUSION}/bin/exe_GraphSLAM`
     3. Go to `./script` and run
 ```
