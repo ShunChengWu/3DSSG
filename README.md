@@ -7,6 +7,8 @@
 [jojo]:http://campar.in.tum.de/Main/JohannaWald
 [fede]:http://campar.in.tum.de/Main/FedericoTombari
 
+This repository contains the network part of the SceneGraphFusion work. For the incremental framework, please check [here](https://github.com/ShunChengWu/SceneGraphFusion).
+
 # Dependencies
 The code has been tested on Ubuntu 18.04 and gcc 7.5. You can either create a conda environment by 
 ```
