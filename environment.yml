@@ -1,0 +1,17 @@
+channels:
+  - pytorch
+  - conda-forge
+  - defaults
+dependencies:
+  - cudatoolkit=10.2.89=hfd86e86_1
+  - python=3.8.8=hdb3f193_4
+  - pytorch=1.8.0=py3.8_cuda10.2_cudnn7.6.5_0
+  - tensorboard=1.15.0=py38_0
+  - trimesh=3.9.13=pyh44b312d_0
+  - pip=21.0.1=py38h06a4308_0
+  - pip:
+    - torch-cluster==1.5.9
+    - torch-geometric==1.7.0
+    - torch-scatter==2.0.6
+    - torch-sparse==0.6.9
+    - tqdm==4.60.0

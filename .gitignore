@@ -1,0 +1,16 @@
+__pycache__
+tmp
+experiments/
+*.egg-info
+logs
+3DSSG_subset
+data
+*.ini
+*.ply
+results/
+scripted_model
+*.pth
+
+venv
+files/*.json
+files/*.txt
