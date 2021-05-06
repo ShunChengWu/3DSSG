@@ -1,10 +1,11 @@
 # SceneGraphFusion
 ![teaser](img/teaser.png)
-**Authors**: [Shun-Cheng Wu][sc], [Keisuke Tateno][keisu], [Johanna Wald][jojo] and [Federico Tombari][fede]
+**Authors**: [Shun-Cheng Wu][sc], [Keisuke Tateno][keisu], [Johanna Wald][jojo], [Nassir Navab][nassir] and [Federico Tombari][fede]
 
 [sc]:http://campar.in.tum.de/Main/ShunChengWu
 [keisu]:http://campar.in.tum.de/Main/KeisukeTateno
 [jojo]:http://campar.in.tum.de/Main/JohannaWald
+[nassir]:http://campar.in.tum.de/Main/NassirNavabCv
 [fede]:http://campar.in.tum.de/Main/FedericoTombari
 
 This repository contains the network part of the SceneGraphFusion work. For the incremental framework, please check [here](https://github.com/ShunChengWu/SceneGraphFusion).
