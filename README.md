@@ -1,6 +1,6 @@
 # SceneGraphFusion
 ![teaser](img/teaser.png)
-**Authors**: [Shun-Cheng Wu][sc], [Keisuke Tateno][keisu], [Johanna Wald][jojo], [Nassir Navab][nassir] and [Federico Tombari][fede]
+**Authors**: [Shun-Cheng Wu][sc], [Johanna Wald][jojo], [Keisuke Tateno][keisu], [Nassir Navab][nassir] and [Federico Tombari][fede]
 
 [sc]:http://campar.in.tum.de/Main/ShunChengWu
 [keisu]:http://campar.in.tum.de/Main/KeisukeTateno
