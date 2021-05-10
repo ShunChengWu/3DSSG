@@ -31,7 +31,7 @@
     "OBJ_PRED_FROM_GCN": true,
     "_GCN_TYPE": ["TRIP", "EAN"],
     "GCN_TYPE": "EAN",
-    "_ATTENTION" : ["scaled_dot_product_attention", "fat"],
+    "_ATTENTION" : ["fat"],
     "ATTENTION": "fat",
     "DROP_OUT_ATTEN": 0.5,
     "multi_rel_outputs": true,

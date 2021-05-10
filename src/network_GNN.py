@@ -44,15 +44,6 @@ class TripletEdgeNet(torch.nn.Module):
         names['model_'+name]['output']=names_o
         return names
 
-def scaled_dot_product_attention(query, key, value, weight = None):
-    dim = query.shape[1]
-    if weight is not None:
-        scores = torch.einsum('bdhn,bdd,bdhm->bhnm', query, weight,key) / dim**.5
-    else:
-        scores = torch.einsum('bdhn,bdhm->bhnm', query, key) / dim**.5
-    prob = torch.nn.functional.softmax(scores, dim=0)
-    return torch.einsum('bhnm,bdhm->bdhn', prob, value), prob
-
 class MultiHeadedEdgeAttention(torch.nn.Module):
     def __init__(self, num_heads: int, dim_node: int, dim_edge: int, dim_atten: int, use_bn=False,
                  attention = 'fat', use_edge:bool = True, **kwargs):
@@ -77,7 +68,7 @@ class MultiHeadedEdgeAttention(torch.nn.Module):
             # print('drop out in',self.name,'with value',DROP_OUT_ATTEN)
         
         self.attention = attention
-        assert self.attention in ['scaled_dot_product_attention', 'fat']
+        assert self.attention in ['fat']
         
         if self.attention == 'fat':
             if use_edge:
@@ -88,11 +79,8 @@ class MultiHeadedEdgeAttention(torch.nn.Module):
             self.proj_edge  = build_mlp([dim_edge,dim_edge])
             self.proj_query = build_mlp([dim_node,dim_node])
             self.proj_value = build_mlp([dim_node,dim_atten])
-        
-        elif self.attention == 'scaled_dot_product_attention':
-            self.merge = build_mlp([dim_node, dim_node])
-            self.proj  = torch.nn.ModuleList([deepcopy(self.merge) for _ in range(3)])
-            self.merge = torch.nn.Conv1d(dim_node, dim_node, kernel_size=1)
+        else:
+            raise NotImplementedError('')
         
     def forward(self, query, edge, value):
         batch_dim = query.size(0)
@@ -109,13 +97,6 @@ class MultiHeadedEdgeAttention(torch.nn.Module):
                 prob = self.nn(query) # b, dim, head    
             prob = prob.softmax(1)
             x = torch.einsum('bm,bm->bm', prob.reshape_as(value), value)
-            
-        elif self.attention == 'scaled_dot_product_attention':
-            query, key, value = [l(x).view(batch_dim, self.d_n, self.num_heads, -1)
-                             for l, x in zip(self.proj, (query, value, value))]
-            x, prob = scaled_dot_product_attention(query, value, value)
-            x = self.merge(x.contiguous().view(batch_dim, self.d_n*self.num_heads, -1)).view(batch_dim, -1)
-
         return x, edge_feature, prob
     def trace(self, pth = './tmp',name_prefix=''):
         params = inspect.signature(self.forward).parameters
@@ -151,18 +132,13 @@ class GraphEdgeAttenNetwork(BaseNetwork):
         self.index_aggr = Aggre_Index(aggr=aggr,flow=flow)
         
         self.attention = attention
-        assert self.attention in ['scaled_dot_product_attention', 'fat']
-        if self.attention == 'fat' or self.attention == 'scaled_dot_product_attention':
+        assert self.attention in [ 'fat']
+        if self.attention == 'fat':
             self.edgeatten = MultiHeadedEdgeAttention(
                 dim_node=dim_node,dim_edge=dim_edge,dim_atten=dim_atten,
                 num_heads=num_heads,use_bn=use_bn,attention=attention,use_edge=use_edge, **kwargs)
-        if self.attention == 'fat':
             self.prop = build_mlp([dim_node+dim_atten, dim_node+dim_atten, dim_node],
                              do_bn= use_bn, on_last=False)
-        elif self.attention == 'scaled_dot_product_attention':
-            self.prop = build_mlp([dim_node+dim_node, dim_node+dim_node, dim_node],
-                             do_bn= use_bn, on_last=False)
-            torch.nn.init.constant_(self.prop[-1].bias, 0.0)
         else:
             raise NotImplementedError('')
 
@@ -257,7 +233,7 @@ class GraphEdgeAttenNetworkLayers(torch.nn.Module):
 if __name__ == '__main__':
     TEST_FORWARD=True
     TEST_TRACE=False
-    attention='scaled_dot_product_attention'
+    attention='fat'
     if TEST_FORWARD:
         n_node = 8
         dim_node = 256
