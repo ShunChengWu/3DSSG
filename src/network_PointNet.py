@@ -12,10 +12,7 @@ import torch.utils.data
 from torch.autograd import Variable
 import numpy as np
 import torch.nn.functional as F
-
 from pointnet.graph import GraphTripleConvNet
-from pointnet.relpn import _RelPN
-
 from networks_base import BaseNetwork
 import op_utils
 
@@ -363,242 +360,242 @@ class PointNetRelClsMulti(BaseNetwork):
         return names
 
 
-class PointNetRelAndObjCls(nn.Module):
+# class PointNetRelAndObjCls(nn.Module):
 
-    def __init__(self, k=2, rel_k=2, point_size=4, point_size_rel=4, feature_transform=False,
-                 with_obj_feats_in_rel_pred=False, with_bbox=True, out_size=256, with_relpn=False,
-                 evaluating=False):
-        super(PointNetRelAndObjCls, self).__init__()
+#     def __init__(self, k=2, rel_k=2, point_size=4, point_size_rel=4, feature_transform=False,
+#                  with_obj_feats_in_rel_pred=False, with_bbox=True, out_size=256, with_relpn=False,
+#                  evaluating=False):
+#         super(PointNetRelAndObjCls, self).__init__()
 
-        self. with_obj_feats = with_obj_feats_in_rel_pred
+#         self. with_obj_feats = with_obj_feats_in_rel_pred
 
-        self.feature_transform = feature_transform
-        self.feat_object = PointNetfeat(global_feat=True, point_size=point_size, feature_transform=feature_transform,
-                                        out_size=out_size)
-        self.feat_relationship = PointNetfeat(global_feat=True, point_size=point_size_rel, out_size=out_size,
-                                              feature_transform=feature_transform)
+#         self.feature_transform = feature_transform
+#         self.feat_object = PointNetfeat(global_feat=True, point_size=point_size, feature_transform=feature_transform,
+#                                         out_size=out_size)
+#         self.feat_relationship = PointNetfeat(global_feat=True, point_size=point_size_rel, out_size=out_size,
+#                                               feature_transform=feature_transform)
 
-        self.with_relpn = with_relpn
-        self.evaluating = evaluating
+#         self.with_relpn = with_relpn
+#         self.evaluating = evaluating
 
-        if self.with_relpn:
-            self.relpn = _RelPN(feat_dim=out_size, with_bbox=with_bbox)
+#         if self.with_relpn:
+#             self.relpn = _RelPN(feat_dim=out_size, with_bbox=with_bbox)
 
-        self.rel_predictor = PointNetRelCls(rel_k, feature_transform, with_obj_feats=with_obj_feats_in_rel_pred,
-                                            in_size=out_size)
-        self.obj_predictor = PointNetCls(k, feature_transform, cls_only=False, in_size=out_size)
+#         self.rel_predictor = PointNetRelCls(rel_k, feature_transform, with_obj_feats=with_obj_feats_in_rel_pred,
+#                                             in_size=out_size)
+#         self.obj_predictor = PointNetCls(k, feature_transform, cls_only=False, in_size=out_size)
 
-    def forward(self, x_s, x_o, x_r, edges=None, bboxes=None, target_rels=None):
+#     def forward(self, x_s, x_o, x_r, edges=None, bboxes=None, target_rels=None):
 
-        #print(self.feature_transform)
-        #print(x_s.shape, x_o.shape, x_r.shape)
+#         #print(self.feature_transform)
+#         #print(x_s.shape, x_o.shape, x_r.shape)
 
-        relpn_loss = 0
+#         relpn_loss = 0
 
-        if edges is not None:
+#         if edges is not None:
 
-            x_all = x_s
+#             x_all = x_s
 
-            x_all, trans, trans_feat = self.feat_object(x_all)
+#             x_all, trans, trans_feat = self.feat_object(x_all)
 
-            if self.with_relpn:
-                #def forward(self, rois, roi_feat, im_info, gt_boxes, num_boxes, use_gt_boxes=False):
-                #return roi_pairs, roi_proposals, roi_pairs_scores, self.relpn_loss_cls
-                keep_idx, relpn_loss = self.relpn(x_all, bboxes, target_rels, edges)
+#             if self.with_relpn:
+#                 #def forward(self, rois, roi_feat, im_info, gt_boxes, num_boxes, use_gt_boxes=False):
+#                 #return roi_pairs, roi_proposals, roi_pairs_scores, self.relpn_loss_cls
+#                 keep_idx, relpn_loss = self.relpn(x_all, bboxes, target_rels, edges)
 
-                print(keep_idx.shape, target_rels.shape)
+#                 print(keep_idx.shape, target_rels.shape)
 
-                edges = edges[keep_idx]
-                #target_rels = target_rels[keep_idx]
-                x_r = x_r[keep_idx]
+#                 edges = edges[keep_idx]
+#                 #target_rels = target_rels[keep_idx]
+#                 x_r = x_r[keep_idx]
 
-            # Break apart indices for subjects and objects; these have shape (num_triples,)
-            s_idx = edges[:, 0].contiguous()
-            o_idx = edges[:, 1].contiguous()
-            # Get current vectors for subjects and objects; these have shape (num_triples, Din)
-            x_s = x_all[s_idx] # feats
-            x_o = x_all[o_idx] # feats
+#             # Break apart indices for subjects and objects; these have shape (num_triples,)
+#             s_idx = edges[:, 0].contiguous()
+#             o_idx = edges[:, 1].contiguous()
+#             # Get current vectors for subjects and objects; these have shape (num_triples, Din)
+#             x_s = x_all[s_idx] # feats
+#             x_o = x_all[o_idx] # feats
 
-            trans_s = trans[s_idx]
-            trans_o = trans[o_idx]
-            if trans_feat is not None:
-                trans_feat_s = trans_feat[s_idx]
-                trans_feat_o = trans_feat[o_idx]
-            else:
-                trans_feat_s = None
-                trans_feat_o = None
+#             trans_s = trans[s_idx]
+#             trans_o = trans[o_idx]
+#             if trans_feat is not None:
+#                 trans_feat_s = trans_feat[s_idx]
+#                 trans_feat_o = trans_feat[o_idx]
+#             else:
+#                 trans_feat_s = None
+#                 trans_feat_o = None
 
-        else:
+#         else:
 
-            x_s, trans_s, trans_feat_s = self.feat_object(x_s)
-            x_o, trans_o, trans_feat_o = self.feat_object(x_o)
+#             x_s, trans_s, trans_feat_s = self.feat_object(x_s)
+#             x_o, trans_o, trans_feat_o = self.feat_object(x_o)
 
-        x_r, trans_r, trans_feat_r = self.feat_relationship(x_r)
+#         x_r, trans_r, trans_feat_r = self.feat_relationship(x_r)
 
-        if self.with_obj_feats:
-            x = torch.cat([x_s, x_o, x_r], 1)
-            trans = torch.cat([trans_s, trans_o, trans_r], 1)
-            #trans_feat = torch.cat([trans_feat_s, trans_feat_o, trans_feat_r], 1)
-        else:
-            x = x_r
-            trans = trans_r
-            trans_feat = trans_feat_r
+#         if self.with_obj_feats:
+#             x = torch.cat([x_s, x_o, x_r], 1)
+#             trans = torch.cat([trans_s, trans_o, trans_r], 1)
+#             #trans_feat = torch.cat([trans_feat_s, trans_feat_o, trans_feat_r], 1)
+#         else:
+#             x = x_r
+#             trans = trans_r
+#             trans_feat = trans_feat_r
 
-        if edges is not None:
-            x_all = self.obj_predictor(x_all)
-            x = self.rel_predictor(x)
+#         if edges is not None:
+#             x_all = self.obj_predictor(x_all)
+#             x = self.rel_predictor(x)
 
-            if self.with_relpn:
-                if self.evaluating:
-                    full_rels_cls = torch.zeros([target_rels.size(0), x.size(1)],
-                                                device=x.device, dtype=x.dtype)
-                    full_rels_cls[:,0] = 1
-                    full_rels_cls[keep_idx] = x
-                else:
-                    target_rels = target_rels[keep_idx]
-                    full_rels_cls = x
-            else:
-                full_rels_cls = x
+#             if self.with_relpn:
+#                 if self.evaluating:
+#                     full_rels_cls = torch.zeros([target_rels.size(0), x.size(1)],
+#                                                 device=x.device, dtype=x.dtype)
+#                     full_rels_cls[:,0] = 1
+#                     full_rels_cls[keep_idx] = x
+#                 else:
+#                     target_rels = target_rels[keep_idx]
+#                     full_rels_cls = x
+#             else:
+#                 full_rels_cls = x
 
-            #if self.with_relpn:
-            return x_all, None, full_rels_cls, target_rels, relpn_loss,\
-                       trans_s, trans_o, trans_r, trans_feat_s, trans_feat_o, trans_feat_r
-            #else:
-            #    return x_all, None, x, \
-            #           trans_s, trans_o, trans_r, trans_feat_s, trans_feat_o, trans_feat_r
+#             #if self.with_relpn:
+#             return x_all, None, full_rels_cls, target_rels, relpn_loss,\
+#                        trans_s, trans_o, trans_r, trans_feat_s, trans_feat_o, trans_feat_r
+#             #else:
+#             #    return x_all, None, x, \
+#             #           trans_s, trans_o, trans_r, trans_feat_s, trans_feat_o, trans_feat_r
 
-        else:
-            x_s = self.obj_predictor(x_s)
-            x_o = self.obj_predictor(x_o)
-            x = self.rel_predictor(x)
+#         else:
+#             x_s = self.obj_predictor(x_s)
+#             x_o = self.obj_predictor(x_o)
+#             x = self.rel_predictor(x)
 
-            return x_s, x_o, x, \
-                   trans_s, trans_o, trans_r, trans_feat_s, trans_feat_o, trans_feat_r
-            # return objs_cls, rels_cls, target_rels, relpn_loss
+#             return x_s, x_o, x, \
+#                    trans_s, trans_o, trans_r, trans_feat_s, trans_feat_o, trans_feat_r
+#             # return objs_cls, rels_cls, target_rels, relpn_loss
 
 
-class PointNetGCN(nn.Module):
+# class PointNetGCN(nn.Module):
 
-    def __init__(self, k=2, rel_k=2, point_size=4, point_size_rel=4,
-                 n_layers=2, residual=True, pooling='avg',
-                 feature_transform=False, multi_rel_outputs=False, out_size=256,
-                 obj_pred_from_gcn=True, with_relpn=False, with_bbox=True, evaluating=False,
-                 use_rgb=False):
+#     def __init__(self, k=2, rel_k=2, point_size=4, point_size_rel=4,
+#                  n_layers=2, residual=True, pooling='avg',
+#                  feature_transform=False, multi_rel_outputs=False, out_size=256,
+#                  obj_pred_from_gcn=True, with_relpn=False, with_bbox=True, evaluating=False,
+#                  use_rgb=False):
 
-        super().__init__()
-        self.num_classes = k
-        self.num_relationsihps = rel_k
-        self.dim_feature = out_size
-        self.dim_hidden_feature = 512
-        self.pooling = pooling
-        self.n_layers = n_layers
+#         super().__init__()
+#         self.num_classes = k
+#         self.num_relationsihps = rel_k
+#         self.dim_feature = out_size
+#         self.dim_hidden_feature = 512
+#         self.pooling = pooling
+#         self.n_layers = n_layers
         
-        self.obj_pred_from_gcn = obj_pred_from_gcn
-        self.feature_transform = feature_transform
+#         self.obj_pred_from_gcn = obj_pred_from_gcn
+#         self.feature_transform = feature_transform
 
-        self.with_bbox = with_bbox
-        self.with_relpn = with_relpn
-        self.evaluating = evaluating
+#         self.with_bbox = with_bbox
+#         self.with_relpn = with_relpn
+#         self.evaluating = evaluating
 
-        self.multi_rel_outputs = multi_rel_outputs
+#         self.multi_rel_outputs = multi_rel_outputs
 
-        self.feat_object = PointNetfeat(global_feat=True, point_size=point_size, feature_transform=feature_transform,
-                                        out_size=out_size)
-        self.feat_relationship = PointNetfeat(global_feat=True, point_size=point_size_rel,
-                                              feature_transform=feature_transform, out_size=out_size)
+#         self.feat_object = PointNetfeat(global_feat=True, point_size=point_size, feature_transform=feature_transform,
+#                                         out_size=out_size)
+#         self.feat_relationship = PointNetfeat(global_feat=True, point_size=point_size_rel,
+#                                               feature_transform=feature_transform, out_size=out_size)
 
-        if self.with_relpn:
-            self.relpn = _RelPN(feat_dim=out_size, with_bbox=with_bbox)
+#         if self.with_relpn:
+#             self.relpn = _RelPN(feat_dim=out_size, with_bbox=with_bbox)
 
-        self.gcn = GraphTripleConvNet(input_dim_obj=out_size, 
-                                      num_layers=n_layers, residual=residual, pooling=pooling,            
-                                      input_dim_pred=out_size,
-                                      hidden_dim=self.dim_hidden_feature) # TODO: what should the other params be?
+#         self.gcn = GraphTripleConvNet(input_dim_obj=out_size, 
+#                                       num_layers=n_layers, residual=residual, pooling=pooling,            
+#                                       input_dim_pred=out_size,
+#                                       hidden_dim=self.dim_hidden_feature) # TODO: what should the other params be?
 
-        self.obj_predictor = PointNetCls(k, feature_transform, in_size=out_size, cls_only=False)
+#         self.obj_predictor = PointNetCls(k, feature_transform, in_size=out_size, cls_only=False)
 
-        if self.multi_rel_outputs:
-            self.rel_predictor = PointNetRelClsMulti(rel_k, feature_transform, in_size=out_size, with_obj_feats=False)
-        else:
-            self.rel_predictor = PointNetRelCls(rel_k, feature_transform, in_size=out_size, with_obj_feats=False)
+#         if self.multi_rel_outputs:
+#             self.rel_predictor = PointNetRelClsMulti(rel_k, feature_transform, in_size=out_size, with_obj_feats=False)
+#         else:
+#             self.rel_predictor = PointNetRelCls(rel_k, feature_transform, in_size=out_size, with_obj_feats=False)
 
-    def forward(self, objs_points, rels_points, edges, target_rels=None, batch_size=16, bboxes=None):
-        """
-        :param objs: tensor of shape (num_objects, num_channels, num_points)
-        :param rels: tensor of shape (num_relationships, num_channels, num_points_union)
-        :param edges: tensor of shape (num_relationships, 2) - indicates source and target object for the rels
-        :return: predicted classes for objects and relationships
-        """
+#     def forward(self, objs_points, rels_points, edges, target_rels=None, batch_size=16, bboxes=None):
+#         """
+#         :param objs: tensor of shape (num_objects, num_channels, num_points)
+#         :param rels: tensor of shape (num_relationships, num_channels, num_points_union)
+#         :param edges: tensor of shape (num_relationships, 2) - indicates source and target object for the rels
+#         :return: predicted classes for objects and relationships
+#         """
 
-        #split2batches = False
+#         #split2batches = False
 
-        objs_feats = []
-        rels_feats = []
+#         objs_feats = []
+#         rels_feats = []
 
-        '''
-        if split2batches:
-            for i in range((objs_points.size(0)-1) // batch_size + 1):
-                current_bsize = min(batch_size, objs_points.size(0) - i * batch_size)
-                print(current_bsize)
-                objs, _, _ = self.feat_object(objs_points[i*batch_size:i*batch_size+current_bsize])
+#         '''
+#         if split2batches:
+#             for i in range((objs_points.size(0)-1) // batch_size + 1):
+#                 current_bsize = min(batch_size, objs_points.size(0) - i * batch_size)
+#                 print(current_bsize)
+#                 objs, _, _ = self.feat_object(objs_points[i*batch_size:i*batch_size+current_bsize])
 
-                objs_feats.append(objs)
+#                 objs_feats.append(objs)
 
-            for i in range((rels_points.size(0)-1) // batch_size + 1):
-                current_bsize = min(batch_size, rels_points.size(0) - i * batch_size)
-                print(current_bsize, rels_points[i*batch_size:i*batch_size+current_bsize].shape)
-                rels, _, _ = self.feat_relationship(rels_points[i*batch_size:i*batch_size+current_bsize])
+#             for i in range((rels_points.size(0)-1) // batch_size + 1):
+#                 current_bsize = min(batch_size, rels_points.size(0) - i * batch_size)
+#                 print(current_bsize, rels_points[i*batch_size:i*batch_size+current_bsize].shape)
+#                 rels, _, _ = self.feat_relationship(rels_points[i*batch_size:i*batch_size+current_bsize])
 
-                rels_feats.append(rels)
+#                 rels_feats.append(rels)
                 
-            print('end rel loop')
+#             print('end rel loop')
 
-            objs_feats = torch.cat(objs_feats, 0)
-            rels_feats = torch.cat(rels_feats, 0)
+#             objs_feats = torch.cat(objs_feats, 0)
+#             rels_feats = torch.cat(rels_feats, 0)
         
-        else:
-        '''
-        objs_feats, _, _ = self.feat_object(objs_points)
+#         else:
+#         '''
+#         objs_feats, _, _ = self.feat_object(objs_points)
 
-        relpn_loss = 0
+#         relpn_loss = 0
 
 
-        if self.with_relpn:
-            assert target_rels != None
-            #def forward(self, rois, roi_feat, im_info, gt_boxes, num_boxes, use_gt_boxes=False):
-            #return roi_pairs, roi_proposals, roi_pairs_scores, self.relpn_loss_cls
-            keep_idx, relpn_loss = self.relpn(objs_feats, bboxes, target_rels, edges)
+#         if self.with_relpn:
+#             assert target_rels != None
+#             #def forward(self, rois, roi_feat, im_info, gt_boxes, num_boxes, use_gt_boxes=False):
+#             #return roi_pairs, roi_proposals, roi_pairs_scores, self.relpn_loss_cls
+#             keep_idx, relpn_loss = self.relpn(objs_feats, bboxes, target_rels, edges)
 
-            #print(keep_idx.shape, target_rels.shape)
+#             #print(keep_idx.shape, target_rels.shape)
 
-            edges = edges[keep_idx]
-            rels_points = rels_points[keep_idx]
+#             edges = edges[keep_idx]
+#             rels_points = rels_points[keep_idx]
 
-        rels_feats, _, _ = self.feat_relationship(rels_points)
+#         rels_feats, _, _ = self.feat_relationship(rels_points)
 
-        objs, rels = self.gcn(objs_feats, rels_feats, edges)
+#         objs, rels = self.gcn(objs_feats, rels_feats, edges)
 
-        if self.obj_pred_from_gcn:
-            objs_cls = self.obj_predictor(objs)
-        else:
-            objs_cls = self.obj_predictor(objs_feats)
+#         if self.obj_pred_from_gcn:
+#             objs_cls = self.obj_predictor(objs)
+#         else:
+#             objs_cls = self.obj_predictor(objs_feats)
 
-        rels_cls = self.rel_predictor(rels)
+#         rels_cls = self.rel_predictor(rels)
 
-        if self.with_relpn:
-            if self.evaluating:
-                full_rels_cls = torch.zeros([target_rels.size(0), rels_cls.size(1)],
-                                            device=rels_cls.device, dtype=rels_cls.dtype)
-                if not self.multi_rel_outputs:
-                    full_rels_cls[:,0] = 1
-                full_rels_cls[keep_idx] = rels_cls
-            else:
-                target_rels = target_rels[keep_idx]
-                full_rels_cls = rels_cls
-        else:
-            full_rels_cls = rels_cls
+#         if self.with_relpn:
+#             if self.evaluating:
+#                 full_rels_cls = torch.zeros([target_rels.size(0), rels_cls.size(1)],
+#                                             device=rels_cls.device, dtype=rels_cls.dtype)
+#                 if not self.multi_rel_outputs:
+#                     full_rels_cls[:,0] = 1
+#                 full_rels_cls[keep_idx] = rels_cls
+#             else:
+#                 target_rels = target_rels[keep_idx]
+#                 full_rels_cls = rels_cls
+#         else:
+#             full_rels_cls = rels_cls
 
-        return objs_cls, full_rels_cls, target_rels, relpn_loss
+#         return objs_cls, full_rels_cls, target_rels, relpn_loss
 
 def feature_transform_regularizer(trans):
     d = trans.size()[1]
