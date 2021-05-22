@@ -54,7 +54,7 @@
     "selection": "",
     "ignore_scannet_rel": true,
     "is_v2": true,
-    "_label_file": ["labels.instances.align.annotated.ply","labels.instances.align.annotated.v2.ply", "inseg.ply", "cvvseg.ply"],
+    "_label_file": ["labels.instances.align.annotated.v2.ply", "inseg.ply", "cvvseg.ply"],
     "label_file": "inseg.ply",
     "data_augmentation": false,
     "num_points": 128,
