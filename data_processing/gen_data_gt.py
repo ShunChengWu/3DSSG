@@ -6,9 +6,11 @@ import trimesh
 import open3d as o3d
 import numpy as np
 from utils import define, util
+from utils import util_ply, util_label, util, define
 from utils.util_search import SAMPLE_METHODS,find_neighbors
 from tqdm import tqdm
-
+from pathlib import Path
+import os,json    
 import argparse
 
 def Parser(add_help=True):
@@ -42,9 +44,6 @@ def Parser(add_help=True):
     return parser
 
 name_same_segment = 'same part'
-
-debug = True
-debug = False
 
 def generate_groups(cloud:trimesh.points.PointCloud, distance:float=1, bbox_distance:float=0.75, 
                     min_seg_per_group = 5, segs_neighbors=None):
@@ -173,11 +172,8 @@ def generate_groups(cloud:trimesh.points.PointCloud, distance:float=1, bbox_dist
 def process(pth_3RScan, scan_id,
             target_relationships:list,
             gt_relationships:dict=None, verbose=False,split_scene=True) -> list:
-    if args.v2:
-        pth_gt = os.path.join(pth_3RScan,scan_id,'labels.instances.align.annotated.v2.ply')
-    else:
-        pth_gt = os.path.join(pth_3RScan,scan_id,'labels.instances.align.annotated.ply')
-    segseg_file_name = 'semseg.v2.json' if args.v2 else 'semseg.json'
+    pth_gt = os.path.join(pth_3RScan,scan_id, define.LABEL_FILE_NAME)
+    segseg_file_name = define.SEMSEG_FILE_NAME
 
     # load gt
     cloud_gt = trimesh.load(pth_gt, process=False)
@@ -198,21 +194,8 @@ def process(pth_3RScan, scan_id,
     else:    
         seg_groups = None
 
-
-    pth_mapping = os.path.join(define.RELEASE_PATH, "3RScan.v2 Semantic Classes - Mapping.csv")
-    label_names = sorted(util.read_classes('/home/sc/research/PersistentSLAM/data/classes.txt'))
-    _, label_name_mapping, _ = util.getLabelMapping('3RScan', pth_mapping)
+    _, label_name_mapping, _ = util_label.getLabelMapping(args.label_type)
     pth_semseg_file = os.path.join(pth_3RScan, scan_id, segseg_file_name)
-    
-    mapping=dict()
-    for k,v in label_name_mapping.items():
-        if k not in label_names:
-            mapping[k] = 'none'
-        else:
-            mapping[k] = v
-    label_name_mapping = mapping
-            
-    # for name_f,name_t in label_name_mapping.items():print(name_f,name_t)
     instance2labelName = util.load_semseg(pth_semseg_file, label_name_mapping,args.mapping)
     
     ''' Find and count all corresponding segments'''
@@ -280,8 +263,7 @@ def gen_relationship(scan_id:str,split:int, map_segment_pd_2_gt:dict,instance2la
     split_relationships = list()
     ''' Inherit relationships from ground truth segments '''
     if gt_relationships is not None:
-        relationships_names = util.read_relationships(os.path.join(define.RELEASE_PATH, args.relation + ".txt"))
-
+        relationships_names = util.read_relationships(os.path.join(define.FILE_PATH, args.relation + ".txt"))
         for rel in gt_relationships:
             id_src = rel[0]
             id_tar = rel[1]
@@ -299,27 +281,22 @@ def gen_relationship(scan_id:str,split:int, map_segment_pd_2_gt:dict,instance2la
             split_relationships.append([ int(id_src), int(id_tar), idx_in_txt_new, name ])
             
     relationships["relationships"] = split_relationships
-    # assert len(split_relationships) > 0
     return relationships
     
 if __name__ == '__main__':
     args = Parser().parse_args()
-    debug |= args.debug > 0
+    debug = args.debug > 0
     if args.search_method == 'BBOX':
         search_method = SAMPLE_METHODS.BBOX
     elif args.search_method == 'KNN':
         search_method = SAMPLE_METHODS.RADIUS
     
     util.set_random_seed(2020)
-    import os,json
-    pth_mapping = os.path.join(define.RELEASE_PATH, "3RScan.v2 Semantic Classes - Mapping.csv")
-    label_names, _, _ = util.getLabelMapping('3RScan', pth_mapping)
-    
     
     ''' Map label to 160'''
-    label_names = sorted(util.read_classes(define.RELEASE_PATH + '/classes160.txt'))
-    target_relationships = sorted(util.read_classes(define.RELEASE_PATH + '/classes160.txt'))
-    
+    label_names = sorted(util.read_classes(define.CLASS160_FILE))
+    # target_relationships = sorted(util.read_classes(define.RELEASE_PATH + '/classes160.txt'))
+    target_relationships = ['supported by', 'attached to','standing on','hanging on','connected to','part of','build in']
     classes_json = list()
     for name in label_names:
         if name == '-':continue
@@ -327,13 +304,13 @@ if __name__ == '__main__':
         
     ''' Read Scan and their type=['train', 'test', 'validation'] '''
     scan2type = {}
-    with open(os.path.join(define.RELEASE_PATH + "/../" + "3RScan.v1.1.json"), "r") as read_file:
+    with open(define.Scan3RJson_PATH, "r") as read_file:
         data = json.load(read_file)
         for scene in data:
             scan2type[scene["reference"]] = scene["type"]
             for scan in scene["scans"]:
                 scan2type[scan["reference"]] = scene["type"]
-    
+                
     target_scan=[]
     if args.target_scan != '':
         target_scan = util.read_txt_to_list(args.target_scan)
@@ -343,7 +320,7 @@ if __name__ == '__main__':
     relationships_new["scans"] = list()
     relationships_new['neighbors'] = dict()
     counter= 0
-    with open(os.path.join(define.RELEASE_PATH + args.relation + ".json"), "r") as read_file:
+    with open(os.path.join(define.FILE_PATH + args.relation + ".json"), "r") as read_file:
         data = json.load(read_file)
         for s in tqdm(data["scans"]):
         # for s in data["scans"]:
@@ -367,6 +344,8 @@ if __name__ == '__main__':
             if len(relationships) == 0:
                 print('skip',scan_id,'due to not enough objs and relationships')
                 continue
+            else:
+                print('no skip', scan_id)
             
             relationships_new["scans"] += relationships
             relationships_new['neighbors'][scan_id] = segs_neighbors
@@ -374,11 +353,7 @@ if __name__ == '__main__':
             if debug:
                 break
             
-            # counter+=1
-            # if counter> 10:break
-            
-    
-    util.create_folder(args.pth_out)
+    Path(args.pth_out).mkdir(parents=True, exist_ok=True)
     pth_args = os.path.join(args.pth_out,'args.json')
     with open(pth_args, 'w') as f:
             tmp = vars(args)
