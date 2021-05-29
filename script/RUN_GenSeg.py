@@ -27,7 +27,7 @@ parser.add_argument('--dataset',type=str,choices=['3RScan','ScanNet'],default='3
 parser.add_argument('--type', type=str, default='train', choices=['train', 'validation'], help="which split of scans to use",required=True)
 
 parser.add_argument('--thread', type=int, default=0, help='', required=False)
-parser.add_argument('--rendered', type=int, default=0, help='use rendered depth (for ScanNet)', required=False)
+parser.add_argument('--rendered', type=int, default=1, help='use rendered depth (for ScanNet and 3RScan)', required=False)
 parser.add_argument('--debug', type=int, default=0, help='', required=False)
 
 args = parser.parse_args()
@@ -109,10 +109,7 @@ if __name__ == '__main__':
         scan_ids = val_scans
     else:
         RuntimeError('unknown type')
-        
-    if args.rendered > 0:
-        assert args.dataset == 'ScanNet'
-    
+
     results=[]
     for scan_id in sorted(scan_ids):
         # --pth /media/sc/SSD1TB/dataset/3RScan/data/3RScan/0a4b8ef6-a83a-21f2-8672-dce34dd0d7ca/sequence/
