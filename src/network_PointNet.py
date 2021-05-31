@@ -244,7 +244,7 @@ class PointNetCls(BaseNetwork):
         input_ = (x)
         op_utils.export(self, input_, os.path.join(pth, name), 
                         input_names=names_i, output_names=names_o, 
-                        dynamic_axes = {names_i[0]:{0:'n_node', 2:'n_pts'}})
+                        dynamic_axes = {names_i[0]:{0:'n_node', 1:'n_pts'}})
         names = dict()
         names['model_'+name] = dict()
         names['model_'+name]['path'] = name
@@ -297,7 +297,7 @@ class PointNetRelCls(BaseNetwork):
         input_ = (x)
         op_utils.export(self, input_, os.path.join(pth, name), 
                         input_names=names_i, output_names=names_o, 
-                        dynamic_axes = {names_i[0]:{0:'n_node', 2:'n_pts'}})
+                        dynamic_axes = {names_i[0]:{0:'n_node', 1:'n_pts'}})
         names = dict()
         names['model_'+name] = dict()
         names['model_'+name]['path'] = name

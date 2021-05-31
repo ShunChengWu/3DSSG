@@ -37,7 +37,8 @@ class SGFN():
             if self.config.WEIGHTING:
                 self.w_cls_obj=self.dataset_train.w_cls_obj
                 self.w_cls_rel=self.dataset_train.w_cls_rel
-
+                
+        if config.MODE  == 'train' or config.MODE  == 'trace':
             self.dataset_valid = build_dataset(self.config,split_type='validation_scans', shuffle_objs=False, 
                                       multi_rel_outputs=mconfig.multi_rel_outputs,
                                       use_rgb=mconfig.USE_RGB,

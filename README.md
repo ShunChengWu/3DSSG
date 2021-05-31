@@ -8,7 +8,8 @@
 [nassir]:http://campar.in.tum.de/Main/NassirNavabCv
 [fede]:http://campar.in.tum.de/Main/FedericoTombari
 
-This repository contains the network part of the SceneGraphFusion work. For the incremental framework, please check [here](https://github.com/ShunChengWu/SceneGraphFusion).
+This repository contains the network part of the SceneGraphFusion work. For the incremental framework, 
+please check [here](https://github.com/ShunChengWu/SceneGraphFusion).
 
 # Dependencies
 The code has been tested on Ubuntu 18.04 and gcc 7.5. You can either create a conda environment by 
@@ -54,9 +55,22 @@ The main.py file will create a folder at the same directory of config with the N
 stors the logging from Tensorboard. The trained models/ evaluation results/ traced models will all be stored within the 
 NAME folder.
 
-
-
 We provide a trained model [here](https://drive.google.com/file/d/1a2q7yMNNmEpUfC1_5Wuor0qDM-sBStFZ/view?usp=sharing). The model is able to perform equivelent result as reported in the SceneGraphFusion [paper][1].
+
+# Trace
+The trained model can be traced and then be used on our [SceneGraphFusion](https://github.com/ShunChengWu/SceneGraphFusion) framework.
+
+```
+python main.py --mode trace --config ./path/to/config
+```
+
+For example, to trace our pre-trained model
+```
+python main.py --mode trace --config ./CVPR21/config_CVPR21.json
+```
+
+The traced model will be stored at
+`./CVPR21/CVPR21/traced/`
 
 # Generate Training Data
 See README.md under `data_processing` folder
