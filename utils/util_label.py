@@ -239,8 +239,8 @@ def getLabelMapping(label_type:str,pth_mapping:str = ""):
             label_name_mapping[name] = name40 if name40 in label_names.values() else 'none'
         for id_f, id_40 in label_id_mapping.items():
             nyu40name = NYU40_Label_Names[id_40-1]
-            if nyu40name in label_names:
-                id_scan20 = label_names.index(nyu40name)+1
+            if nyu40name in label_names.values():
+                id_scan20 = list(label_names.values()).index(nyu40name)+1
                 label_id_mapping[id_f] = id_scan20
             else:
                 label_id_mapping[id_f] = 0
