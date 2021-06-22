@@ -29,6 +29,7 @@ def build_neighbor(nns:dict, instance2labelName:dict, n_times:int, n_seed = 1):
     index = list(set(index)) # make them unique
     for n_idx in selected_nodes:
         if str(n_idx) not in nns:
+            print('cannot find key',n_idx,'in',nns.keys())
             assert str(n_idx) in nns.keys()
     
     ''' loop over n times'''

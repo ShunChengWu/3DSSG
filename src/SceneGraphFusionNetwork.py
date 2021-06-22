@@ -28,6 +28,7 @@ class SGFN():
         ''' Build dataset '''
         dataset = None
         if config.MODE  == 'train':
+            if config.VERBOSE: print('build train dataset')
             self.dataset_train = build_dataset(self.config,split_type='train_scans', shuffle_objs=True,
                                                multi_rel_outputs=mconfig.multi_rel_outputs,
                                                use_rgb=mconfig.USE_RGB,
@@ -39,6 +40,7 @@ class SGFN():
                 self.w_cls_rel=self.dataset_train.w_cls_rel
                 
         if config.MODE  == 'train' or config.MODE  == 'trace':
+            if config.VERBOSE: print('build valid dataset')
             self.dataset_valid = build_dataset(self.config,split_type='validation_scans', shuffle_objs=False, 
                                       multi_rel_outputs=mconfig.multi_rel_outputs,
                                       use_rgb=mconfig.USE_RGB,
@@ -48,6 +50,7 @@ class SGFN():
             dataset = self.dataset_valid
 
         try:
+            if config.VERBOSE: print('build test dataset')
             self.dataset_eval = build_dataset(self.config,split_type='test_scans', shuffle_objs=False, 
                                       multi_rel_outputs=mconfig.multi_rel_outputs,
                                       use_rgb=mconfig.USE_RGB,
