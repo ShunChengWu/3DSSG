@@ -13,6 +13,6 @@ scripted_model
 
 venv
 files/*.json
-files/*.txt*.zip
+files/*.txt
 files/
 *.zip
