@@ -31,6 +31,7 @@ def Parser(add_help=True):
     parser.add_argument('--inherit', type=int,default=1,help='inherit relationships from the 3RScan.')
     parser.add_argument('--verbose', type=bool, default=False, help='verbal',required=False)
     parser.add_argument('--debug', type=int, default=0, help='debug',required=False)
+    parser.add_argument('--scale', type=float,default=1,help='scaling input point cloud.')
     
     # neighbor search parameters
     parser.add_argument('--search_method', type=str, choices=['BBOX','KNN'],default='BBOX',help='How to split the scene.')
@@ -195,14 +196,26 @@ def process(pth_3RScan, scan_id,label_type,
     
     # load segments
     cloud_pd = trimesh.load(pth_pd, process=False)
+    cloud_pd.apply_scale(args.scale)
     points_pd = np.array(cloud_pd.vertices.tolist())
     segments_pd = cloud_pd.metadata['ply_raw']['vertex']['data']['label'].flatten()
     # get num of segments
     segment_ids = np.unique(segments_pd) 
     segment_ids = segment_ids[segment_ids!=0]
     
+    if args.verbose: print('filtering input segments.. (ori num of segments:',len(segment_ids),')')
+    segments_pd_filtered=list()
+    for seg_id in segment_ids:
+        pts = points_pd[np.where(segments_pd==seg_id)]
+        if len(pts) > filter_segment_size:
+            segments_pd_filtered.append(seg_id)
+    segment_ids = segments_pd_filtered
+    if args.verbose: print('there are',len(segment_ids), 'segemnts:\n', segment_ids)
+    
     # Find neighbors of each segment
-    segs_neighbors = find_neighbors(points_pd, segments_pd, search_method,receptive_field=args.radius_receptive)
+    segs_neighbors = find_neighbors(points_pd, segments_pd, search_method,receptive_field=args.radius_receptive,selected_keys=segment_ids)
+    if args.verbose:
+        print('segs_neighbors:\n',segs_neighbors.keys())
     if split_scene:
         seg_groups = generate_groups(cloud_pd,args.radius_seed,args.radius_receptive,args.min_segs,
                                      segs_neighbors=segs_neighbors)
@@ -226,22 +239,22 @@ def process(pth_3RScan, scan_id,label_type,
     for segment_id in segments_gt:
         segment_indices = np.where(segments_gt == segment_id)[0]
         size_segments_gt[segment_id] = len(segment_indices)
-
-    
-    size_segments_pd = dict()
     
     ''' Find and count all corresponding segments'''
     tree = o3d.geometry.KDTreeFlann(points_gt)
     count_seg_pd_2_corresponding_seg_gts = dict() # counts each segment_pd to its corresonding segment_gt
     
+    size_segments_pd = dict()
+    instance2labelName_filtered = dict()
     for segment_id in segment_ids:
         segment_indices = np.where(segments_pd == segment_id)[0]
         segment_points = points_pd[segment_indices]        
-        
+
         size_segments_pd[segment_id] = len(segment_points)
         
         if filter_segment_size > 0:
             if size_segments_pd[segment_id] < filter_segment_size:
+                # print('skip segment',segment_id,'with size',size_segments_pd[segment_id],'that smaller than',filter_segment_size)
                 continue
             
         for i in range(len(segment_points)):
@@ -254,12 +267,16 @@ def process(pth_3RScan, scan_id,label_type,
             
             if segment_gt not in instance2labelName: continue
             if instance2labelName[segment_gt] == 'none': continue
+            instance2labelName_filtered[segment_gt] = instance2labelName[segment_gt]
 
             if segment_id not in count_seg_pd_2_corresponding_seg_gts: 
                 count_seg_pd_2_corresponding_seg_gts[segment_id] = dict()            
             if segment_gt not in count_seg_pd_2_corresponding_seg_gts[segment_id]: 
                 count_seg_pd_2_corresponding_seg_gts[segment_id][segment_gt] = 0
             count_seg_pd_2_corresponding_seg_gts[segment_id][segment_gt] += 1
+    
+    instance2labelName = instance2labelName_filtered
+    
         # break
     if verbose or debug:
         print('There are {} segments have found their correponding GT segments.'.format(len(count_seg_pd_2_corresponding_seg_gts)))
@@ -335,7 +352,7 @@ def process(pth_3RScan, scan_id,label_type,
         for gt_segment, pd_segments in sorted(gt_segments_2_pd_segments.items()):
             print('{:4d}:'.format(gt_segment),end='')
             for pd_segment in pd_segments:
-                print('{:4d}'.format(pd_segment),end='')        
+                print('{} '.format(pd_segment),end='')        
             print('')
 
     ''' Save as ply '''
@@ -465,6 +482,7 @@ def gen_relationship(scan_id:str,split:int, map_segment_pd_2_gt:dict,instance2la
 if __name__ == '__main__':
     args = Parser().parse_args()
     debug |= args.debug
+    args.verbose |= args.debug
     if args.search_method == 'BBOX':
         search_method = SAMPLE_METHODS.BBOX
     elif args.search_method == 'KNN':
