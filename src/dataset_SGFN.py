@@ -40,7 +40,7 @@ def load_mesh(path,label_file,use_rgb,use_normal):
         result['points']=points
         result['instances']=instances
         
-    elif label_file.find('inseg')>=0 or label_file == 'cvvseg.ply':
+    else:# label_file.find('inseg')>=0 or label_file == 'cvvseg.ply':
         plydata = trimesh.load(os.path.join(path,label_file), process=False)
         points = np.array(plydata.vertices)
         instances = plydata.metadata['ply_raw']['vertex']['data']['label'].flatten()
@@ -57,85 +57,47 @@ def load_mesh(path,label_file,use_rgb,use_normal):
             points = np.concatenate((points, normal), axis=1)
         result['points']=points
         result['instances']=instances
-    else:
-        raise NotImplementedError('')
+    # else:
+    #     raise NotImplementedError('')
     
     return result
 
-def read_relationship_json(data, selected_scans:list, classNames:dict, isV2:bool=True):
-        rel = dict()
-        objs = dict()
-        scans = list()
-        nns = None
-        
-        if 'neighbors' in data:
-            nns = data['neighbors']
-        for scan in data['scans']:
-            if scan["scan"] == 'fa79392f-7766-2d5c-869a-f5d6cfb62fc6':
-                if isV2 == "labels.instances.align.annotated.v2.ply":
-                    '''
-                    In the 3RScanV2, the segments on the semseg file and its ply file mismatch. 
-                    This causes error in loading data.
-                    To verify this, run check_seg.py
-                    '''
-                    continue
-            if scan['scan'] not in selected_scans:
-                continue
-                
-            relationships = []
-            for realationship in scan["relationships"]:
-                relationships.append(realationship)
-                
-            objects = {}
-            for k, v in scan["objects"].items():
-                objects[int(k)] = v
-                
-            # filter scans that doesn't have the classes we care
-            instances_id = list(objects.keys())
-            valid_counter = 0
-            for instance_id in instances_id:
-                instance_labelName = objects[instance_id]
-                if instance_labelName in classNames: # is it a class we care about?
-                    valid_counter+=1
-                    # break
-            if valid_counter < 2: # need at least two nodes
-                continue
-
-            rel[scan["scan"] + "_" + str(scan["split"])] = relationships
-            scans.append(scan["scan"] + "_" + str(scan["split"]))
-
-            
-            objs[scan["scan"]+"_"+str(scan['split'])] = objects
-
-        return rel, objs, scans, nns
-
 def dataset_loading_3RScan(root:str, pth_selection:str,split:str,class_choice:list=None):
-    
+
     pth_catfile = os.path.join(pth_selection, 'classes.txt')
     classNames = util.read_txt_to_list(pth_catfile)
     
     pth_relationship = os.path.join(pth_selection, 'relationships.txt')
     util.check_file_exist(pth_relationship)
     relationNames = util.read_relationships(pth_relationship)
-    
+
     selected_scans=set()
+    data = dict()
     if split == 'train_scans' :
         selected_scans = selected_scans.union(util.read_txt_to_list(os.path.join(pth_selection,'train_scans.txt')))
+        with open(os.path.join(root, 'relationships_train.json'), "r") as read_file:
+             data1 = json.load(read_file)
     elif split == 'validation_scans':
         selected_scans = selected_scans.union(util.read_txt_to_list(os.path.join(pth_selection,'validation_scans.txt')))
+        with open(os.path.join(root, 'relationships_validation.json'), "r") as read_file:
+             data1 = json.load(read_file)
     elif split == 'test_scans':
         selected_scans = selected_scans.union(util.read_txt_to_list(os.path.join(pth_selection,'test_scans.txt')))
+        with open(os.path.join(root, 'relationships_test.json'), "r") as read_file:
+             data1 = json.load(read_file)
     else:
         raise RuntimeError('unknown split type.')
 
-    with open(os.path.join(root, 'relationships_train.json'), "r") as read_file:
-        data1 = json.load(read_file)
-    with open(os.path.join(root, 'relationships_validation.json'), "r") as read_file:
-        data2 = json.load(read_file)
-    data = dict()
-    data['scans'] = data1['scans'] + data2['scans']
+    # with open(os.path.join(root, 'relationships_train.json'), "r") as read_file:
+    #     data1 = json.load(read_file)
+    # with open(os.path.join(root, 'relationships_validation.json'), "r") as read_file:
+    #     data2 = json.load(read_file)
+    # with open(os.path.join(root, 'relationships_test.json'), "r") as read_file:
+    #     data3 = json.load(read_file)
+    
+    data['scans'] = data1['scans']# + data2['scans'] + data3['scans']
     if 'neighbors' in data1:
-        data['neighbors'] = {**data1['neighbors'], **data2['neighbors']}
+        data['neighbors'] = data1['neighbors']#{**data1['neighbors'], **data2['neighbors'], **data3['neighbors']}
     return  classNames, relationNames, data, selected_scans
 
 class SGFNDataset (data.Dataset):
@@ -191,7 +153,7 @@ class SGFNDataset (data.Dataset):
                     selection = self.root[i]
                 l_classNames, l_relationNames, l_data, l_selected_scans = \
                     dataset_loading_3RScan(self.root[i], selection, split)
-                
+
                 if classNames is None:
                     classNames, relationNames, data, selected_scans = \
                         l_classNames, l_relationNames, l_data, l_selected_scans
@@ -218,7 +180,7 @@ class SGFNDataset (data.Dataset):
             if 'none' not in self.relationNames:
                 self.relationNames.append('none')
 
-        
+
         wobjs, wrels, o_obj_cls, o_rel_cls = compute_weight_occurrences.compute(self.classNames, self.relationNames, data,selected_scans)
         self.w_cls_obj = torch.from_numpy(np.array(o_obj_cls)).float().to(self.config.DEVICE)
         self.w_cls_rel = torch.from_numpy(np.array(o_rel_cls)).float().to(self.config.DEVICE)
