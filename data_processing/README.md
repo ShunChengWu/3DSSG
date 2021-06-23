@@ -49,6 +49,20 @@ python gen_data.py
   --label_type ['ScanNet20', '3RScan160']
   --pth_out /path/to/an/output/folder/
 ```
+
+You can also use the script `generate_train_valid_test_splits.py` to generate custom splits for training the data. 
+Example:
+```
+# Generate splits
+python generate_train_valid_test_splits.py --pth_out ./tmp/ 
+# Train
+python gen_data.py --type train --label_type ScanNet20 --pth_out ../data/example_data/ --target_scan tmp/train_scans.txt --min_seg_size 256;
+# Valid
+python gen_data.py --type validation --label_type ScanNet20 --pth_out ../data/example_data/ --target_scan tmp/validation_scans.txt --min_seg_size 256;
+# Test
+python gen_data.py --type test --label_type ScanNet20 --pth_out ../data/example_data/ --target_scan tmp/test_scans.txt --min_seg_size 256;
+```
+
 4. Generate data with ScanNet dataset
 ```
 python gen_data_scannet.py 
