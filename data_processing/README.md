@@ -22,7 +22,7 @@ Use `gen_data_gt.py` to generate the training data in the 3DSSG paper.
 # Generate training/evaluation data from estimated segmentations
 1. Generate aligned pose and mesh.  
 To generate incremental segmented scene, you will need to run our reconstruction framework with aligined pose and rendered view from 3RScan.  
-Use one of the executable `rio_renderer_render_all` and `align_poses`  in the 3RScan repo to generate them.
+Use one of the executable `rio_renderer_render_all` and `align_poses`  in the [3RScan repo](https://github.com/WaldJohannaU/3RScan) to generate them.
 ```
 # ./rio_renderer_render_all <3RScan_path> <scan_id> <output_folder> <render_mode>
 # <render_mode>: 0 = default (occlusion) = all; 1 = only images, 2 = only depth; 3 = images and bounding boxes; 4 = only bounding boxes
