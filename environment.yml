@@ -12,6 +12,7 @@ dependencies:
   - trimesh=3.9.13=pyh44b312d_0
   - pip=21.0.1=py38h06a4308_0
   - open3d
+  - plyfile
   - pip:
     - torch-cluster==1.5.9
     - torch-geometric==1.7.0
