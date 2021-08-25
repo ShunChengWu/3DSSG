@@ -55,7 +55,9 @@ The main.py file will create a folder at the same directory of config with the N
 stors the logging from Tensorboard. The trained models/ evaluation results/ traced models will all be stored within the 
 NAME folder.
 
-We provide a trained model [here](https://drive.google.com/file/d/1a2q7yMNNmEpUfC1_5Wuor0qDM-sBStFZ/view?usp=sharing). The model is able to perform equivelent result as reported in the SceneGraphFusion [paper][1].
+We provide a trained model [here](https://drive.google.com/file/d/1a2q7yMNNmEpUfC1_5Wuor0qDM-sBStFZ/view?usp=sharing). The model is able to perform equivelent result as reported in the SceneGraphFusion [paper][1]. 
+Note: The model is trained with 20 NYUv2 object classes used in ScanNet benchmark, and with 8 support types of predicates.
+
 
 # Trace
 The trained model can be traced and then be used on our [SceneGraphFusion](https://github.com/ShunChengWu/SceneGraphFusion) framework.
@@ -73,7 +75,7 @@ The traced model will be stored at
 `./CVPR21/CVPR21/traced/`
 
 # Generate Training Data
-See README.md under `data_processing` folder
+See README.md under [data_processing](data_processing/) folder
 
 # License
 [![License](https://img.shields.io/badge/License-BSD%202--Clause-orange.svg)](https://opensource.org/licenses/BSD-2-Clause)
