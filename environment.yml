@@ -2,7 +2,7 @@ channels:
   - pytorch
   - conda-forge
   - defaults
-  - open3d
+  - open3d-admin
 dependencies:
   - cudatoolkit=10.2.89=hfd86e86_1
   - python=3.8.8=hdb3f193_4
@@ -11,7 +11,8 @@ dependencies:
   - tensorboard=1.15.0=py38_0
   - trimesh=3.9.13=pyh44b312d_0
   - pip=21.0.1=py38h06a4308_0
-  - open3d-admin
+  - open3d
+  - plyfile
   - pip:
     - torch-cluster==1.5.9
     - torch-geometric==1.7.0
