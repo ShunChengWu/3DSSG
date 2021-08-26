@@ -46,6 +46,8 @@ pip install torch-geometric
 pip install open3d
 ```
 
+Instructions to use a Docker image: [instructions](Docker_instructions.md)
+
 # Run
 Run a toy example:
 ```
