@@ -180,7 +180,7 @@ class SGFNModel(BaseModel):
                 if ignore_none_rel:
                     weight[0] = 0
                     weight *= 1e-2 # reduce the weight from ScanNet
-                    print('set weight of none to 0')
+                    # print('set weight of none to 0')
                 if 'NONE_RATIO' in self.mconfig:
                     weight[0] *= self.mconfig.NONE_RATIO
                     
