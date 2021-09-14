@@ -197,7 +197,10 @@ class SGPNModel(BaseModel):
         pred_cls = torch.max(obj_pred.detach(),1)[1]
         acc_obj = (obj_gt == pred_cls).sum().item() / obj_gt.nelement()
         
-        pred_rel= rel_pred.detach() > 0.5
+        if self.mconfig.multi_rel_outputs:
+            pred_rel= rel_pred.detach() > 0.5
+        else:
+            pred_rel = torch.max(rel_pred.detach(),1)[1]
         acc_rel = (rel_gt==pred_rel).sum().item() / rel_gt.nelement()
         
         logs = [("Accuracy/obj_cls",acc_obj), 
