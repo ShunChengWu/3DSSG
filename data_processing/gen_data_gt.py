@@ -12,6 +12,7 @@ from tqdm import tqdm
 from pathlib import Path
 import os,json    
 import argparse
+import h5py
 
 def Parser(add_help=True):
     parser = argparse.ArgumentParser(description='Process some integers.', formatter_class = argparse.ArgumentDefaultsHelpFormatter,
@@ -295,8 +296,13 @@ if __name__ == '__main__':
     
     ''' Map label to 160'''
     label_names = sorted(util.read_classes(define.CLASS160_FILE))
+    target_relationships = sorted(util.read_relationships(define.RELATIONSHIP27_FILE))
     # target_relationships = sorted(util.read_classes(define.RELEASE_PATH + '/classes160.txt'))
-    target_relationships = ['supported by', 'attached to','standing on','hanging on','connected to','part of','build in']
+    # target_relationships = ['supported by', 'attached to','standing on','hanging on','connected to','part of','build in']
+    # remove none.
+    # if 'none' in target_relationships:
+    #     target_relationships.remove('none')
+    
     classes_json = list()
     for name in label_names:
         if name == '-':continue
@@ -322,8 +328,9 @@ if __name__ == '__main__':
     counter= 0
     with open(os.path.join(define.FILE_PATH + args.relation + ".json"), "r") as read_file:
         data = json.load(read_file)
-        for s in tqdm(data["scans"]):
-        # for s in data["scans"]:
+        filtered_data = list()
+        
+        for s in data["scans"]:
             scan_id = s["scan"]
             
             if len(target_scan) ==0:
@@ -334,6 +341,20 @@ if __name__ == '__main__':
             else:
                 if scan_id not in target_scan: continue
             
+            filtered_data.append(s)
+        
+        for s in tqdm(filtered_data):
+        # for s in data["scans"]:
+            scan_id = s["scan"]
+            
+            # if len(target_scan) ==0:
+            #     if scan2type[scan_id] != args.type: 
+            #         if args.verbose:
+            #             print('skip',scan_id,'not validation type')
+            #         continue
+            # else:
+                # if scan_id not in target_scan: continue
+            
             gt_relationships = s["relationships"]
             if debug:print('processing scene',scan_id)
             valid_scans.append(scan_id)
@@ -342,10 +363,10 @@ if __name__ == '__main__':
                                     split_scene = args.split,
                                     verbose = args.verbose)
             if len(relationships) == 0:
-                print('skip',scan_id,'due to not enough objs and relationships')
+                if debug: print('skip',scan_id,'due to not enough objs and relationships')
                 continue
             else:
-                print('no skip', scan_id)
+                if debug:  print('no skip', scan_id)
             
             relationships_new["scans"] += relationships
             relationships_new['neighbors'][scan_id] = segs_neighbors
@@ -358,10 +379,6 @@ if __name__ == '__main__':
     with open(pth_args, 'w') as f:
             tmp = vars(args)
             json.dump(tmp, f, indent=2)
-    
-    pth_relationships_json = os.path.join(args.pth_out, "relationships_" + args.type + ".json")
-    with open(pth_relationships_json, 'w') as f:
-        json.dump(relationships_new, f)
     pth_classes = os.path.join(args.pth_out, 'classes.txt')
     with open(pth_classes,'w') as f:
         for name in classes_json:
@@ -375,3 +392,49 @@ if __name__ == '__main__':
     with open(pth_split,'w') as f:
         for name in valid_scans:
             f.write('{}\n'.format(name))
+
+    '''save to h5'''            
+    pth_relationships_json = os.path.join(args.pth_out, "relationships_" + args.type + ".h5")
+    h5f = h5py.File(pth_relationships_json, 'w')
+    # reorganize scans from list to dict
+    scans = dict()
+    for s in relationships_new['scans']:
+        scans[s['scan']] = s
+    all_neighbors = relationships_new['neighbors']
+    for scan_id in scans.keys():
+        scan_data = scans[scan_id]
+        neighbors = all_neighbors[scan_id]
+        objects = scan_data['objects']
+        
+        h5_scan = h5f.create_group(scan_id)
+        
+        ## Nodes
+        h5_nodes = h5_scan.create_group('nodes')
+        for idx, data in enumerate(objects.items()):
+            oid, label = data
+            
+            h5_node = h5_nodes.create_group(str(oid))
+            h5_node.attrs['label'] = label.encode('ascii')
+            
+            # ascii_label = label.encode('ascii')
+            # dset = h5_node.create_dataset('label',(len(ascii_label),1), dtype='S10',data=ascii_label) # create foo dataset to attach attributes
+            
+            
+            ascii_nn = [str(n).encode("ascii", "ignore") for n in neighbors[oid]]
+            dset = h5_node.create_dataset('neighbors', (len(ascii_nn),1),'S10',ascii_nn, chunks=True) # create foo dataset to attach attributes
+        
+            
+        ## Relationships
+        str_relationships = list() 
+        for rel in scan_data['relationships']:
+            str_relationships.append([str(s) for s in rel])
+            
+        h5_rel = h5_scan.create_dataset('relationships', data=np.array(str_relationships,dtype='S'))
+            
+        # h5_scan.attrs['relationships'] = str_relationships
+    h5f.close()
+    pth_relationships_json = os.path.join(args.pth_out, "relationships_" + args.type + ".json")
+    with open(pth_relationships_json, 'w') as f:
+        json.dump(relationships_new, f)
+        
+    

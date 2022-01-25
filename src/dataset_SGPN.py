@@ -173,6 +173,8 @@ class RIODatasetGraph(data.Dataset):
         if not multi_rel_outputs:
             if 'none' not in self.relationNames:
                 self.relationNames.append('none')
+        elif 'non' in self.relationNames:
+            self.relationNames.remove('none')
                 
         wobjs, wrels, o_obj_cls, o_rel_cls = compute_weight_occurrences.compute(self.classNames, self.relationNames, data,selected_scans, False)
         self.w_cls_obj = torch.from_numpy(np.array(o_obj_cls)).float().to(self.config.DEVICE)
@@ -269,7 +271,15 @@ class RIODatasetGraph(data.Dataset):
                          sample_in_runtime=self.sample_in_runtime,
                          num_nn=sample_num_nn, num_seed=sample_num_seed,
                          use_all = self.for_eval)
-        return scan_id, instance2mask, obj_points, rel_points, gt_class, gt_rels, edge_indices
+        output = dict()
+        output['scan_id'] = scan_id # str
+        output['instance2mask'] = instance2mask #dict
+        output['obj_points'] = obj_points
+        output['rel_points'] = rel_points
+        output['gt_rel'] = gt_rels  # tensor
+        output['gt_cls'] = gt_class # tensor
+        output['node_edges'] = edge_indices # tensor
+        return output# scan_id, instance2mask, obj_points, rel_points, gt_class, gt_rels, edge_indices
 
     def __len__(self):
         return len(self.scans)

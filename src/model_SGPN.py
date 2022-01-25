@@ -69,6 +69,7 @@ class SGPNModel(BaseModel):
         #                                 dim_hidden = mconfig.gcn_hidden_feature_size)
         
         if mconfig.GCN_TYPE == "TRIP":
+            if config.VERBOSE: print('')
             models['gcn'] = TripletGCNModel(num_layers=mconfig.N_LAYERS,
                                             dim_node = mconfig.point_feature_size,
                                             dim_edge = mconfig.edge_feature_size,

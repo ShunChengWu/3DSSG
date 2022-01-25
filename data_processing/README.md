@@ -16,8 +16,17 @@ python download.py -o /path/to/3RScan/ --type labels.instances.annotated.v2.ply
 
 * Run `transform_ply.py` under `./data_processing/` to generate `labels.instances.align.annotated.ply`
 
+* Generate split: Run `generate_train_valid_test_splits.py` to generate train/val/test splits.
+
 # Generate training/evaluation data with GT segmentations
 Use `gen_data_gt.py` to generate the training data in the 3DSSG paper.
+
+For example to generate data to `../data/3RScan_3RScan160`
+```
+python gen_data_gt.py --pth_out ../data/3RScan_3RScan160 --type train --target_scan ../data/3RScan_3RScan/train_scans.txt
+python gen_data_gt.py --pth_out ../data/3RScan_3RScan160 --type validation --target_scan ../data/3RScan_3RScan/validation_scans.txt
+python gen_data_gt.py --pth_out ../data/3RScan_3RScan160 --type test --target_scan ../data/3RScan_3RScan/test_scans.txt
+```
 
 # Generate training/evaluation data from estimated segmentations
 1. Generate aligned pose and mesh.  

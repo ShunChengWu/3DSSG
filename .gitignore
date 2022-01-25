@@ -16,3 +16,4 @@ files/*.json
 files/*.txt
 files/
 *.zip
+out/

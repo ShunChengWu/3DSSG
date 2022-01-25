@@ -11,6 +11,7 @@ from config import Config
 import op_utils
 from utils import plot_confusion_matrix
 from utils import util_eva
+from collate import graph_collate
 
 class SGFN():
     def __init__(self, config):
@@ -125,6 +126,7 @@ class SGFN():
             num_workers=self.config.WORKERS,
             drop_last=drop_last,
             shuffle=True,
+            collate=graph_collate,
         )
         
         epoch = 1
@@ -321,7 +323,8 @@ class SGFN():
             batch_size=1,
             num_workers=self.config.WORKERS,
             drop_last=False,
-            shuffle=False
+            shuffle=False,
+            collate=graph_collate,
         )
         from utils import util_eva
         eva_tool = util_eva.EvalSceneGraph(self.dataset_valid.classNames, self.dataset_valid.relationNames,
