@@ -178,6 +178,9 @@ class Trainer_SGFN(BaseTrainer):
         if node_edges_ori.ndim==1:
             return {}
         
+        # print('')
+        # print('gt_rel.sum():',gt_rel.sum())
+        
         ''' make forward pass through the network '''
         node_cls, edge_cls = self.model(**data)
         
@@ -235,11 +238,11 @@ class Trainer_SGFN(BaseTrainer):
         logs['loss_obj'] = loss_obj
         
     def calc_edge_loss(self, logs, edge_cls_pred, edge_cls_gt, weights=None):
-        if self.cfg.model.multi_rel:
-            loss_rel = self.loss_rel_cls(edge_cls_pred, edge_cls_gt)
+        # if self.cfg.model.multi_rel:
+        loss_rel = self.loss_rel_cls(edge_cls_pred, edge_cls_gt)
             # loss_rel = F.binary_cross_entropy(edge_cls_pred, edge_cls_gt, weight=weights)
-        else:
-            loss_rel = self.loss_rel_cls(edge_cls_pred,edge_cls_gt)
+        # else:
+            # loss_rel = self.loss_rel_cls(edge_cls_pred,edge_cls_gt)
             # loss_rel = F.nll_loss(edge_cls_pred, edge_cls_gt, weight = weights)
         logs['loss'] += self.cfg.training.lambda_edge * loss_rel
         logs['loss_rel'] = loss_rel

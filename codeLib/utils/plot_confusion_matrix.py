@@ -73,7 +73,7 @@ def plot_confusion_matrix(cm,
     
     '''auto adjust figure size base on the input target_names'''
     if figsize is None:
-        figsize = ( int(cm.shape[0]/6)+1 , int(cm.shape[1]/6)+1)
+        figsize = ( int(cm.shape[0]/6)+5 , int(cm.shape[1]/6)+5)
         
     fig = plt.figure(figsize=figsize)
     if grid:

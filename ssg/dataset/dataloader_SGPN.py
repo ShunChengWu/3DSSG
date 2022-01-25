@@ -260,8 +260,8 @@ class SGPNDataset(torch.utils.data.Dataset):
 
         sample_num_nn=self.mconfig.sample_num_nn
         sample_num_seed=self.mconfig.sample_num_seed
-        if sample_num_seed==0: sample_num_seed=1 # need at least 1
-        if sample_num_nn==0:sample_num_nn=1# need at least 1
+        # if sample_num_seed==0: sample_num_seed=1 # need at least 1
+        # if sample_num_nn==0:sample_num_nn=1# need at least 1
         
         obj_points, rel_points, edge_indices, instance2mask, gt_rels, gt_class = \
             util_data.data_preparation(points, instances, selected_nodes, 

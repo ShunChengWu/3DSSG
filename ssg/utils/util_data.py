@@ -225,6 +225,19 @@ def zero_mean(point, normalize:bool):
         point /= furthest_distance
     return point
 
+def save_to_ply(points, path:str):
+    with open(path,'w') as f:
+        f.write('ply\n')
+        f.write('format ascii 1.0\n')
+        f.write('element vertex {}\n'.format(points.shape[0]))
+        f.write('property float x\n')
+        f.write('property float y\n')
+        f.write('property float z\n')
+        f.write('end_header\n')
+        for i in range(points.shape[0]):
+            point = points[i]
+            f.write('{} {} {}\n'.format(point[0],point[1],point[2]))
+
 def data_preparation(points, instances, selected_instances, num_points, num_points_union,
                      # use_rgb, use_normal,
                      for_train=False, instance2labelName=None, classNames=None,
@@ -246,6 +259,8 @@ def data_preparation(points, instances, selected_instances, num_points, num_poin
     instances_id = list(np.unique(instances))
     
     if sample_in_runtime:
+        if num_nn==0 or num_seed ==0:
+            use_all = True
         if not use_all:
             filtered_nodes = build_neighbor_sgfn(nns, instance2labelName, num_nn, num_seed)
         else:
@@ -317,6 +332,9 @@ def data_preparation(points, instances, selected_instances, num_points, num_poin
         choice = np.random.choice(len(obj_pointset), num_points, replace=True)
         obj_pointset = obj_pointset[choice, :]
         obj_pointset = torch.from_numpy(obj_pointset.astype(np.float32))
+        
+        # save_to_ply(obj_pointset[:,:3],'./tmp_{}.ply'.format(i))
+        
         obj_pointset[:,:3] = zero_mean(obj_pointset[:,:3], normalize=False)
         obj_points[i] = obj_pointset
         
@@ -352,7 +370,7 @@ def data_preparation(points, instances, selected_instances, num_points, num_poin
                 if [index1,index2] not in edge_indices: continue
             
             if for_train:
-                if r[3] not in relationships:
+                if r_cls not in relationships:
                     continue  
                 r_lid = relationships.index(r_cls) # remap the index of relationships in case of custom relationNames
 
@@ -401,6 +419,9 @@ def data_preparation(points, instances, selected_instances, num_points, num_poin
         choice = np.random.choice(len(pointset), num_points_union, replace=True)
         pointset = pointset[choice, :]
         pointset = torch.from_numpy(pointset.astype(np.float32))
+        
+        # save_to_ply(pointset[:,:3],'./tmp_rel_{}.ply'.format(e))
+        
         pointset[:,:3] = zero_mean(pointset[:,:3],False)
         rel_points.append(pointset)
 

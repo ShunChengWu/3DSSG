@@ -76,9 +76,13 @@ class SGPN(nn.Module):
         rel_feature = self.rel_encoder(rel_points)
 
         probs=None        
-        gcn_obj_feature, gcn_rel_feature = self.gnn(obj_feature, rel_feature, node_edges)
-        obj_cls = self.obj_predictor(gcn_obj_feature)
-        rel_cls = self.rel_predictor(gcn_rel_feature)
+        if self.cfg.model.gnn.num_layers > 0:
+            gcn_obj_feature, gcn_rel_feature = self.gnn(obj_feature, rel_feature, node_edges)
+            obj_cls = self.obj_predictor(gcn_obj_feature)
+            rel_cls = self.rel_predictor(gcn_rel_feature)
+        else:
+            obj_cls = self.obj_predictor(obj_feature)
+            rel_cls = self.rel_predictor(rel_feature)
         
         if return_meta_data:
             return obj_cls, rel_cls, obj_feature, rel_feature, gcn_obj_feature, gcn_rel_feature, probs
