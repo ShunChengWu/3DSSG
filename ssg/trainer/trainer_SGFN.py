@@ -78,11 +78,22 @@ class Trainer_SGFN(BaseTrainer):
         time.sleep(2)# Prevent possible deadlock during epoch transition
         for data in tqdm(it_dataset,leave=False):
             eval_step_dict = self.eval_step(data,eval_tool=eval_tool)
-
+            
             for k, v in eval_step_dict.items():
                 eval_list[k].update(v)
-
-        eval_dict = {k: v.avg for k, v in eval_list.items()}
+            # break
+        eval_dict = dict()
+        obj_, edge_ = eval_tool.get_mean_metrics()
+        for k,v in obj_.items():
+            # print(k)
+            eval_dict[k+'_node_cls'] = v
+        for k,v in edge_.items():
+            # print(k)
+            eval_dict[k+'_edge_cls'] = v
+        
+        for k, v in eval_list.items():
+            eval_dict[k] = v.avg
+        
         vis = self.visualize(eval_tool=eval_tool)
         eval_dict['visualization'] = vis
         del it_dataset

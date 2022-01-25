@@ -264,38 +264,37 @@ def data_preparation(points, instances, selected_instances, num_points, num_poin
         random.shuffle(instances_id)
         
     instance2mask = {}
-    instance2mask[0] = 0
+    instance2mask_formask={}
+    # instance2mask[0] = 0
     
+    ''' Build instance2mask and their gt classes '''
     cat = []
     counter = 0
-    ''' Build instance2mask and their gt classes '''
+    filtered_instances = list()
     for instance_id in list(np.unique(instances)):
-        # print('instance {} size: {}'.format(instance_id,len(points[np.where(instances == instance_id)])))
-        if selected_instances is not None:
-            if instance_id not in selected_instances:
-                # since we divide the whole graph into sub-graphs if the 
-                # scene graph is too large to resolve the memory issue, there 
-                # are instances that are not interested in the current sub-graph
-                instance2mask[instance_id] = 0
-                continue
+        
+        class_id = -1 # was 0
+        if instance_id not in selected_instances:
+            # since we divide the whole graph into sub-graphs if the 
+            # scene graph is too large to resolve the memory issue, there 
+            # are instances that are not interested in the current sub-graph
+            # instance2mask[instance_id] = 0
+            instance2mask_formask[instance_id]=0
+            continue
 
-        if for_train:
-            class_id = -1 # was 0
-
-            instance_labelName = instance2labelName[instance_id]
-            if instance_labelName in classNames: # is it a class we care about?
-                class_id = classNames.index(instance_labelName)
-                
-            if (class_id >= 0) and (instance_id > 0): # there is no instance 0?
-                cat.append(class_id)
-        else:
-            class_id = 0
-
+        instance_labelName = instance2labelName[instance_id]
+        if instance_labelName in classNames: # is it a class we care about?
+            class_id = classNames.index(instance_labelName)
+            
         if (class_id >= 0) and (instance_id>0):
             counter += 1
             instance2mask[instance_id] = counter
+            instance2mask_formask[instance_id] = counter
+            
+            filtered_instances.append(instance_id)
+            cat.append(class_id)
         else:
-            instance2mask[instance_id] = 0
+            instance2mask_formask[instance_id] = 0
             
     '''Map edge indices to mask indices'''
     if sample_in_runtime:
@@ -303,7 +302,7 @@ def data_preparation(points, instances, selected_instances, num_points, num_poin
             
     num_objects = len(instances_id) if selected_instances is None else len(selected_instances)
 
-    masks = np.array(list(map(lambda l: instance2mask[l], instances)), dtype=np.int32)
+    masks = np.array(list(map(lambda l: instance2mask_formask[l], instances)), dtype=np.int32)
     
     dim_point = points.shape[1]
     obj_points = torch.zeros([num_objects, num_points, dim_point])
@@ -409,9 +408,9 @@ def data_preparation(points, instances, selected_instances, num_points, num_poin
         try:
             rel_points = torch.stack(rel_points, 0)
         except:
-            rel_points = torch.zeros([1, num_points_union, 4])
+            rel_points = torch.zeros([0, num_points_union, 4])
     else:
-        rel_points = torch.zeros([1, num_points_union, 4])
+        rel_points = torch.zeros([0, num_points_union, 4])
 
     cat = torch.from_numpy(np.array(cat, dtype=np.int64))
     edge_indices = torch.tensor(edge_indices,dtype=torch.long)

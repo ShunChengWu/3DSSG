@@ -279,8 +279,10 @@ class SGPNDataset(torch.utils.data.Dataset):
                          use_all = self.for_eval)
         # print('edge_indices.shape',edge_indices.shape)
         obj_points = obj_points.permute(0,2,1)
-        if edge_indices.ndim > 1:
-            rel_points = rel_points.permute(0,2,1)
+        rel_points = rel_points.permute(0,2,1)
+        # if edge_indices.ndim > 1:
+        # print('===')
+        # print('edge_indices:',edge_indices.shape)
         output = dict()
         output['scan_id'] = scan_id # str
         output['instance2mask'] = instance2mask #dict
