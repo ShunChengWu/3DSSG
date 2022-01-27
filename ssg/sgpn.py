@@ -39,7 +39,7 @@ class SGPN(nn.Module):
             num_layers = cfg.model.gnn.num_layers,
             dim_node = cfg.model.node_feature_dim,
             dim_edge = cfg.model.edge_feature_dim,
-            dim_hidden = cfg.model.node_feature_dim*2+cfg.model.edge_feature_dim
+            dim_hidden = cfg.model.gnn.hidden_dim
             )
 
         with_bn =cfg.model.node_classifier.with_bn
@@ -78,7 +78,11 @@ class SGPN(nn.Module):
         probs=None        
         if self.cfg.model.gnn.num_layers > 0:
             gcn_obj_feature, gcn_rel_feature = self.gnn(obj_feature, rel_feature, node_edges)
-            obj_cls = self.obj_predictor(gcn_obj_feature)
+            
+            if self.cfg.model.gnn.node_from_gnn:
+                obj_cls = self.obj_predictor(gcn_obj_feature)
+            else:
+                obj_cls = self.obj_predictor(obj_feature)
             rel_cls = self.rel_predictor(gcn_rel_feature)
         else:
             obj_cls = self.obj_predictor(obj_feature)

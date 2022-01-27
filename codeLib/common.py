@@ -211,21 +211,29 @@ def filter_args_create(func, keys):
     """
     return func(**filter_args(func, keys))
 
-def reset_parameters_with_activation(m,nonlinearity):
-    if isinstance(m, nn.Conv1d) or isinstance(m, nn.Conv2d) or isinstance(m, nn.Conv3d):
-        nn.init.kaiming_uniform_(m.weight, a=math.sqrt(5),nonlinearity=nonlinearity)
-        if m.bias is not None:
-            fan_in, _ = nn.init._calculate_fan_in_and_fan_out(m.weight)
-            bound = 1 / math.sqrt(fan_in)
-            nn.init.uniform_(m.bias, -bound, bound)
-    elif isinstance(m, nn.Linear):
-        nn.init.kaiming_uniform_(m.weight, a=math.sqrt(5),nonlinearity=nonlinearity)
-        if m.bias is not None:
-            fan_in, _ = nn.init._calculate_fan_in_and_fan_out(m.weight)
-            bound = 1 / math.sqrt(fan_in) if fan_in > 0 else 0
-            nn.init.uniform_(m.bias, -bound, bound)
+def reset_parameters_with_activation(mm,nonlinearity):
+    def process(m,nonlinearity):
+        if isinstance(m, nn.Conv1d) or isinstance(m, nn.Conv2d) or isinstance(m, nn.Conv3d):
+            nn.init.kaiming_uniform_(m.weight, a=math.sqrt(5),nonlinearity=nonlinearity)
+            if m.bias is not None:
+                fan_in, _ = nn.init._calculate_fan_in_and_fan_out(m.weight)
+                bound = 1 / math.sqrt(fan_in)
+                nn.init.uniform_(m.bias, -bound, bound)
+        elif isinstance(m, nn.Linear):
+            nn.init.kaiming_uniform_(m.weight, a=math.sqrt(5),nonlinearity=nonlinearity)
+            if m.bias is not None:
+                fan_in, _ = nn.init._calculate_fan_in_and_fan_out(m.weight)
+                bound = 1 / math.sqrt(fan_in) if fan_in > 0 else 0
+                nn.init.uniform_(m.bias, -bound, bound)
+        else:
+            logger_py.error('unknown input type', m.__name__)
+    
+    if isinstance(mm , list):
+        for m in mm: 
+            process(m,nonlinearity)
     else:
-        logger_py.error('unknown input type', m.__name__)
+        process(mm,nonlinearity)
+    
         
 def freeze(x:torch.nn.Module):
     for param in x.parameters(): param.requires_grad = False

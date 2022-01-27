@@ -15,6 +15,7 @@ def compute_weights(labels, per_class_count, normalize=False, verbose=False):
             weights.append(0)
             
     if normalize:
+        if verbose: print('normalize weight')
         for c in range(len(weights)):
             weights[c] = weights[c] / sum_weights * len(labels)
             
@@ -28,7 +29,7 @@ def compute_weights(labels, per_class_count, normalize=False, verbose=False):
             print('{0:>20s} {1:>1.3f} {2:>6d}'.format(labels[c], weight, int(per_class_count[c])))
         print("-------------")
     return weights
-def compute_weights_forBCE(labels,per_class_count, num_samples, verbose=False):
+def compute_weights_forBCE(labels,per_class_count, num_samples, normalize=False, verbose=False):
     if verbose: print("-------------")    
     weights=list()
     for c in range(len(per_class_count)):
@@ -41,9 +42,10 @@ def compute_weights_forBCE(labels,per_class_count, num_samples, verbose=False):
         else:
             weights.append(0)
             
-    # if normalize:
-    #     for c in range(len(weights)):
-    #         weights[c] = weights[c] / sum_weights * len(labels)
+    if normalize:
+        if verbose: print('normalize weight')
+        for c in range(len(weights)):
+            weights[c] = weights[c] / max(weights) * len(labels)
             
     weights = np.array(weights)
     weights[weights==0]=weights[weights>0].min()
@@ -188,7 +190,7 @@ def compute(classNames,relationNames, relationship_data, selections:list = None,
         if edge_mode == 'gt': total_num_edges=n_edge_with_gt
         elif edge_mode == 'fully_connected': total_num_edges = n_edges_fully_connected
         elif edge_mode == 'nn': total_num_edges = n_edge_nn
-        wrels = compute_weights_forBCE(relationNames, o_rel_cls, total_num_edges,verbose=verbose)
+        wrels = compute_weights_forBCE(relationNames, o_rel_cls, total_num_edges,normalize=normalize,verbose=verbose)
     else:
         wrels = compute_weights(relationNames, o_rel_cls,normalize=normalize,verbose=verbose)
     return wobjs,wrels,o_obj_cls,o_rel_cls
@@ -307,7 +309,8 @@ def compute_sgfn(classNames,relationNames, relationship_data, selections:list = 
         if edge_mode == 'gt': total_num_edges=n_edge_with_gt
         elif edge_mode == 'fully_connected': total_num_edges = n_edges_fully_connected
         elif edge_mode == 'nn': total_num_edges = n_edge_nn
-        wrels = compute_weights_forBCE(relationNames, o_rel_cls, total_num_edges,verbose=verbose)
+        if verbose: print('edge mode:',edge_mode)
+        wrels = compute_weights_forBCE(relationNames, o_rel_cls, total_num_edges,normalize=normalize,verbose=verbose)
     else:
         wrels = compute_weights(relationNames, o_rel_cls,normalize=normalize,verbose=verbose)
     # wrels = compute_weights(relationNames, o_rel_cls, classes_count,verbose)

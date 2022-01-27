@@ -14,6 +14,7 @@ from torch import Tensor
 from typing import Optional
 from copy import deepcopy
 from torch_scatter import scatter
+from codeLib.common import reset_parameters_with_activation
 
 class TripletEdgeNet(torch.nn.Module):
     def __init__(self,dim_node,dim_edge,use_bn=False):
@@ -262,8 +263,11 @@ class GraphEdgeAttenNetworkLayers(torch.nn.Module):
     
     
 class TripletGCN(MessagePassing):
-    def __init__(self, dim_node, dim_edge, dim_hidden, aggr= 'add', use_bn=True):
+    def __init__(self, dim_node, dim_edge, dim_hidden, aggr= 'mean', use_bn=True):
         super().__init__(aggr=aggr)
+        # print('============================')
+        # print('aggr:',aggr)
+        # print('============================')
         self.dim_node = dim_node
         self.dim_edge = dim_edge
         self.dim_hidden = dim_hidden
@@ -271,10 +275,17 @@ class TripletGCN(MessagePassing):
                       do_bn= use_bn, on_last=True)
         self.nn2 = build_mlp([dim_hidden,dim_hidden,dim_node],do_bn= use_bn)
         
+        self.reset_parameter()
+        
+    def reset_parameter(self):
+        reset_parameters_with_activation(self.nn1[0], 'relu')
+        reset_parameters_with_activation(self.nn1[3], 'relu')
+        reset_parameters_with_activation(self.nn2[0], 'relu')
+        
     def forward(self, x, edge_feature, edge_index):
         gcn_x, gcn_e = self.propagate(edge_index, x=x, edge_feature=edge_feature)
-        x = self.nn2(gcn_x)
-        return x, gcn_e
+        gcn_x = x + self.nn2(gcn_x)
+        return gcn_x, gcn_e
 
     def message(self, x_i, x_j,edge_feature):
         x = torch.cat([x_i,edge_feature,x_j],dim=1)

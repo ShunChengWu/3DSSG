@@ -66,49 +66,6 @@ from ssg import define
 #     with open(os.path.join(os.path.dirname(os.path.realpath(__file__)), '../misc/modelnet_id.txt'), 'w') as f:
 #         for i in range(len(classes)):
 #             f.write('{}\t{}\n'.format(classes[i], i))
-            
-            
-def load_mesh(path,label_file,use_rgb,use_normal):
-    result=dict()
-    if label_file == 'labels.instances.align.annotated.v2.ply' or label_file == 'labels.instances.align.annotated.ply':
-        if use_rgb:
-            plydata = util_ply.load_rgb(path)
-        else:
-            plydata = trimesh.load(os.path.join(path,label_file), process=False)
-            
-        points = np.array(plydata.vertices.tolist())
-        instances = util_ply.read_labels(plydata).flatten()
-        
-        if use_rgb:
-            rgbs = np.array(plydata.visual.vertex_colors.tolist())[:,:3]
-            points = np.concatenate((points, rgbs), axis=1)
-            
-        if use_normal:
-            normal = plydata.vertex_normals[:,:3]
-            points = np.concatenate((points, normal), axis=1)
-        
-        result['points']=points
-        result['instances']=instances
-    elif label_file == 'inseg.ply':
-        plydata = trimesh.load(os.path.join(path,label_file), process=False)
-        points = np.array(plydata.vertices.tolist())
-        instances = plydata.metadata['ply_raw']['vertex']['data']['label'].flatten()
-        
-        if use_rgb:
-            rgbs = np.array(plydata.colors)[:,:3] / 255.0
-            points = np.concatenate((points, rgbs), axis=1)
-        if use_normal:
-            nx = plydata.metadata['ply_raw']['vertex']['data']['nx']
-            ny = plydata.metadata['ply_raw']['vertex']['data']['ny']
-            nz = plydata.metadata['ply_raw']['vertex']['data']['nz']
-            
-            normal = np.stack([ nx,ny,nz ]).squeeze().transpose()
-            points = np.concatenate((points, normal), axis=1)
-        result['points']=points
-        result['instances']=instances
-    else:
-        raise NotImplementedError('')
-    return result
 
 class SGPNDataset(torch.utils.data.Dataset):
     def __init__(self, config, mode, **args
@@ -341,6 +298,49 @@ class SGPNDataset(torch.utils.data.Dataset):
             objs[scan["scan"]+"_"+str(scan['split'])] = objects
 
         return rel, objs, scans, nns
+    
+
+def load_mesh(path,label_file,use_rgb,use_normal):
+    result=dict()
+    if label_file == 'labels.instances.align.annotated.v2.ply' or label_file == 'labels.instances.align.annotated.ply':
+        if use_rgb:
+            plydata = util_ply.load_rgb(path)
+        else:
+            plydata = trimesh.load(os.path.join(path,label_file), process=False)
+            
+        points = np.array(plydata.vertices.tolist())
+        instances = util_ply.read_labels(plydata).flatten()
+        
+        if use_rgb:
+            rgbs = np.array(plydata.visual.vertex_colors.tolist())[:,:3]
+            points = np.concatenate((points, rgbs), axis=1)
+            
+        if use_normal:
+            normal = plydata.vertex_normals[:,:3]
+            points = np.concatenate((points, normal), axis=1)
+        
+        result['points']=points
+        result['instances']=instances
+    elif label_file == 'inseg.ply':
+        plydata = trimesh.load(os.path.join(path,label_file), process=False)
+        points = np.array(plydata.vertices.tolist())
+        instances = plydata.metadata['ply_raw']['vertex']['data']['label'].flatten()
+        
+        if use_rgb:
+            rgbs = np.array(plydata.colors)[:,:3] / 255.0
+            points = np.concatenate((points, rgbs), axis=1)
+        if use_normal:
+            nx = plydata.metadata['ply_raw']['vertex']['data']['nx']
+            ny = plydata.metadata['ply_raw']['vertex']['data']['ny']
+            nz = plydata.metadata['ply_raw']['vertex']['data']['nz']
+            
+            normal = np.stack([ nx,ny,nz ]).squeeze().transpose()
+            points = np.concatenate((points, normal), axis=1)
+        result['points']=points
+        result['instances']=instances
+    else:
+        raise NotImplementedError('')
+    return result
     
 if __name__ == '__main__':
     from config import Config

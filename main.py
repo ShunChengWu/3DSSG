@@ -62,6 +62,9 @@ def main():
         
         model = config.get_model(cfg,num_obj_cls=num_obj_cls, num_rel_cls=num_rel_cls)
         
+        if cfg.VERBOSE:
+            print(model)
+        
         # crreate optimizer    
         # trainable_params = filter(lambda p: p.requires_grad, model.parameters())
         # optimizer = config.get_optimizer(cfg, trainable_params)
