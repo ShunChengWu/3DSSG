@@ -1,4 +1,4 @@
-from ssg2d import define
+from ssg import define
 import codeLib
 # import ssg2d.utils.util as util
 # try: import define
