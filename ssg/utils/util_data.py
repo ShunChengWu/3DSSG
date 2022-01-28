@@ -268,7 +268,7 @@ def data_preparation(points, instances, selected_instances, num_points, num_poin
             filtered_nodes = selected_nodes # use all nodes
         edge_indices = build_edge_from_selection_sgfn(filtered_nodes, nns, max_edges_per_node=-1)
         
-        if num_max_rel > 0:
+        if num_max_rel > 0 and len(edge_indices) > 0:
             choices = np.random.choice(range(len(edge_indices)),num_max_rel).tolist()
             edge_indices = [edge_indices[t] for t in choices]
         instances_id = list(filtered_nodes)

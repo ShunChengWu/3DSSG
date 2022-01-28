@@ -180,6 +180,26 @@ class SGPNDataset(torch.utils.data.Dataset):
         
         del self.sg_data # will re-open it in each thread
         
+        self.cache_data = dict()
+        if self.config.data.load_cache:
+            print('load data to cache')
+            pool = mp.Pool(8)
+            pool.daemon = True
+            # resutls=dict()
+            for scan_id in inter:
+                scan_id_no_split = scan_id.rsplit('_',1)[0]
+                if 'scene' in scan_id:
+                    path = os.path.join(self.root_scannet, scan_id_no_split)
+                else:
+                    path = os.path.join(self.root_3rscan, scan_id_no_split)
+                if scan_id_no_split not in self.cache_data:
+                    self.cache_data[scan_id_no_split] = pool.apply_async(load_mesh,
+                                                                          (path, self.mconfig.label_file,self.use_rgb,self.use_normal))
+            pool.close()
+            pool.join()
+            for key, item in self.cache_data.items():
+                self.cache_data[key] = item.get()
+        
     def open_data(self, path):
         if not hasattr(self,'sg_data'):
             self.sg_data = h5py.File(path,'r')
@@ -208,7 +228,11 @@ class SGPNDataset(torch.utils.data.Dataset):
             path = os.path.join(self.root_scannet, scan_id)
         else:
             path = os.path.join(self.root_3rscan, scan_id)
-        data = load_mesh(path, self.mconfig.label_file, self.use_rgb, self.use_normal)
+            
+        if self.config.data.load_cache:
+            data = self.cache_data[scan_id]
+        else:
+            data = load_mesh(path, self.mconfig.label_file, self.use_rgb, self.use_normal)
         points = data['points']
         instances = data['instances']
         instances_id = list(np.unique(instances))
