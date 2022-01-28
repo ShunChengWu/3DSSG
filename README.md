@@ -120,5 +120,7 @@ If you find the code useful please consider citing our [paper](https://arxiv.org
 }
 ```
 
+# Acknowledgement
+This work is supported by the German Research Foundation (DFG, project number 407378162) and the Bavarian State Ministry of Education, Science and the Arts in the framework of the Centre Digitisation Bavaria (ZD.B).
 
 [1]: https://arxiv.org/pdf/2103.14898.pdf
