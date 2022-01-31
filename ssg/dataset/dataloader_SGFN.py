@@ -13,7 +13,9 @@ from ssg import define
 import ssg.utils.compute_weight as compute_weight
 from ssg.utils.util_data import raw_to_data, cvt_all_to_dict_from_h5
 import codeLib.utils.string_numpy as snp
-
+import logging
+import threading
+logger_py = logging.getLogger(__name__)
 class SGFNDataset (data.Dataset):
     def __init__(self,config,mode, **args):
         assert mode in ['train','validation','test']
@@ -196,20 +198,21 @@ class SGFNDataset (data.Dataset):
             
         if self.sample_in_runtime:
             selected_nodes = list(object_data.keys())
-            if not self.for_eval:
-                sample_num_nn=self.mconfig.sample_num_nn# 1 if "sample_num_nn" not in self.config else self.config.sample_num_nn
-                sample_num_seed=self.mconfig.sample_num_seed#1 if "sample_num_seed" not in self.config else self.config.sample_num_seed
-                if sample_num_seed <= 0:
-                    # use all nodes
-                    filtered_nodes = selected_nodes
-                else:
-                    # random select node including neighbors
-                    # filtered_nodes = util_data.build_neighbor(objects, sample_num_nn, sample_num_seed)
-                    
-                    filtered_nodes = util_data.build_neighbor_sgfn(nns, selected_nodes, 
-                                                          sample_num_nn, sample_num_seed) # select 1 node and include their neighbor nodes n times.
+            
+            use_all=False
+            sample_num_nn=self.mconfig.sample_num_nn# 1 if "sample_num_nn" not in self.config else self.config.sample_num_nn
+            sample_num_seed=self.mconfig.sample_num_seed#1 if "sample_num_seed" not in self.config else self.config.sample_num_seed
+            if sample_num_nn==0 or sample_num_seed ==0:
+                use_all=True
+            if self.for_eval:
+                use_all = True
+                
+            if not use_all:
+                filtered_nodes = util_data.build_neighbor_sgfn(nns, selected_nodes, sample_num_nn, sample_num_seed) # select 1 node and include their neighbor nodes n times.
             else:
                 filtered_nodes = selected_nodes # use all nodes
+                
+            instances_id = list(filtered_nodes)
         
         if 0 in instances_id:
             instances_id.remove(0)
@@ -227,7 +230,7 @@ class SGFNDataset (data.Dataset):
         counter = 0
         selected_instances = list(object_data.keys())
         filtered_instances = list()
-        for instance_id in filtered_nodes:
+        for instance_id in instances_id:
             # instance_id = instances_id[i]
             
             class_id = -1
@@ -238,18 +241,21 @@ class SGFNDataset (data.Dataset):
             if instance_labelName in self.classNames:
                 class_id = self.classNames.index(instance_labelName)
 
-            # if class_id != -1:
-            #     counter += 1
-            #     instance2mask[instance_id] = counter
-            # else:
-            #     instance2mask[instance_id] = 0
-
             # mask to cat:
             if (class_id >= 0) and (instance_id > 0): # insstance 0 is unlabeled.
                 counter += 1
                 instance2mask[instance_id] = counter
                 filtered_instances.append(instance_id)
                 cat.append(class_id)
+        if len(cat) == 0:
+            logger_py.debug('filtered_nodes: {}'.format(filtered_nodes))
+            logger_py.debug('selected_instances: {}'.format(selected_instances))
+            logger_py.debug('cat: {}'.format(cat))
+            logger_py.debug('self.classNames: {}'.format(self.classNames))
+            logger_py.debug('list(object_data.keys()): {}'.format(list(object_data.keys())))
+            logger_py.debug('nn: {}'.format(nns))
+            
+            
         assert len(cat) > 0
         '''Map edge indices to mask indices'''
 
@@ -294,7 +300,7 @@ class SGFNDataset (data.Dataset):
         
         
         if self.sample_in_runtime:
-            if not self.full_edge:
+            if not use_all:
                 edge_indices = util_data.build_edge_from_selection_sgfn(filtered_instances,nns,max_edges_per_node=-1)
                 edge_indices = [[instance2mask[edge[0]]-1,instance2mask[edge[1]]-1] for edge in edge_indices ]
                 # edge_indices = util_data.build_edge_from_selection(filtered_nodes, nns, max_edges_per_node=-1)
@@ -304,6 +310,7 @@ class SGFNDataset (data.Dataset):
                     for m in range(len(cat)):
                         if n == m:continue
                         edge_indices.append([n,m])
+                        
             if len(edge_indices)>0:
                 if not self.for_eval:
                     edge_indices = random_drop(edge_indices, self.mconfig.drop_edge)

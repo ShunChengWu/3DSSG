@@ -177,6 +177,7 @@ def build_neighbor_sgfn(nns:dict, selected_nodes:list, n_times:int, n_seed = 1):
     
     ''' loop over n times'''
     filtered_nodes = set()
+    filtered_nodes = filtered_nodes.union(index)
     n_seletected_nodes = dict() # this save the neighbor with level n. level n+1 is the neighbors from level n.
     n_seletected_nodes[0] = index # first layer is the selected node.
     for n in range(n_times):
@@ -186,6 +187,7 @@ def build_neighbor_sgfn(nns:dict, selected_nodes:list, n_times:int, n_seed = 1):
         for node_idx in n_seletected_nodes[n]:
             found = set(nns[str(node_idx)])
             found = found.intersection(selected_nodes) # only choose the node within our selections
+            found = found.difference([0])# ignore 0
             if len(found)==0: continue
             unique_nn_found = unique_nn_found.union(found)
             filtered_nodes = filtered_nodes.union(found)

@@ -1,4 +1,5 @@
 import logging
+import trimesh
 import argparse,os
 import codeLib
 import ssg
@@ -11,14 +12,15 @@ import cProfile
 
 # import resource
 # resource.setrlimit(resource.RLIMIT_NOFILE, (131072, 131072))
-logging.basicConfig()
+# logging.basicConfig()
+
 logger_py = logging.getLogger(__name__)
+logging.getLogger('trimesh').setLevel('CRITICAL')
 # logging.basicConfig()
 # logger_py.setLevel(logging.DEBUG)
 
 def main():
     cfg = parse()
-    logger_py.setLevel(cfg.log_level)
     
     # Shorthands
     out_dir = os.path.join(cfg['training']['out_dir'], cfg.name)
@@ -28,6 +30,14 @@ def main():
     
     # Output directory
     if not os.path.exists(out_dir): os.makedirs(out_dir)
+    
+    # Log
+    logging.basicConfig(filename=os.path.join(out_dir,'log'), level=cfg.log_level)
+    logger_py.setLevel(cfg.log_level)
+    logger_py.info('info')
+    logger_py.debug('debug')
+    # import sys
+    # sys.exit()
     
     if cfg.MODE == 'train':
         logger_py.info('train')
