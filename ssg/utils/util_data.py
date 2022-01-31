@@ -4,6 +4,7 @@ import json
 # import ssg2d
 from ssg.objects import Node
 from collections import defaultdict
+
 def load_graph(pth, box_filter_size: list=[]):
     with open(pth, "r") as read_file:
         data = json.load(read_file)
@@ -359,10 +360,10 @@ def data_preparation(points, instances, selected_instances, num_points, num_poin
             adj_matrix = np.zeros([num_objects, num_objects])
 
         for r in rel_json:
-            r_src = int(r[0].decode())
-            r_tgt = int(r[1].decode())
-            r_lid = int(r[2].decode())
-            r_cls = r[3].decode()
+            r_src = int(r[0])
+            r_tgt = int(r[1])
+            r_lid = int(r[2])
+            r_cls = r[3]
             if r_src not in instance2mask or r_tgt not in instance2mask: continue
             index1 = instance2mask[r_src]-1
             index2 = instance2mask[r_tgt]-1

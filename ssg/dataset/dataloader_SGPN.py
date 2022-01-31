@@ -1,84 +1,24 @@
-if __name__ == '__main__' and __package__ is None:
-    from os import sys
-    sys.path.append('../')
-    
-
-import os, sys, torch, json, trimesh
+import os, sys, torch, json, trimesh, h5py
 from codeLib.utils.util import read_txt_to_list
-# from utils import util_ply, util_data, util, define
-from data_processing import compute_weight_occurrences
 import numpy as np
-# import torch.utils.data as data
 import multiprocessing as mp
 import ssg.utils.compute_weight as compute_weight
-import os
-# from ssg.utils import util_data
-from codeLib.utils.util import read_txt_to_list
 import codeLib.utils.string_numpy as snp
-from codeLib.common import normalize_imagenet, random_drop#, load_obj
-import h5py
-# import torch.utils.data as data
-from torchvision import transforms
-import ssg.utils.compute_weight as compute_weight
-import torch
-import json
-import numpy as np
-import pandas
-from PIL import Image
-from torchvision.io import read_image
 from ssg.utils import util_data, util_ply
 from ssg import define
+import copy
+import ast
 
+def raw_to_data(raw):
+    return ast.literal_eval(raw[0].decode())
 
-# def dataset_loading_3RScan(root:str, pth_selection:str,split:str,class_choice:list=None):    
-#     pth_catfile = os.path.join(pth_selection, 'classes.txt')
-#     classNames = util.read_txt_to_list(pth_catfile)
-    
-#     pth_relationship = os.path.join(pth_selection, 'relationships.txt')
-#     util.check_file_exist(pth_relationship)
-#     relationNames = util.read_relationships(pth_relationship)
-    
-#     selected_scans=set()
-#     if split == 'train_scans' :
-#         selected_scans = selected_scans.union(util.read_txt_to_list(os.path.join(pth_selection,'train_scans.txt')))
-#     elif split == 'validation_scans':
-#         selected_scans = selected_scans.union(util.read_txt_to_list(os.path.join(pth_selection,'validation_scans.txt')))
-#     elif split == 'test_scans':
-#         selected_scans = selected_scans.union(util.read_txt_to_list(os.path.join(pth_selection,'test_scans.txt')))
-#     else:
-#         raise RuntimeError('unknown split type:',split)
-
-#     with open(os.path.join(root, 'relationships_train.json'), "r") as read_file:
-#         data1 = json.load(read_file)
-#     with open(os.path.join(root, 'relationships_validation.json'), "r") as read_file:
-#         data2 = json.load(read_file)
-#     data = dict()
-#     data['scans'] = data1['scans'] + data2['scans']
-#     data['neighbors'] = {**data1['neighbors'], **data2['neighbors']}
-#     return  classNames, relationNames, data, selected_scans
-
-# def gen_modelnet_id(root):
-#     classes = []
-#     with open(os.path.join(root, 'train.txt'), 'r') as f:
-#         for line in f:
-#             classes.append(line.strip().split('/')[0])
-#     classes = np.unique(classes)
-#     with open(os.path.join(os.path.dirname(os.path.realpath(__file__)), '../misc/modelnet_id.txt'), 'w') as f:
-#         for i in range(len(classes)):
-#             f.write('{}\t{}\n'.format(classes[i], i))
-
+def cvt_all_to_dict_from_h5(data:dict):
+    output = dict()
+    for k,v in data.items():
+        output[k]= raw_to_data(v)
+    return output
 class SGPNDataset(torch.utils.data.Dataset):
-    def __init__(self, config, mode, **args
-                 # split='train_scans',
-                 # multi_rel_outputs=True,
-                 # shuffle_objs=True,
-                 # use_rgb = False,
-                 # use_normal = False,
-                 # load_cache = False,
-                 # sample_in_runtime=True,
-                 # for_eval = False,
-                 # max_edges = -1
-                 ):
+    def __init__(self, config, mode, **args):
         assert mode in ['train','validation','test']
         torch.multiprocessing.set_sharing_strategy('file_system') 
         self._device = config.DEVICE
@@ -89,6 +29,7 @@ class SGPNDataset(torch.utils.data.Dataset):
         self.use_data_augmentation=False
         self.root_3rscan = define.DATA_PATH
         self.path_h5 = os.path.join(self.path,'relationships_%s.h5' % (mode))
+        # self.path_json = os.path.join(self.path,'relationships_%s.json' % (mode))
         try:
             self.root_scannet = define.SCANNET_DATA_PATH
         except:
@@ -132,8 +73,22 @@ class SGPNDataset(torch.utils.data.Dataset):
         self.classNames = sorted(names_classes)
         
         ''' load data '''
+        # with open(self.path_json) as f:
+        #     data = json.load(f)
+        # self.sg_data = dict()
+        # for scan_data in data['scans']:
+        #     scan_id = scan_data['scan']
+        #     self.sg_data[scan_id] = dict()
+        #     self.sg_data[scan_id]['nodes'] = copy.deepcopy(scan_data['objects'])
+        #     self.sg_data[scan_id]['relationships'] = copy.deepcopy(scan_data['relationships'])
+        #     self.sg_data[scan_id]['neighbors'] = copy.deepcopy(data['neighbors'][scan_id])
+        # del data
+        
         self.open_data(self.path_h5)
-        tmp = set(self.sg_data.keys())
+        c_sg_data = cvt_all_to_dict_from_h5(self.sg_data)
+        del self.sg_data
+        
+        tmp = set(c_sg_data.keys())
         
         # self.path_data = pth_relationship_json # try not to load json here. it causes issue when worker is on
         # with open(pth_relationship_json) as f:
@@ -154,7 +109,7 @@ class SGPNDataset(torch.utils.data.Dataset):
             else:
                 edge_mode='nn'
             # wobjs, wrels, o_obj_cls, o_rel_cls = compute_weight.compute(self.classNames, self.relationNames, data,selected_scans)
-            wobjs, wrels, o_obj_cls, o_rel_cls = compute_weight.compute_sgfn(self.classNames, self.relationNames, self.sg_data, selected_scans,
+            wobjs, wrels, o_obj_cls, o_rel_cls = compute_weight.compute_sgfn(self.classNames, self.relationNames, c_sg_data, selected_scans,
                                                                         normalize=config.data.normalize_weight,
                                                                         for_BCE=multi_rel_outputs==True,
                                                                         edge_mode=edge_mode,
@@ -178,7 +133,7 @@ class SGPNDataset(torch.utils.data.Dataset):
         if self.use_normal:
             self.dim_pts += 3
         
-        del self.sg_data # will re-open it in each thread
+        # del self.sg_data # will re-open it in each thread
         
         self.cache_data = dict()
         if self.config.data.load_cache:
@@ -203,14 +158,16 @@ class SGPNDataset(torch.utils.data.Dataset):
     def open_data(self, path):
         if not hasattr(self,'sg_data'):
             self.sg_data = h5py.File(path,'r')
-
+        
+    
 
     def __getitem__(self, index):
         scan_id = snp.unpack(self.scans,index)# self.scans[idx]
         # scan_id_no_split = scan_id.rsplit('_',1)[0]
         
         self.open_data(self.path_h5)
-        scan_data = self.sg_data[scan_id]
+        scan_data_raw = self.sg_data[scan_id]
+        scan_data = raw_to_data(scan_data_raw)
         
         object_data = scan_data['nodes']
         relationships_data = scan_data['relationships']
@@ -221,7 +178,7 @@ class SGPNDataset(torch.utils.data.Dataset):
             nns[str(oid)] = [int(s) for s in odata['neighbors']]
             
         # build mapping 
-        instance2labelName  = { int(key): node.attrs['label'] for key,node in object_data.items()  }
+        instance2labelName  = { int(key): node['label'] for key,node in object_data.items()  }
         
         # load point cloud data
         if 'scene' in scan_id:
@@ -233,8 +190,10 @@ class SGPNDataset(torch.utils.data.Dataset):
             data = self.cache_data[scan_id]
         else:
             data = load_mesh(path, self.mconfig.label_file, self.use_rgb, self.use_normal)
-        points = data['points']
-        instances = data['instances']
+        points = copy.deepcopy( data['points'] )
+        instances = copy.deepcopy( data['instances'] )
+        del data
+        
         instances_id = list(np.unique(instances))
         
         selected_nodes = list(instance2labelName.keys())

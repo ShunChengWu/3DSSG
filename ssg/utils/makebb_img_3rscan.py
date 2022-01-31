@@ -43,22 +43,18 @@ args = parser.parse_args()
 
 
 fdata = os.path.join(define.DATA_PATH)
-# pth_scannet_label = os.path.join(args.scannet_dir, 'scannetv2-labels.combined.tsv')
 insta_filepattern = 'frame-{0:06d}.rendered.instances.png'
 label_filepattern = 'frame-{0:06d}.rendered.labels.png'
 ffont = '/home/sc/research/PersistentSLAM/python/2DTSG/files/Raleway-Medium.ttf'
 
-label_names, label_name_mapping, label_id_mapping = util_label.getLabelMapping('nyu40',define.LABEL_MAPPING_FILE)
 
 
-NYU40_Label_Names = ['none'] + util_label.NYU40_Label_Names
 # create name2idx mapping
-NYU40_Name2Idx_map = {name:idx for idx, name in enumerate(NYU40_Label_Names)}
-NYU40_Idx2Name_map = {idx:name for idx, name in enumerate(NYU40_Label_Names)}
+
 
 # clr_pal = get_NYU40_color_palette()
-random_clr_list = [color_rgb(rand_24_bit()) for _ in range(1500)]
-random_clr_list[0] = (0,0,0)
+# random_clr_list = [color_rgb(rand_24_bit()) for _ in range(1500)]
+# random_clr_list[0] = (0,0,0)
 
 # SOURCE_LABEL='id'
 # TARGET_LABEL='id'
@@ -130,13 +126,13 @@ class LabelImage(object):
     
     def to_label_color(self):
         clr_img = np.zeros([self.l_img.shape[0],self.l_img.shape[1],3],dtype=np.uint8)
-        for lid, clr in enumerate(random_clr_list):
+        for lid, clr in enumerate(random_clr_l):
             indices = np.where(self.l_img==lid)
             clr_img[indices] = clr
         return clr_img
     def to_inst_color(self):
         clr_img = np.zeros([self.i_img.shape[0],self.i_img.shape[1],3],dtype=np.uint8)
-        for lid, clr in enumerate(random_clr_list):
+        for lid, clr in enumerate(random_clr_i):
             indices = np.where(self.i_img==lid)
             clr_img[indices] = clr
         return clr_img
@@ -171,22 +167,23 @@ class LabelImage(object):
         for inst in instances:
             indices = np.where(self.i_img == inst)
             label = self.l_img[indices][0]
-            label_name = NYU40_Idx2Name_map[label]
-            if label_name in self.ignore_label: continue
+            # label_name = self.ln_img[indices][0]
+            # label_name = NYU40_Idx2Name_map[label]
+            if label in self.ignore_label: continue
             box = BoundingBox( [indices[1].min(), indices[0].min(), indices[1].max(), indices[0].max()] )
             if not box.is_valid(): continue
         
             oc = mask_occupancy(self.i_img[box.y_min():box.y_max(),box.x_min():box.x_max()]==inst,down_scale=8)
             
-            box_clrs.append(random_clr_list[inst])
+            box_clrs.append(random_clr_i[inst])
             boxes.append(box)
-            labelNames.append(label_name)
+            labelNames.append(label)
             
             
             boxdict[inst] =  Detection(
-                label = label_name,
+                label = label,
                 box = box,
-                clr=random_clr_list[label],
+                clr=random_clr_l[label],
                 max_iou=oc
                 )
         return boxdict
@@ -202,7 +199,7 @@ def process(scan_id):
         
     # load semseg
     pth_semseg = os.path.join(fdata,scan_id,define.SEMSEG_FILE_NAME)
-    mapping = load_semseg(pth_semseg,label_name_mapping)
+    mapping = load_semseg(pth_semseg)
     mapping[0] = 'none'
         
     # get number of scans
@@ -226,15 +223,19 @@ def process(scan_id):
     
     # process
     for frame_id in range(n_scans):
-        pth_label = os.path.join(fdata,scan_id,'sequence', label_filepattern.format(frame_id))
+        # pth_label = os.path.join(fdata,scan_id,'sequence', label_filepattern.format(frame_id))
         pth_inst  = os.path.join(fdata,scan_id,'sequence', insta_filepattern.format(frame_id))
         
         # limg_data = np.array(Image.open(pth_label), dtype=np.uint8)
         iimg_data = np.array(Image.open(pth_inst), dtype=np.uint8)
         
+        # check keys
+        diff_ids = set( np.unique(iimg_data) ).difference(set(mapping.keys()))
+        for id in diff_ids: mapping[id]='none'
         
-        labels = np.vectorize(mapping.__getitem__)(iimg_data)
-        limg_data = np.vectorize(NYU40_Name2Idx_map.__getitem__)(labels)# int(NYU40_Label_Names.index(labels))
+        #
+        limg_data = np.vectorize(mapping.__getitem__)(iimg_data)
+        # limg_data = np.vectorize(NYU40_Name2Idx_map.__getitem__)(labels)# int(NYU40_Label_Names.index(labels))
         
         # limg_data = np.vectorize(label_id_mapping.__getitem__)(iimg_data)
         
@@ -268,6 +269,18 @@ if __name__ =='__main__':
     scan_ids  = sorted( train_ids + val_ids + test_ids)
     print(len(scan_ids))
     
+    # NYU40_Label_Names = ['none'] + util_label.NYU40_Label_Names
+    Scan3R528, NYU40,Eigen13,RIO27,RIO7 = util_label.getLabelNames(define.LABEL_MAPPING_FILE)
+    Scan3R528[0] = 'none'
+    
+    # clr_pal = get_NYU40_color_palette()
+    random_clr_i = [color_rgb(rand_24_bit()) for _ in range(1500)]
+    random_clr_l = {v:color_rgb(rand_24_bit()) for k,v in Scan3R528.items()}
+    random_clr_l['none'] = (0,0,0)
+    
+    # label_names, label_name_mapping, label_id_mapping = util_label.getLabelMapping('nyu40',define.LABEL_MAPPING_FILE)
+    # NYU40_Name2Idx_map = {name:idx for idx, name in enumerate(NYU40_Label_Names)}
+    # NYU40_Idx2Name_map = {idx:name for idx, name in enumerate(NYU40_Label_Names)}
     
     create_folder(args.outdir)
     print('num of scans:',len(scan_ids), 'processing with',n_workers,'threads')

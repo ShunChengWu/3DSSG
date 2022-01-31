@@ -80,5 +80,15 @@ python gen_data_scannet.py
   --pth_out /path/to/an/output/folder/
 ```
 
+
+5. Make Image object Graph
+```
+# With GT detection
+## extract info from rendered images. 
+PYTHONPATH=./ python ssg/utils/makebb_img_3rscan.py -o /media/sc/SSD1TB/dataset/3RScan/2dgt --thread 12
+# create database
+
+```
+
 [3rscan]: https://waldjohannau.github.io/RIO/
 [scannet]: http://www.scan-net.org/

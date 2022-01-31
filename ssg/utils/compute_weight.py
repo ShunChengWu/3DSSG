@@ -236,7 +236,7 @@ def compute_sgfn(classNames,relationNames, relationship_data, selections:list = 
         
         n_obj = 0
         for k, v in nodes.items():
-            obj_label = v.attrs['label']
+            obj_label = v['label']
             instance2LabelName[int(k)] = obj_label
             if obj_label not in classNames:
                 if verbose: print(obj_label, 'not in classNames')
@@ -249,10 +249,10 @@ def compute_sgfn(classNames,relationNames, relationship_data, selections:list = 
         nnk=dict()
         n_rel = 0
         for relationship in relationships:
-            obj=int(relationship[0].decode())
-            sub=int(relationship[1].decode())
-            rel=int(relationship[2].decode())
-            name=relationship[3].decode()
+            obj=int(relationship[0])
+            sub=int(relationship[1])
+            rel=int(relationship[2])
+            name=relationship[3]
             if name not in relationNames:
                 if verbose: print(relationship[3],'not in relationNames')
                 continue

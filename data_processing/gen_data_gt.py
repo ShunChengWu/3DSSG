@@ -13,6 +13,7 @@ from pathlib import Path
 import os,json    
 import argparse
 import h5py
+import ast
 
 def Parser(add_help=True):
     parser = argparse.ArgumentParser(description='Process some integers.', formatter_class = argparse.ArgumentDefaultsHelpFormatter,
@@ -406,32 +407,47 @@ if __name__ == '__main__':
         neighbors = all_neighbors[scan_id]
         objects = scan_data['objects']
         
-        h5_scan = h5f.create_group(scan_id)
+        
+        
+        d_scan = dict()
+        d_nodes = d_scan['nodes'] = dict()
         
         ## Nodes
-        h5_nodes = h5_scan.create_group('nodes')
+        # nodes = dict()
+        # h5_nodes = h5_scan.create_group('nodes')
         for idx, data in enumerate(objects.items()):
             oid, label = data
-            
-            h5_node = h5_nodes.create_group(str(oid))
-            h5_node.attrs['label'] = label.encode('ascii')
-            
-            # ascii_label = label.encode('ascii')
-            # dset = h5_node.create_dataset('label',(len(ascii_label),1), dtype='S10',data=ascii_label) # create foo dataset to attach attributes
-            
-            
             ascii_nn = [str(n).encode("ascii", "ignore") for n in neighbors[oid]]
-            dset = h5_node.create_dataset('neighbors', (len(ascii_nn),1),'S10',ascii_nn, chunks=True) # create foo dataset to attach attributes
-        
             
+            # h5_node = h5_nodes.create_group(str(oid))
+            # h5_node.attrs['label'] = label.encode('ascii')
+            # dset = h5_node.create_dataset('neighbors', (len(ascii_nn),1),'S10',ascii_nn, chunks=True) # create foo dataset to attach attributes
+            
+            d_nodes[oid] = dict()
+            d_nodes[oid]['label'] = label
+            d_nodes[oid]['neighbors'] = ascii_nn
+            
+        # s_nodes = str(d_nodes)
+        # ast.literal_eval(s_nodes)
+        # h5_nodes = h5_scan.create_dataset('nodes', data=s_nodes)
+        
         ## Relationships
         str_relationships = list() 
         for rel in scan_data['relationships']:
             str_relationships.append([str(s) for s in rel])
-            
-        h5_rel = h5_scan.create_dataset('relationships', data=np.array(str_relationships,dtype='S'))
+        d_scan['relationships']= str_relationships
+        
+        # h5_rel = h5f.create_dataset('relationships', data=np.array(str_relationships,dtype='S'))
             
         # h5_scan.attrs['relationships'] = str_relationships
+        
+        s_scan = str(d_scan)
+        h5_scan = h5f.create_dataset(scan_id,data=np.array([s_scan],dtype='S'),compression='gzip')
+        # test decode 
+        tmp = h5_scan[0].decode()
+        assert isinstance(ast.literal_eval(tmp),dict)
+        
+        # ast.literal_eval(h5_scan)
     h5f.close()
     pth_relationships_json = os.path.join(args.pth_out, "relationships_" + args.type + ".json")
     with open(pth_relationships_json, 'w') as f:

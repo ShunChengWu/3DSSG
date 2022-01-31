@@ -38,11 +38,14 @@ def evaluate_topk_object(objs_target, objs_pred, k=-1):
             maxk=min(len(sorted_conf),maxk)
         else:
             maxk=k
-        sorted_conf=sorted_conf[:maxk]
+        # sorted_conf=sorted_conf[:maxk]
         sorted_args=sorted_args[:maxk]
         
-        gt = objs_target[obj]
-        index = sorted(torch.where(sorted_conf == obj_pred[gt])[0])[0].item()+1
+        gt = objs_target[obj].cpu()
+        if gt in sorted_args:
+            index = sorted(torch.where(sorted_args == gt)[0])[0].item()+1
+        else:
+            index = maxk+1
         top_k.append(index)
 
     return top_k
@@ -78,18 +81,22 @@ def evaluate_topk_predicate(gt_edges, rels_pred, threshold=0.5,k=-1):
             '''If gt is none, find the first prediction that is below threshold (which predicts "no relationship")'''
             indices = torch.where(sorted_conf < threshold)[0]
             if len(indices) == 0:
-                index = len(sorted_conf)+1
+                index = maxk+1
             else:
                 index = sorted(indices)[0].item()+1
             temp_topk.append(index)
         else:
             for gt in rels_target:
                 '''if has gt, find the location of the gt label prediction.'''
-                indices = torch.where(sorted_conf == rel_pred[gt])[0]
-                if len(indices) == 0:
-                    index = len(sorted_conf)+1
+                if gt in sorted_args:
+                    index = sorted(torch.where(sorted_args == gt)[0])[0].item()+1
                 else:
-                    index = sorted(indices)[0].item()+1
+                    index = maxk+1
+                    
+                # if len(indices) == 0:
+                #     index = len(sorted_conf)+1
+                # else:
+                #     index = sorted(indices)[0].item()+1
                 temp_topk.append(index)
         temp_topk = sorted(temp_topk)  # ascending I hope/think
         top_k += temp_topk
@@ -155,13 +162,15 @@ def evaluate_topk(gt_rel, objs_pred, rels_pred, edges, threshold=0.5, k=40):
             # Ground truth is None
             indices = torch.where(sorted_conf_matrix < threshold)[0]
             if len(indices) == 0:
-                index = maxk+1
+                index = maxk+1 # 
             else:
                 index = sorted(indices)[0].item()+1
             temp_topk.append(index)
         for predicate in gt_r: # for the multi rel case
-            gt_conf = conf_matrix[gt_s, gt_t, predicate]
-            indices = torch.where(sorted_conf_matrix == gt_conf)[0]
+            index_1d = (gt_s*conf_matrix.shape[1]+gt_t)*conf_matrix.shape[2]+predicate
+            indices = torch.where(sorted_args_1d == index_1d)[0]
+            # gt_conf = conf_matrix[gt_s, gt_t, predicate]
+            # indices = torch.where(sorted_conf_matrix == gt_conf)[0]
             if len(indices) == 0:
                 index = maxk+1
             else:
