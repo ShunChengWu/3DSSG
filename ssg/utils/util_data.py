@@ -4,6 +4,16 @@ import json
 # import ssg2d
 from ssg.objects import Node
 from collections import defaultdict
+import ast
+
+def raw_to_data(raw):
+    return ast.literal_eval(raw[0].decode())
+
+def cvt_all_to_dict_from_h5(data:dict):
+    output = dict()
+    for k,v in data.items():
+        output[k]= raw_to_data(v)
+    return output
 
 def load_graph(pth, box_filter_size: list=[]):
     with open(pth, "r") as read_file:
@@ -155,9 +165,9 @@ def build_neighbor(objects:dict, n_times:int, n_seed = 1):
     
     return filtered_nodes
 
-def build_neighbor_sgfn(nns:dict, instance2labelName:dict, n_times:int, n_seed = 1):
+def build_neighbor_sgfn(nns:dict, selected_nodes:list, n_times:int, n_seed = 1):
     ''' Select node'''
-    selected_nodes = list(instance2labelName.keys())
+    # selected_nodes = list(instance2labelName.keys())
     if n_seed > len(selected_nodes):n_seed = len(selected_nodes)
     index = np.random.choice(np.unique(selected_nodes),n_seed).tolist()
     index = list(set(index)) # make them unique
@@ -263,7 +273,7 @@ def data_preparation(points, instances, selected_instances, num_points, num_poin
         if num_nn==0 or num_seed ==0:
             use_all = True
         if not use_all:
-            filtered_nodes = build_neighbor_sgfn(nns, instance2labelName, num_nn, num_seed)
+            filtered_nodes = build_neighbor_sgfn(nns, list(instance2labelName.keys()), num_nn, num_seed)
         else:
             selected_nodes = list(instance2labelName.keys())
             filtered_nodes = selected_nodes # use all nodes

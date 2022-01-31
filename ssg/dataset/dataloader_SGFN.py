@@ -1,5 +1,5 @@
 import torch.utils.data as data
-import os, random, torch, json, trimesh
+import os, random, torch, json, trimesh, h5py, copy
 import numpy as np
 import multiprocessing as mp
 
@@ -11,18 +11,20 @@ from codeLib.utils.util import read_txt_to_list, check_file_exist
 from ssg import define
 # from data_processing import compute_weight_occurrences
 import ssg.utils.compute_weight as compute_weight
-# import op_utils
+from ssg.utils.util_data import raw_to_data, cvt_all_to_dict_from_h5
+import codeLib.utils.string_numpy as snp
 
 class SGFNDataset (data.Dataset):
     def __init__(self,config,mode, **args):
-        # torch.multiprocessing.set_sharing_strategy('file_system')
-        
         assert mode in ['train','validation','test']
+        self._device = config.DEVICE
+        path = config.data['path']
         self.config = config
         self.mconfig = config.data
         self.path = config.data.path
         self.use_data_augmentation=False
         self.root_3rscan = define.DATA_PATH
+        self.path_h5 = os.path.join(self.path,'relationships_%s.h5' % (mode))
         try:
             self.root_scannet = define.SCANNET_DATA_PATH
         except:
@@ -41,85 +43,66 @@ class SGFNDataset (data.Dataset):
         self.full_edge = self.config.data.full_edge
         
         self.output_node = args.get('output_node', True)
-        self.output_edge = args.get('output_edge', True)
-        # import resource
-        # rlimit = resource.getrlimit(resource.RLIMIT_NOFILE)
-        # resource.setrlimit(resource.RLIMIT_NOFILE, (4096, rlimit[1]))
+        self.output_edge = args.get('output_edge', True)    
+
+        ''' read classes '''
+        pth_classes = os.path.join(path,'classes.txt')
+        pth_relationships = os.path.join(path,'relationships.txt')      
+        selected_scans = read_txt_to_list(os.path.join(path,'%s_scans.txt' % (mode)))
         
-        if isinstance(self.path, list):
-            with open(os.path.join(self.path[0],'args.json'), 'r') as f:
-                jf = json.load(f)
-            self.label_type = jf['label_type']
-            classNames = None
-            relationNames = None
-            data = None
-            selected_scans = None
-            for i in range(len(self.root)):
-                selection = self.mconfig.selection
-                if selection == "":
-                    selection = self.root[i]
-                l_classNames, l_relationNames, l_data, l_selected_scans = \
-                    dataset_loading_3RScan(self.root[i], selection, mode)
-                
-                if classNames is None:
-                    classNames, relationNames, data, selected_scans = \
-                        l_classNames, l_relationNames, l_data, l_selected_scans
-                else:
-                    classNames = set(classNames).union(l_classNames)
-                    relationNames= set(relationNames).union(l_relationNames)
-                    data['scans'] = l_data['scans'] + data['scans']
-                    data['neighbors'] = {**l_data['neighbors'], **data['neighbors']}
-                    selected_scans = selected_scans.union(l_selected_scans)
-            classNames = list(classNames)
-            relationNames = list(relationNames)
-        else:
-            with open(os.path.join(self.path,'args.json'), 'r') as f:
-                jf = json.load(f)
-            self.label_type = jf['label_type']    
-            if config.data.selection == "":
-                config.data.selection = self.path
-            classNames, relationNames, data, selected_scans = \
-                dataset_loading_3RScan(self.path, config.data.selection, mode)                
-        self.relationNames = sorted(relationNames)
-        self.classNames = sorted(classNames)
+        names_classes = read_txt_to_list(pth_classes)
+        names_relationships = read_txt_to_list(pth_relationships)
         
         if not multi_rel_outputs:
-            if 'none' not in self.relationNames:
-                self.relationNames.append('none')
+            if 'none' not in names_relationships:
+                names_relationships.append('none')
+        elif 'none' in names_relationships:
+            names_relationships.remove('none')
+        
+        self.relationNames = sorted(names_relationships)
+        self.classNames = sorted(names_classes)
+        
+        ''' load data '''
+        self.open_data(self.path_h5)
+        c_sg_data = cvt_all_to_dict_from_h5(self.sg_data)
+        del self.sg_data
+        
+        '''check scan_ids'''
+        tmp = set(c_sg_data.keys())
+        inter  = sorted(list(tmp.intersection(selected_scans)))
+        
+        '''pack with snp'''
+        self.size = len(inter)
+        self.scans = snp.pack(inter)#[s for s in data.keys()]
 
+        '''compute weight  ''' #TODO: rewrite this. in runtime sampling the weight might need to be calculated in each epoch.
         if not self.for_eval:
             if config.data.full_edge:
                 edge_mode='fully_connected'
             else:
                 edge_mode='nn'
-            # wobjs, wrels, o_obj_cls, o_rel_cls = compute_weight.compute(self.classNames, self.relationNames, data,selected_scans)
-            wobjs, wrels, o_obj_cls, o_rel_cls = compute_weight.compute_sgfn(self.classNames, self.relationNames, data, selected_scans,
+            wobjs, wrels, o_obj_cls, o_rel_cls = compute_weight.compute_sgfn(self.classNames, self.relationNames, c_sg_data, selected_scans,
                                                                         normalize=config.data.normalize_weight,
                                                                         for_BCE=multi_rel_outputs==True,
                                                                         edge_mode=edge_mode,
                                                                         verbose=config.VERBOSE)
-            self.w_cls_obj = torch.from_numpy(np.array(o_obj_cls)).float().to(self.config.DEVICE)
-            self.w_cls_rel = torch.from_numpy(np.array(o_rel_cls)).float().to(self.config.DEVICE)
-        
-        self.relationship_json, self.objs_json, self.scans, self.nns = self.read_relationship_json(data, selected_scans)
-        if self.config.VERBOSE:
-            print('num of data:',len(self.scans))
-        assert(len(self.scans)>0)
-        if sample_in_runtime and not config.data.full_edge:
-            assert(self.nns is not None)
-        
+            self.w_node_cls = torch.from_numpy(np.array(wobjs)).float()
+            self.w_edge_cls = torch.from_numpy(np.array(wrels)).float()
+
         self.dim_pts = 3
         if self.use_rgb:
             self.dim_pts += 3
         if self.use_normal:
             self.dim_pts += 3
         
+        '''cache'''
         self.cache_data = dict()
-        if load_cache:
+        if self.config.data.load_cache:
+            print('load data to cache')
             pool = mp.Pool(8)
             pool.daemon = True
             # resutls=dict()
-            for scan_id in self.scans:
+            for scan_id in inter:
                 scan_id_no_split = scan_id.rsplit('_',1)[0]
                 if 'scene' in scan_id:
                     path = os.path.join(self.root_scannet, scan_id_no_split)
@@ -127,11 +110,15 @@ class SGFNDataset (data.Dataset):
                     path = os.path.join(self.root_3rscan, scan_id_no_split)
                 if scan_id_no_split not in self.cache_data:
                     self.cache_data[scan_id_no_split] = pool.apply_async(load_mesh,
-                                                                         (path, self.mconfig.label_file,self.use_rgb,self.use_normal))
+                                                                          (path, self.mconfig.label_file,self.use_rgb,self.use_normal))
             pool.close()
             pool.join()
             for key, item in self.cache_data.items():
                 self.cache_data[key] = item.get()
+                
+    def open_data(self, path):
+        if not hasattr(self,'sg_data'):
+            self.sg_data = h5py.File(path,'r')
         
     def data_augmentation(self, points):
         # random rotate
@@ -173,33 +160,42 @@ class SGFNDataset (data.Dataset):
         return points
 
     def __getitem__(self, index):
-        scan_id = self.scans[index]
-        scan_id_no_split = scan_id.rsplit('_',1)[0]
-        instance2labelName  = self.objs_json[scan_id]
+        scan_id = snp.unpack(self.scans,index)# self.scans[idx]
+        
+        self.open_data(self.path_h5)
+        scan_data_raw = self.sg_data[scan_id]
+        scan_data = raw_to_data(scan_data_raw)
+        
+        object_data = scan_data['nodes']
+        relationships_data = scan_data['relationships']
+        
+        ''' build nn dict '''
+        nns = dict()
+        for oid, odata in object_data.items():
+            nns[str(oid)] = [int(s) for s in odata['neighbors']]
+
+        ''' build mapping '''
+        instance2labelName  = { int(key): node['label'] for key,node in object_data.items()  }
             
-        if self.load_cache:
-            data = self.cache_data[scan_id_no_split]
+        ''' load point cloud data '''
+        if 'scene' in scan_id:
+            path = os.path.join(self.root_scannet, scan_id)
         else:
-            if 'scene' in scan_id:
-                path = os.path.join(self.root_scannet, scan_id_no_split)
-            else:
-                path = os.path.join(self.root_3rscan, scan_id_no_split)
-            data = load_mesh(path, self.mconfig.label_file,self.use_rgb,self.use_normal)
-        points = data['points']
-        instances = data['instances']
+            path = os.path.join(self.root_3rscan, scan_id)
+            
+        if self.config.data.load_cache:
+            data = self.cache_data[scan_id]
+        else:
+            data = load_mesh(path, self.mconfig.label_file, self.use_rgb, self.use_normal)
+        points = copy.deepcopy( data['points'] )
+        instances = copy.deepcopy( data['instances'] )
         instances_id = list(np.unique(instances))
         
-        # output = dict()
-        # output['scan_id'] = scan_id # str
-        # output['gt_rel'] = torch.rand([500])  # tensor
-        # output['gt_cls'] = torch.rand([500])# tensor
-        # return output
-     
         if self.use_data_augmentation and not self.for_eval:
            points = self.data_augmentation(points)
             
         if self.sample_in_runtime:
-            selected_nodes = list(self.objs_json[scan_id].keys())
+            selected_nodes = list(object_data.keys())
             if not self.for_eval:
                 sample_num_nn=self.mconfig.sample_num_nn# 1 if "sample_num_nn" not in self.config else self.config.sample_num_nn
                 sample_num_seed=self.mconfig.sample_num_seed#1 if "sample_num_seed" not in self.config else self.config.sample_num_seed
@@ -210,9 +206,8 @@ class SGFNDataset (data.Dataset):
                     # random select node including neighbors
                     # filtered_nodes = util_data.build_neighbor(objects, sample_num_nn, sample_num_seed)
                     
-                    filtered_nodes = util_data.build_neighbor_sgfn(self.nns[scan_id_no_split], instance2labelName, 
+                    filtered_nodes = util_data.build_neighbor_sgfn(nns, selected_nodes, 
                                                           sample_num_nn, sample_num_seed) # select 1 node and include their neighbor nodes n times.
-                # filtered_nodes = list(self.objs_json[scan_id].keys())
             else:
                 filtered_nodes = selected_nodes # use all nodes
         
@@ -230,10 +225,10 @@ class SGFNDataset (data.Dataset):
         '''
         cat = []
         counter = 0
-        selected_instances = list(self.objs_json[scan_id].keys())
+        selected_instances = list(object_data.keys())
         filtered_instances = list()
-        for i in range(len(instances_id)):
-            instance_id = instances_id[i]
+        for instance_id in filtered_nodes:
+            # instance_id = instances_id[i]
             
             class_id = -1
             if instance_id not in selected_instances:
@@ -257,41 +252,10 @@ class SGFNDataset (data.Dataset):
                 cat.append(class_id)
         assert len(cat) > 0
         '''Map edge indices to mask indices'''
-        if self.sample_in_runtime:
-            if not self.full_edge:
-                edge_indices = util_data.build_edge_from_selection(filtered_nodes, self.nns[scan_id_no_split], max_edges_per_node=-1)
-            else:
-                edge_indices = list()
-                for n in range(len(cat)):
-                    for m in range(len(cat)):
-                        if n == m:continue
-                        edge_indices.append([n,m])
-            if len(edge_indices)>0:
-                if not self.for_eval:
-                    edge_indices = random_drop(edge_indices, self.mconfig.drop_edge)
-                    
-                if self.for_eval :
-                    edge_indices = random_drop(edge_indices, self.mconfig.drop_edge_eval)
-                    
-                if self.mconfig.max_num_edge > 0 and len(edge_indices) > self.max_num_edge:
-                    choices = np.random.choice(range(len(edge_indices)),self.mconfig.max_num_edge,replace=False).tolist()
-                    edge_indices = [edge_indices[t] for t in choices]
-        # else:
-        #     ''' Build fully connected edges '''
-        #     edge_indices = list()
-        #     max_edges=-1
-        #     for n in range(len(cat)):
-        #         for m in range(len(cat)):
-        #             if n == m:continue
-        #             edge_indices.append([n,m])
-        #     if max_edges>0 and len(edge_indices) > max_edges :
-        #         # for eval, do not drop out any edges.
-        #         indices = list(np.random.choice(len(edge_indices),self.max_edges,replace=False))
-        #         edge_indices = edge_indices[indices]
 
         ''' random sample points '''
         use_obj_context=False #TODO: not here
-        obj_points = torch.zeros([len(cat), self.mconfig.num_points, self.dim_pts])
+        obj_points = torch.zeros([len(cat), self.mconfig.node_feature_dim, self.dim_pts])
         descriptor = torch.zeros([len(cat), 11])
         for i in range(len(filtered_instances)):
             instance_id = filtered_instances[i]
@@ -310,10 +274,13 @@ class SGFNDataset (data.Dataset):
                 print('selected_instances:',len(selected_instances))
                 print('filtered_instances:',len(filtered_instances))
                 print('instance_id:',instance_id)
-            choice = np.random.choice(len(obj_pointset), self.mconfig.num_points, replace= len(obj_pointset) < self.mconfig.num_points)
+            choice = np.random.choice(len(obj_pointset), self.mconfig.node_feature_dim, replace= len(obj_pointset) < self.mconfig.node_feature_dim)
             obj_pointset = obj_pointset[choice, :]
             descriptor[i] = util_data.gen_descriptor_pts(torch.from_numpy(obj_pointset)[:,:3])
             obj_pointset = torch.from_numpy(obj_pointset.astype(np.float32))
+            
+            # util_data.save_to_ply(obj_pointset[:,:3],'./tmp_{}.ply'.format(i))
+            
             obj_pointset[:,:3] = self.norm_tensor(obj_pointset[:,:3])
             obj_points[i] = obj_pointset
         obj_points = obj_points.permute(0,2,1)
@@ -324,8 +291,30 @@ class SGFNDataset (data.Dataset):
         else:
             adj_matrix = np.zeros([len(cat), len(cat)])
             adj_matrix += len(self.relationNames)-1 #set all to none label.
-            
-        if not self.sample_in_runtime:
+        
+        
+        if self.sample_in_runtime:
+            if not self.full_edge:
+                edge_indices = util_data.build_edge_from_selection_sgfn(filtered_instances,nns,max_edges_per_node=-1)
+                edge_indices = [[instance2mask[edge[0]]-1,instance2mask[edge[1]]-1] for edge in edge_indices ]
+                # edge_indices = util_data.build_edge_from_selection(filtered_nodes, nns, max_edges_per_node=-1)
+            else:
+                edge_indices = list()
+                for n in range(len(cat)):
+                    for m in range(len(cat)):
+                        if n == m:continue
+                        edge_indices.append([n,m])
+            if len(edge_indices)>0:
+                if not self.for_eval:
+                    edge_indices = random_drop(edge_indices, self.mconfig.drop_edge)
+                    
+                if self.for_eval :
+                    edge_indices = random_drop(edge_indices, self.mconfig.drop_edge_eval)
+                    
+                if self.mconfig.max_num_edge > 0 and len(edge_indices) > self.max_num_edge:
+                    choices = np.random.choice(range(len(edge_indices)),self.mconfig.max_num_edge,replace=False).tolist()
+                    edge_indices = [edge_indices[t] for t in choices]
+        else:
             edge_indices = list()
             max_edges=-1
             for n in range(len(cat)):
@@ -337,26 +326,31 @@ class SGFNDataset (data.Dataset):
                 indices = list(np.random.choice(len(edge_indices),max_edges,replace=False))
                 edge_indices = edge_indices[indices]
             
-        rel_json = self.relationship_json[scan_id]
+        rel_json = relationships_data
         for r in rel_json:
-            if r[0] not in instance2mask or r[1] not in instance2mask: continue
-            index1 = instance2mask[r[0]]-1
-            index2 = instance2mask[r[1]]-1
+            r_src = int(r[0])
+            r_tgt = int(r[1])
+            r_lid = int(r[2])
+            r_cls = r[3]
+            
+            if r_src not in instance2mask or r_tgt not in instance2mask: continue
+            index1 = instance2mask[r_src]-1
+            index2 = instance2mask[r_tgt]-1
             assert index1>=0
             assert index2>=0
             if self.sample_in_runtime:
                 if [index1,index2] not in edge_indices: continue
             
-            if r[3] not in self.relationNames:
+            if r_cls not in self.relationNames:
                 continue  
-            r[2] = self.relationNames.index(r[3]) # remap the index of relationships in case of custom relationNames
-            # assert(r[2] == self.relationNames.index(r[3]))
+            r_lid = self.relationNames.index(r_cls) # remap the index of relationships in case of custom relationNames
+            # assert(r_lid == self.relationNames.index(r_cls))
 
             if index1 >= 0 and index2 >= 0:
                 if self.multi_rel_outputs:
-                    adj_matrix_onehot[index1, index2, r[2]] = 1
+                    adj_matrix_onehot[index1, index2, r_lid] = 1
                 else:
-                    adj_matrix[index1, index2] = r[2]        
+                    adj_matrix[index1, index2] = r_lid        
                     
         if self.multi_rel_outputs:
             rel_dtype = np.float32
@@ -397,7 +391,7 @@ class SGFNDataset (data.Dataset):
         # return scan_id, instance2mask, obj_points, edge_indices, gt_class, gt_rels, descriptor
 
     def __len__(self):
-        return len(self.scans)
+        return self.size
     
     def norm_tensor(self, points):
         assert points.ndim == 2

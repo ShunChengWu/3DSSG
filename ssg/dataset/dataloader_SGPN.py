@@ -8,15 +8,8 @@ from ssg.utils import util_data, util_ply
 from ssg import define
 import copy
 import ast
+from ssg.utils.util_data import raw_to_data, cvt_all_to_dict_from_h5
 
-def raw_to_data(raw):
-    return ast.literal_eval(raw[0].decode())
-
-def cvt_all_to_dict_from_h5(data:dict):
-    output = dict()
-    for k,v in data.items():
-        output[k]= raw_to_data(v)
-    return output
 class SGPNDataset(torch.utils.data.Dataset):
     def __init__(self, config, mode, **args):
         assert mode in ['train','validation','test']
@@ -192,7 +185,7 @@ class SGPNDataset(torch.utils.data.Dataset):
             data = load_mesh(path, self.mconfig.label_file, self.use_rgb, self.use_normal)
         points = copy.deepcopy( data['points'] )
         instances = copy.deepcopy( data['instances'] )
-        del data
+        # del data
         
         instances_id = list(np.unique(instances))
         

@@ -19,7 +19,6 @@ class SGFN(nn.Module):
         node_feature_dim = cfg.model.node_feature_dim
         edge_feature_dim = cfg.model.edge_feature_dim
         
-        node_feature_dim= cfg.model.node_feature_dim
         if self.cfg.model.use_spatial:
             node_feature_dim -= cfg.model.edge_descriptor_dim-3 # ignore centroid
         cfg.model.node_feature_dim = node_feature_dim
@@ -71,8 +70,8 @@ class SGFN(nn.Module):
             params += list(model.parameters())
             print(name,pytorch_count_params(model))
         print('')
-    def forward(self, segments_points, edges, descriptor):
-        nodes_feature = self.obj_encoder(segments_points)
+    def forward(self, obj_points, descriptor, node_edges, **args):
+        nodes_feature = self.obj_encoder(obj_points)
         
         if self.cfg.model.use_spatial:
             tmp = descriptor[:,3:].clone()
@@ -81,14 +80,14 @@ class SGFN(nn.Module):
 
         ''' Create edge feature '''
         # with torch.no_grad():
-        #     edge_feature = op_utils.Gen_edge_descriptor(flow=self.flow)(descriptor,edges)
-        edges_feature = self.rel_encoder(descriptor,edges)
+        #     edge_feature = op_utils.Gen_edge_descriptor(flow=self.flow)(descriptor,node_edges)
+        edges_feature = self.rel_encoder(descriptor,node_edges)
         
                     
         ''' GNN '''
         probs=None
         if hasattr(self, 'gnn') and self.gnn is not None:
-            gnn_nodes_feature, gnn_edges_feature, probs = self.gnn(nodes_feature, edges_feature, edges)
+            gnn_nodes_feature, gnn_edges_feature, probs = self.gnn(nodes_feature, edges_feature, node_edges)
             nodes_feature = gnn_nodes_feature
             edges_feature = gnn_edges_feature
         
