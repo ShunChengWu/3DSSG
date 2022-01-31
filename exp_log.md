@@ -1,4 +1,5 @@
-
+# SSG with GT Segmentation
+## SGPN
 For `config_3DSSG_test_*.json`. 
 - 0~3: try to make it work
 - 4: train with batchsize 4.
@@ -26,6 +27,11 @@ The result is still worse than the one reported from the paper. maybe increase i
 - 13: node_dim: 256->512. num_points_union: 512->1024
 - 14: ndoe_dim: 1024, num_points_union: 2048
 - 15: test with the optimized version of the dataset -> can reproduce 14. 
+
+## SGFN
+- 0: test. batchsize 0
+- 1: batchsize 4
+
 
 | method             | R@50 | R@100 | R@5  | R@10 | R@3  | R@10 |
 |--------------------|------|-------|------|------|------|------|
