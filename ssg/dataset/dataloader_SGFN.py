@@ -27,6 +27,7 @@ class SGFNDataset (data.Dataset):
         self.use_data_augmentation=False
         self.root_3rscan = define.DATA_PATH
         self.path_h5 = os.path.join(self.path,'relationships_%s.h5' % (mode))
+        self.path_mv = config.data.get('img_file_path',None)
         try:
             self.root_scannet = define.SCANNET_DATA_PATH
         except:
@@ -65,13 +66,20 @@ class SGFNDataset (data.Dataset):
         self.classNames = sorted(names_classes)
         
         ''' load data '''
-        self.open_data(self.path_h5)
+        if self.mconfig.load_image:
+            self.open_mv_graph()
+        
+        self.open_data()
         c_sg_data = cvt_all_to_dict_from_h5(self.sg_data)
         del self.sg_data
         
         '''check scan_ids'''
-        tmp = set(c_sg_data.keys())
-        inter  = sorted(list(tmp.intersection(selected_scans)))
+        tmp   = set(c_sg_data.keys())
+        inter = sorted(list(tmp.intersection(selected_scans)))
+        if self.mconfig.load_image:
+            # check intersection 
+            tmp   = set(self.mv_data.keys())
+            inter = sorted(list(tmp.intersection(inter)))
         
         '''pack with snp'''
         self.size = len(inter)
@@ -103,7 +111,7 @@ class SGFNDataset (data.Dataset):
             print('load data to cache')
             pool = mp.Pool(8)
             pool.daemon = True
-            # resutls=dict()
+
             for scan_id in inter:
                 scan_id_no_split = scan_id.rsplit('_',1)[0]
                 if 'scene' in scan_id:
@@ -118,9 +126,13 @@ class SGFNDataset (data.Dataset):
             for key, item in self.cache_data.items():
                 self.cache_data[key] = item.get()
                 
-    def open_data(self, path):
+    def open_mv_graph(self):
+        if not hasattr(self, 'mv_data'):
+            self.mv_data = h5py.File(self.path_mv,'r')
+                
+    def open_data(self):
         if not hasattr(self,'sg_data'):
-            self.sg_data = h5py.File(path,'r')
+            self.sg_data = h5py.File(self.path_h5,'r')
         
     def data_augmentation(self, points):
         # random rotate
@@ -164,7 +176,7 @@ class SGFNDataset (data.Dataset):
     def __getitem__(self, index):
         scan_id = snp.unpack(self.scans,index)# self.scans[idx]
         
-        self.open_data(self.path_h5)
+        self.open_data()
         scan_data_raw = self.sg_data[scan_id]
         scan_data = raw_to_data(scan_data_raw)
         

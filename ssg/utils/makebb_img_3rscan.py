@@ -37,6 +37,7 @@ parser = argparse.ArgumentParser(description=helpmsg,
 
 parser.add_argument('-o','--outdir',default='/media/sc/SSD1TB2/dataset/scannet/2dgt_new/',required=True)
 parser.add_argument('--thread', type=int, default=0, help='The number of threads to be used.')
+parser.add_argument('--downsacle','-d', type=int, default=8, help='The factor of downscaling while calculating the occurance. The larger the less accurate but faster speed.')
 parser.add_argument('--overwrite', type=int, default=0, help='overwrite')
 args = parser.parse_args()
 
@@ -126,8 +127,8 @@ class LabelImage(object):
     
     def to_label_color(self):
         clr_img = np.zeros([self.l_img.shape[0],self.l_img.shape[1],3],dtype=np.uint8)
-        for lid, clr in enumerate(random_clr_l):
-            indices = np.where(self.l_img==lid)
+        for label, clr in random_clr_l.items():
+            indices = np.where(self.l_img==label)
             clr_img[indices] = clr
         return clr_img
     def to_inst_color(self):
@@ -173,7 +174,7 @@ class LabelImage(object):
             box = BoundingBox( [indices[1].min(), indices[0].min(), indices[1].max(), indices[0].max()] )
             if not box.is_valid(): continue
         
-            oc = mask_occupancy(self.i_img[box.y_min():box.y_max(),box.x_min():box.x_max()]==inst,down_scale=8)
+            oc = mask_occupancy(self.i_img[box.y_min():box.y_max(),box.x_min():box.x_max()]==inst,down_scale=args.downsacle)
             
             box_clrs.append(random_clr_i[inst])
             boxes.append(box)
@@ -204,10 +205,10 @@ def process(scan_id):
         
     # get number of scans
     scan_info = read_3rscan_info(os.path.join(fdata,scan_id,'sequence','_info.txt'))
-    n_scans = int(scan_info['m_frames.size'])
+    n_images = int(scan_info['m_frames.size'])
     
     # check all images exist
-    for frame_id in range(n_scans):
+    for frame_id in range(n_images):
         # pth_label = os.path.join(fdata,scan_id,'sequence', label_filepattern.format(frame_id))
         pth_inst  = os.path.join(fdata,scan_id,'sequence', insta_filepattern.format(frame_id))
         
@@ -222,7 +223,7 @@ def process(scan_id):
     fp.write('frame_id object_id label occlution_ratio x_min y_min x_max y_max\n')
     
     # process
-    for frame_id in range(n_scans):
+    for frame_id in range(n_images):
         # pth_label = os.path.join(fdata,scan_id,'sequence', label_filepattern.format(frame_id))
         pth_inst  = os.path.join(fdata,scan_id,'sequence', insta_filepattern.format(frame_id))
         
@@ -235,16 +236,6 @@ def process(scan_id):
         
         #
         limg_data = np.vectorize(mapping.__getitem__)(iimg_data)
-        # limg_data = np.vectorize(NYU40_Name2Idx_map.__getitem__)(labels)# int(NYU40_Label_Names.index(labels))
-        
-        # limg_data = np.vectorize(label_id_mapping.__getitem__)(iimg_data)
-        
-        # RGB to label
-        
-        
-        # limg_data = arc_label.read(label_prefix+name)
-        # iimg_data = arc_inst.read(insta_prefix+name)
-    
         limg = LabelImage(frame_id, iimg_data, limg_data)
         
         # limg.show()
@@ -284,6 +275,8 @@ if __name__ =='__main__':
     
     create_folder(args.outdir)
     print('num of scans:',len(scan_ids), 'processing with',n_workers,'threads')
+    
+    # process('eee5b056-ee2d-28f4-9bbe-f7ddf37895a6')
     
     if n_workers > 0:
         process_map(process, scan_ids, max_workers=n_workers, chunksize=1 )

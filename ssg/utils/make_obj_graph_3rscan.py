@@ -1,52 +1,45 @@
-import json, glob, csv, sys, argparse, os, sys, codeLib, pandas, h5py, logging
-from codeLib.utils.classification.labels import NYU40_Label_Names, SCANNET20_Label_Names
+import argparse, os, pandas, h5py, logging
+# from codeLib.utils.classification.labels import NYU40_Label_Names, SCANNET20_Label_Names
 import numpy as np
 from tqdm import tqdm
-import os,io
-import zipfile
-import imageio
-import numpy as np
-import matplotlib.pyplot as plt
-import matplotlib
+# import os,io
+# import zipfile
+# import imageio
+# import numpy as np
+# import matplotlib.pyplot as plt
+# import matplotlib
 from PIL import Image
-import codeLib
-from codeLib.torch.visualization import show_tv_grid
-from codeLib.common import color_rgb, rand_24_bit,create_folder
+# import codeLib
+# from codeLib.torch.visualization import show_tv_grid
+from codeLib.common import color_rgb, rand_24_bit
 from codeLib.utils.util import read_txt_to_list
-from codeLib.object import BoundingBox
-from codeLib.utils.classification.labels import get_ScanNet_label_mapping#get_NYU40_color_palette, NYU40_Label_Names,get_ScanNet_label_mapping
+# from codeLib.object import BoundingBox
+# from codeLib.utils.classification.labels import get_ScanNet_label_mapping#get_NYU40_color_palette, NYU40_Label_Names,get_ScanNet_label_mapping
 import torch
-import torchvision
-from torchvision.utils import draw_bounding_boxes
+# import torchvision
+# from torchvision.utils import draw_bounding_boxes
 from collections import defaultdict
-import json, glob, csv, sys,os, argparse
-from tqdm import tqdm
-from tqdm.contrib.concurrent import process_map 
+# import json, glob, csv, sys,os, argparse
+# from tqdm import tqdm
+# from tqdm.contrib.concurrent import process_map 
 from ssg import define
 from ssg.utils import util_label
-from ssg.utils.util_3rscan import read_3rscan_info, load_semseg
-
-logging.basicConfig()
-logger_py = logging.getLogger(__name__)
-logger_py.setLevel('INFO')
+from ssg.utils.util_3rscan import load_semseg
+# from collections import defaultdict
+from codeLib.torch.visualization import show_tensor_images
 
 structure_labels = ['wall','floor','ceiling']
 
-class_map = {
-    'scannet20': 'nyu40class',
-    'nyu': 'nyuClass',
-    'nyu40': 'nyu40class',
-    'eigen13': 'eigen13class',
-    'modelnet40': 'ModelNet40',
-    'modelnet10': 'ModelNet10',
-    'shapenet55': 'ShapeNetCore55',
-    'mpnyu40': 'mpcat40'
-}
 width=540
 height=960
 
 DEBUG=True
 DEBUG=False
+
+random_clr_i = [color_rgb(rand_24_bit()) for _ in range(1500)]
+random_clr_i[0] = (0,0,0)
+# random_clr_l = {v:color_rgb(rand_24_bit()) for k,v in Scan3R528.items()}
+# random_clr_l['none'] = (0,0,0)
 
 def Parse():
     parser = argparse.ArgumentParser(formatter_class = argparse.ArgumentDefaultsHelpFormatter)
@@ -54,185 +47,186 @@ def Parse():
     #
     parser.add_argument('-d','--gt2d_dir',default='/media/sc/SSD1TB/dataset/3RScan/2dgt', 
                         help='directory containing the .2dgt i.e. the gt 2d detections, generated with the script')
-    parser.add_argument('-o','--outdir',default='/home/sc/research/PersistentSLAM/python/2DTSG/data/mv_scannet_test/', help='output dir',required=True)
-    parser.add_argument('-m','--max_occ',default=0.5,help='The threshold for the visibility of an object. If below this value, discard')
+    parser.add_argument('-o','--outdir',default='/home/sc/research/PersistentSLAM/python/3DSSG/data/3RScan_3RScan160/', help='output dir',required=True)
+    parser.add_argument('-m','--min_occ',default=0.2,help='The threshold for the visibility of an object. If below this value, discard (higher, more occurance)')
     parser.add_argument('--min_object', help='if less thant min_obj objects, ignore image', default=1)
-    parser.add_argument('-l','--label_type',default='nyu40', choices=['nyu40','eigen13','rio27', 'rio7','3rscan','3rscan160'], 
+    parser.add_argument('-l','--label_type',default='3rscan160', choices=['nyu40','eigen13','rio27', 'rio7','3rscan','3rscan160'], 
                         help='target label type.')
+    parser.add_argument('--min_size', default=60, help='min length on bbox')
     # parser.add_argument('-lf','--label_file',default='/media/sc/space1/dataset/scannet/scannetv2-labels.combined.tsv', 
     #                     help='file path to scannetv2-labels.combined.tsv')
     parser.add_argument('--skip_structure',default=0,help='should ignore sturcture labels or not')
+    parser.add_argument('--skip_edge',default=0,type=int,help='should bbox close to image boundary')
+    parser.add_argument('--skip_size',default=1,type=int,help='should filter out too small objs')
     parser.add_argument('--overwrite', type=int, default=0, help='overwrite existing file.')
     return parser
 
-def get_bbx_wo_flatcheck(scan_id, fn,max_oc, mapping, min_size:list=[240,240]):
-  obj_by_img={}  
-  data = pandas.read_csv(fn, delimiter= ' ')      
-  # imgs = f[scan_id]
-  for i in data.index:
-      fname = data['frame_id'][i]
-      oid = data['object_id'][i]
-      olabel = data['label'][i]
-      oc = data['occlution_ratio'][i]
-      x1 = data['x_min'][i]
-      y1 = data['y_min'][i]
-      x2 = data['x_max'][i]
-      y2 = data['y_max'][i]
-      
-      olabel=olabel[1:].replace("\'","") # remove utf8 charesters
-      olabel=olabel.replace('_',' ')
-      
-      if float(x1)<1 or float(y1)<1 or width < float(x2) or height < float(y2):
-          if DEBUG: print('skip',fname,olabel,': on edge')
-          continue
-      
-      oc=float(oc)
-      oc = round(oc, 3)
-      if oc<max_oc: # if occlusion rate is over the maximum authorised, then skip
-          if DEBUG: print('skip',fname,olabel,'occluded',oc)
-          continue
-      
-      size = [x2-x1,y2-y1]
-      
-      if size[0] < min_size[0] or size[1] < min_size[1]:
-          if DEBUG: print('skip',fname,olabel,'too small', size)
-          continue
-      # print(olabel)
-      
-      if olabel not in mapping:
-           if DEBUG: print(olabel,'not in ', mapping.keys())
-           continue
-           raise RuntimeError('all labels should be included in the mapping dict',mapping.keys(), 'query',olabel)
-      olabel = mapping[olabel]
-      
-      if args.skip_structure>0:
-        if olabel in structure_labels:
-            if DEBUG: print('skip',fname,olabel,' structure label')
+def get_bbx_wo_flatcheck(scan_id, fn,min_oc, mapping, min_size:list=[240,240]):
+    obj_by_img={}  
+    data = pandas.read_csv(fn, delimiter= ' ')      
+    # imgs = f[scan_id]
+    obj_set=set()
+    obj_set_f = set()
+    # filter_struc=0
+    # filter_label=0
+    # filter_edge=0
+    # filter_occ=0
+    # filter_size=0
+    filter_counter = defaultdict(int)
+    filter_label = defaultdict(set)
+    
+    msg = 'skip fid:{}, iid:{}, lid:{}'
+    
+    for i in data.index:
+        fname = data['frame_id'][i]
+        oid = data['object_id'][i]
+        olabel = data['label'][i]
+        oc = data['occlution_ratio'][i]
+        x1 = data['x_min'][i]
+        y1 = data['y_min'][i]
+        x2 = data['x_max'][i]
+        y2 = data['y_max'][i]
+        
+        obj_set.add(oid)
+        
+        olabel=olabel[1:].replace("\'","") # remove utf8 charesters
+        olabel=olabel.replace('_',' ')
+        
+        '''check conditions'''
+        # Label
+        if olabel not in mapping:
+             if DEBUG: print(msg.format(fname,oid,olabel),'not in ', mapping.keys())
+             filter_counter['label']+=1
+             filter_label['label'].add(olabel)
+             continue
+             raise RuntimeError('all labels should be included in the mapping dict',mapping.keys(), 'query',olabel)
+        olabel = mapping[olabel]
+        # structure
+        if args.skip_structure>0:
+          if olabel in structure_labels:
+              if DEBUG: print(msg.format(fname,oid,olabel),' structure label')
+              filter_counter['struc']+=1
+              filter_label['struc'].add(olabel)
+              continue
+        # On boarder
+        if args.skip_edge>0:
+            if float(x1)<1 or float(y1)<1 or width < float(x2) or height < float(y2):
+                if DEBUG: print(msg.format(fname,oid,olabel),': on edge')
+                filter_counter['edge']+=1
+                filter_label['edge'].add(olabel)
+                continue
+        # Occurence too low
+        oc=float(oc)
+        oc = round(oc, 3)
+        if oc<min_oc: # if occlusion rate is over the maximum authorised, then skip
+            if DEBUG: print(msg.format(fname,oid,olabel),'occluded',oc,'<',min_oc)
+            filter_counter['occ']+=1
+            filter_label['occ'].add(olabel)
             continue
       
-      # if args.label_type == 'scannet20':
-      if olabel not in util_label.NYU40_Label_Names:
-          if DEBUG: print('skip',fname,olabel,'not in label names')
-          continue
+          # too smal
+        if args.skip_size>0:
+            size = [x2-x1,y2-y1]
+            if size[0] < min_size[0] or size[1] < min_size[1]:
+                if DEBUG: print(msg.format(fname,oid,olabel),'too small', size)
+                filter_counter['size']+=1
+                filter_label['size'].add(olabel)
+                continue
+        
+        # if args.label_type == 'scannet20':
+        # if olabel not in util_label.NYU40_Label_Names:
+        #     if DEBUG: print('skip',fname,olabel,'not in label names')
+        #     continue
+      
+        if fname not in obj_by_img:
+            obj_by_img[fname]=[fname,[]]
+        obj_by_img[fname][1].append([oid,olabel,oc,float(x1),float(y1),float(x2),float(y2)])      
+        obj_set_f.add(oid)
     
-      if fname not in obj_by_img:
-          obj_by_img[fname]=[fname,[]]
-      obj_by_img[fname][1].append([oid,olabel,oc,float(x1),float(y1),float(x2),float(y2)])      
-  return obj_by_img
+    # print('totalsize:', len(data.index))
+    logger_py.debug('filtered type and classes')
+    for k,v in filter_counter.items():
+         # print(k,v, filter_label[k])
+         logger_py.debug('{}: {}. {}'.format(k,v,filter_label[k]))
+    logger_py.debug('the obj filter ratio: {} ({}/{})'.format(len(obj_set_f)/len(obj_set),len(obj_set_f),len(obj_set)))
+    
+    '''debug vis'''
+    if DEBUG:
+        vis('/media/sc/SSD1TB/dataset/3RScan/data/3RScan/',scan_id,obj_by_img)
+        
+    return obj_by_img
 
-def read_txt_to_list(file):
-    output = [] 
-    with open(file, 'r') as f: 
-        for line in f: 
-            entry = line.rstrip().lower() 
-            output.append(entry) 
-    return output
-
-def print_selection(scan_id:str, node2kfs:dict, objects:dict, kfs:dict):
-    '''
-    show paired label and rgb images with bounding boxes, labels and occlusion level
-    '''
-    import os,h5py,imageio.ssg2d,zipfile,torch
-    from PIL import Image
-    from torchvision.ops import roi_align
-    from torchvision import transforms
-    from codeLib.torch.visualization import show_tensor_images
-    from torchvision.utils import draw_bounding_boxes
-    from ssg2d.utils.scannet.makebb_img import LabelImage
-    toTensor = transforms.ToTensor()
-    resize = transforms.Resize([256,256])
-    pth_img = '/media/sc/SSD1TB2/dataset/scannet/images.h5'
-    ffont = '/home/sc/research/PersistentSLAM/python/2DTSG/files/Raleway-Medium.ttf'
-    f = h5py.File(pth_img, 'r')
+def vis(datapath, scan_id,obj_by_img:dict):
     
-    SCANNET_DIR = '/media/sc/space1/dataset/scannet/'
-    fdata = os.path.join(SCANNET_DIR,'scans') # '/media/sc/space1/dataset/scannet/scans/'
-    # pth_scannet_label = os.path.join(SCANNET_DIR, 'scannetv2-labels.combined.tsv')
-    label_filepattern = '_2d-label-filt.zip'
-    insta_filepattern = '_2d-instance-filt.zip'
-    pth_instance_zip = os.path.join(fdata,scan_id,scan_id+insta_filepattern)
-    pth_label_zip = os.path.join(fdata,scan_id,scan_id+label_filepattern)
-    pth_instance_zip = os.path.join(fdata,scan_id,scan_id+insta_filepattern)
-    label_prefix='label-filt/'
-    insta_prefix='instance-filt/'
+    insta_filepattern = 'frame-{0:06d}.rendered.instances.png'
     
-    imgs = f[scan_id]
-    with zipfile.ZipFile(pth_label_zip, 'r') as arc_label, zipfile.ZipFile(pth_instance_zip, 'r') as arc_inst:
-        for oid, obj in objects.items():
-            fids = node2kfs[int(oid)]
-            olabel = obj['label']
+    for fname,v in obj_by_img.items():
+        data_list = v[1]
+        pth_inst = os.path.join(datapath,scan_id,'sequence',insta_filepattern.format(fname))
+        iimg_data = np.array(Image.open(pth_inst), dtype=np.uint8)
+        
+        ori_list = set(np.unique(iimg_data).tolist()).difference([0])
+        f_list = [x[0] for x in data_list]
+        diff = ori_list.difference(f_list)
+        if len(diff)==0: continue
+        # print('f_list',f_list)
+        # print(diff)
+        
+        clr_img_ori = np.zeros([height,width,3],dtype=np.uint8)
+        clr_img = np.zeros([height,width,3],dtype=np.uint8)
+        clr_img_diff = np.zeros([height,width,3],dtype=np.uint8)
+        
+        for oid in ori_list:
+            clr_img_ori[iimg_data==oid] = random_clr_i[oid]
+        
+        for data in data_list:
+            oid, *_ = data
+            clr_img[iimg_data==oid] = random_clr_i[oid]
             
-            # get image
-            img_boxes = list()
-            for fid in fids:
-                limg_data = arc_label.read(label_prefix+str(fid)+'.png')
-                iimg_data = arc_inst.read(insta_prefix+str(fid)+'.png')
-                limg = LabelImage(fid, iimg_data, limg_data)
-                bbox_img = limg.get_bbox_image()
-                
-                kf = kfs[str(fid)]
-                bfid = imgs['indices'][fid] # convert frame idx to the buffer idx 
-                img_data = imgs['rgb'][bfid]
-                img = imageio.imread(img_data)
-                img = Image.fromarray(img)
-                timg = toTensor(img).unsqueeze(0)
-                box = kf['bboxes'][str(oid)]
-                oc  = kf['occlution'][str(oid)]
-                w = int(box[2]-box[0])
-                h = int(box[3]-box[1])
-                box = torch.as_tensor([x1,y1,x2,y2]).float().view(1,-1)
-                # extract RGB image
-                timg = torch.clamp(timg*255,0,255)
-                region = roi_align(timg,[box], [h,w])
-                region = resize(region).squeeze(0).byte()
-                # extract label image
-                region_l = roi_align(bbox_img.unsqueeze(0).float(),[box], [h,w])
-                region_l = resize(region_l).squeeze(0).byte()
-                
-                
-                
-                box = torch.as_tensor([0,0,255,255]).float().view(1,-1)
-                soc = '{0:}_{1:.3f}'.format(fid,oc)
-                result = draw_bounding_boxes(region, box, 
-                                         labels=[soc],
-                                         width=5,
-                                         font=ffont,
-                                         font_size=50)
-                result = torch.stack([region_l,result])
-                show_tensor_images(result, title=olabel)
-                img_boxes.append(result)
-                # img_boxes.append( result )
-            img_boxes = torch.stack(img_boxes)
-            show_tensor_images(img_boxes, title=olabel)
+        
+        for oid in diff:
+            clr_img_diff[iimg_data==oid] = random_clr_i[oid]
+            
+        # fix, axs = plt.subplots(ncols=len(imgs), squeeze=False)
+        torch_img_ori = torch.as_tensor(clr_img_ori).permute(2,0,1)
+        torch_img = torch.as_tensor(clr_img).permute(2,0,1)
+        torch_img_diff = torch.as_tensor(clr_img_diff).permute(2,0,1)
+        show_tensor_images([torch_img_ori,torch_img_diff, torch_img])
+        pass
 
 if __name__ == '__main__':
     args = Parse().parse_args()
     print(args)
     outdir=args.outdir
-    max_oc=float(args.max_occ) # maximum occlusion rate authorised
+    min_oc=float(args.min_occ) # maximum occlusion rate authorised
     min_obj=float(args.min_object)
     gt2d_dir = args.gt2d_dir
+    
+    '''create output file'''
+    if not os.path.isdir(outdir):
+        os.mkdir(outdir)
+    
+    logging.basicConfig(filename=os.path.join(outdir,'objgraph.log'), level=logging.DEBUG)
+    logger_py = logging.getLogger(__name__)
+    if DEBUG:
+        logger_py.setLevel('DEBUG')
+    else:
+        logger_py.setLevel('INFO')
+    logger_py.debug('args')
+    logger_py.debug(args)
+    logger_py.debug('structure_labels')
+    logger_py.debug(structure_labels)
+    
     # scannet_w = 1296
     # scannet_h= 968
 
     '''create mapping'''
     # create name2idx mapping
     label_names, label_name_mapping, label_id_mapping = util_label.getLabelMapping(args.label_type,define.LABEL_MAPPING_FILE)
-    util_label.NYU40_Label_Names
-    # NYU40_Name2Idx_map = {name:idx for idx, name in enumerate(NYU40_Label_Names)}
-    # NYU40_Idx2Name_map = {idx:name for idx, name in enumerate(NYU40_Label_Names)}
-    
-    # ''' 0Get all label names'''
-    # if args.label_type.find('scannet') >=0:
-    #     labelNames = sorted(SCANNET20_Label_Names)
-    # else:
-    #     labelNames = sorted(np.unique(values).tolist())
         
-    '''create output file'''
-    if not os.path.isdir(outdir):
-        os.mkdir(outdir)
+    
     #save configs
-    with open(os.path.join(outdir,'args.txt'), 'w') as f:
+    with open(os.path.join(outdir,'args_objgraph.txt'), 'w') as f:
         for k,v in args.__dict__.items():
             f.write('{}:{}\n'.format(k,v))
         pass
@@ -257,7 +251,7 @@ if __name__ == '__main__':
     invalid_scans=0
     valid_scans=0
     for scan_id in pbar: #['scene0000_00']: #glob.glob('scene*'):
-        # logger_py.info(scene)
+        logger_py.info(scan_id)
         pbar.set_description('processing {}'.format(scan_id))
         
         # load semseg
@@ -279,7 +273,7 @@ if __name__ == '__main__':
                 del h5f[scan_id]
         
         # read data and organize by frames
-        obj_by_img=get_bbx_wo_flatcheck(scan_id, gt2d_file, max_oc,label_name_mapping)
+        obj_by_img=get_bbx_wo_flatcheck(scan_id, gt2d_file, min_oc,label_name_mapping, [args.min_size,args.min_size])
         
         # cluster the frames, each cluster correspond to a set of objects, all the elements of a cluster are images where these objects appear
         oidss={}
@@ -316,6 +310,13 @@ if __name__ == '__main__':
                 
         #TODO:debug
         # print_selection(scene, node2kfs,objects,kfs)
+        
+        '''check filtered instances'''
+        int_filtered_insts = [int(x) for x in objects]
+        diffs = set(mapping.keys()).difference(set(int_filtered_insts))
+        if DEBUG: print('missing instances', diffs)
+        logger_py.debug('missing instances: {}'.format(diffs))
+        
                 
         '''check if each node has at least one kf'''
         to_deletes = []
@@ -373,9 +374,9 @@ if __name__ == '__main__':
         h5f.create_dataset('args',data=())
         for k,v in tmp.items():
             h5f['args'].attrs[k] = v
-        with open(os.path.join(outdir,'classes.txt'), 'w') as f:
-            for cls in util_label.NYU40_Label_Names:
-                f.write('{}\n'.format(cls))
+        # with open(os.path.join(outdir,'classes.txt'), 'w') as f:
+        #     for cls in util_label.NYU40_Label_Names:
+        #         f.write('{}\n'.format(cls))
     else:
         print('no scan processed')
     h5f.close()

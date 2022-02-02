@@ -193,7 +193,7 @@ def getLabelIdxMapping(path):
 def getLabelMapping(label_type:str,pth_mapping:str = ""):
     if pth_mapping == "":
         pth_mapping = define.LABEL_MAPPING_FILE
-        pth_160 = define.CLASS160_FILE
+    pth_160 = define.CLASS160_FILE
     Scan3R528, NYU40,Eigen13,RIO27,RIO7 = getLabelNames(pth_mapping)
     NameScan3R528, toNameNYU40,toNameEigen13,toNameRIO27,toNameRIO7=getLabelNameMapping(pth_mapping)
     IdxScan3R528, toNYU40,toEigen13,toRIO27,toRIO7 = getLabelIdxMapping(pth_mapping)
