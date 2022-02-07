@@ -128,7 +128,7 @@ def graph_collate(batch):
             out[x] = torch.cat([d[x] for d in batch])
         
     
-    for x in ['scan_id','gt_rel','gt_cls','images','descriptor', 'obj_points', 'rel_points']:
+    for x in ['scan_id','gt_rel','gt_cls','images','descriptor','node_descriptor_8', 'obj_points', 'rel_points']:
         if x in elem:
             # print('===')
             # print(x)

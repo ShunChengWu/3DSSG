@@ -9,11 +9,13 @@ logger_py = logging.getLogger(__name__)
 class MVCNN(NodeEncoderBase):
     def __init__(self,cfg,backbone:str,device):
         super().__init__(cfg,backbone,device)
-        self.global_pooling_method = cfg.model.node_encoder.aggr
+        self.global_pooling_method = cfg.model.image_encoder.aggr
         
     def reset_parameters(self):
         pass
-    def forward(self, images, bboxes, **args):
+    def forward(self, images, **args):
+        if not self.input_is_roi:
+            bboxes = args['bboxes']
         '''get image features'''
         images = self.preprocess(images)
         

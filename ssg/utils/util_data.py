@@ -228,6 +228,33 @@ def gen_descriptor_pts(pts:torch.tensor):
     segment_lengths = segment_dims.max().unsqueeze(0)
     return torch.cat([centroid_pts,std_pts,segment_dims,segment_volume,segment_lengths],dim=0)
 
+def gen_descriptor_8(obj:dict()):
+    '''
+    center, dims,volume,length,x_max,x_min,y_max,y_min,z_max,z_min
+    
+    center,
+    [3,3,1,1]
+    '''
+    # Rinv = torch.FloatTensor(np.array(obj['rotation']).reshape(3,3))
+    center = torch.FloatTensor(obj['center'])
+    dims = torch.FloatTensor(obj['dimension'])
+    # Calculate min,max points on the roatated points
+    #
+    six_pts = [ torch.FloatTensor([dims[0],0,0]), 
+                -torch.FloatTensor([dims[0],0,0]),
+                torch.FloatTensor([0,dims[1],0]),
+                -torch.FloatTensor([0,dims[1],0]),
+                torch.FloatTensor([0,0,dims[2]]),
+                -torch.FloatTensor([0,0,dims[2]]) ]
+    six_pts = torch.stack(six_pts,dim=0)
+    rotation = torch.FloatTensor(obj['normAxes'])
+    six_pts = (rotation @ six_pts.t()).t() + center
+    # Find x_max,x_min,y_max,y_min,z_max,z_min
+    
+    
+    volume = (dims[0]*dims[1]*dims[2]).unsqueeze(0)
+    length = dims.max().unsqueeze(0)
+    return torch.cat([center,dims,volume,length],dim=0)
 
 def zero_mean(point, normalize:bool):
     mean = torch.mean(point, dim=0)

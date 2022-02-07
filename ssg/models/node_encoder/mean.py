@@ -18,7 +18,7 @@ logger_py = logging.getLogger(__name__)
 class MeanMV(NodeEncoderBase):
     def __init__(self,cfg,num_obj_cls,backbone:str,device):
         super().__init__(cfg,backbone,device)
-        self.global_pooling_method = cfg.model.node_encoder.aggr
+        self.global_pooling_method = cfg.model.image_encoder.aggr
         node_feature_dim = self.node_feature_dim
         self.num_obj_cls = num_obj_cls
         self.classifier = classifider_list[backbone](in_channels=node_feature_dim, out_channels=num_obj_cls)

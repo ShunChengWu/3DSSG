@@ -6,9 +6,10 @@ from .classifier import classifider_list
 from .network_GNN import GraphEdgeAttenNetworkLayers,TripletGCNModel
 
 edge_encoder_list = {
-    'basic': edge_encoder.EdgeEncoder,
+    #'basic': edge_encoder.EdgeEncoder,
     'sgfn': edge_encoder.EdgeEncoder_SGFN,
     'sgpn': edge_encoder.EdgeEncoder_SGPN,
+    '2dssg': edge_encoder.EdgeEncoder_2DSSG,
 }
 gnn_list = {
     'fan': GraphEdgeAttenNetworkLayers,

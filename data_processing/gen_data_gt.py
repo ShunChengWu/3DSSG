@@ -14,6 +14,7 @@ import os,json
 import argparse
 import h5py
 import ast
+import copy
 
 def Parser(add_help=True):
     parser = argparse.ArgumentParser(description='Process some integers.', formatter_class = argparse.ArgumentDefaultsHelpFormatter,
@@ -200,6 +201,18 @@ def process(pth_3RScan, scan_id,
     pth_semseg_file = os.path.join(pth_3RScan, scan_id, segseg_file_name)
     instance2labelName = util.load_semseg(pth_semseg_file, label_name_mapping,args.mapping)
     
+    '''extract object bounding box info'''
+    objs_obbinfo=dict()
+    with open(pth_semseg_file) as f: 
+        data = json.load(f)
+    for group in data['segGroups']:
+        obb = group['obb']
+        obj_obbinfo = objs_obbinfo[group["id"]] = dict()
+        obj_obbinfo['center'] = copy.deepcopy(obb['centroid'])
+        obj_obbinfo['dimension'] = copy.deepcopy(obb['axesLengths'])
+        obj_obbinfo['normAxes'] = copy.deepcopy( np.array(obb['normalizedAxes']).reshape(3,3).transpose().tolist() )
+    del data
+    
     ''' Find and count all corresponding segments'''
     size_segments_gt = dict()
     map_segment_pd_2_gt = dict() # map segment_pd to segment_gt
@@ -241,10 +254,17 @@ def process(pth_3RScan, scan_id,
         if len(relationships["objects"]) != 0 and len(relationships['relationships']) != 0:
                 list_relationships.append(relationships)
     
+    for relationships in list_relationships:
+        for oid in relationships['objects'].keys():
+            relationships['objects'][oid] = {**objs_obbinfo[oid], **relationships['objects'][oid]}
+    
     return list_relationships, segs_neighbors
 
 
-def gen_relationship(scan_id:str,split:int, map_segment_pd_2_gt:dict,instance2labelName:dict,
+def gen_relationship(scan_id:str,
+                     split:int, 
+                     map_segment_pd_2_gt:dict,
+                     instance2labelName:dict,
                      target_segments:list=None) -> dict:
     '''' Save as relationship_*.json '''
     relationships = dict() #relationships_new["scans"].append(s)
@@ -258,7 +278,8 @@ def gen_relationship(scan_id:str,split:int, map_segment_pd_2_gt:dict,instance2la
         name = instance2labelName[segment_gt]
         if name == '-' or name == 'none':
             continue
-        objects[int(seg)] = name #labels_utils.NYU40_Label_Names[label-1]
+        objects[int(seg)] = dict()
+        objects[int(seg)]['label'] = name
     relationships["objects"] = objects
     
     
@@ -333,7 +354,6 @@ if __name__ == '__main__':
         
         for s in data["scans"]:
             scan_id = s["scan"]
-            
             if len(target_scan) ==0:
                 if scan2type[scan_id] != args.type: 
                     if args.verbose:
@@ -347,15 +367,6 @@ if __name__ == '__main__':
         for s in tqdm(filtered_data):
         # for s in data["scans"]:
             scan_id = s["scan"]
-            
-            # if len(target_scan) ==0:
-            #     if scan2type[scan_id] != args.type: 
-            #         if args.verbose:
-            #             print('skip',scan_id,'not validation type')
-            #         continue
-            # else:
-                # if scan_id not in target_scan: continue
-            
             gt_relationships = s["relationships"]
             if debug:print('processing scene',scan_id)
             valid_scans.append(scan_id)
@@ -407,39 +418,22 @@ if __name__ == '__main__':
         neighbors = all_neighbors[scan_id]
         objects = scan_data['objects']
         
-        
-        
         d_scan = dict()
         d_nodes = d_scan['nodes'] = dict()
         
         ## Nodes
-        # nodes = dict()
-        # h5_nodes = h5_scan.create_group('nodes')
         for idx, data in enumerate(objects.items()):
-            oid, label = data
+            oid, obj_info = data
             ascii_nn = [str(n).encode("ascii", "ignore") for n in neighbors[oid]]
-            
-            # h5_node = h5_nodes.create_group(str(oid))
-            # h5_node.attrs['label'] = label.encode('ascii')
-            # dset = h5_node.create_dataset('neighbors', (len(ascii_nn),1),'S10',ascii_nn, chunks=True) # create foo dataset to attach attributes
-            
             d_nodes[oid] = dict()
-            d_nodes[oid]['label'] = label
+            d_nodes[oid] = obj_info
             d_nodes[oid]['neighbors'] = ascii_nn
-            
-        # s_nodes = str(d_nodes)
-        # ast.literal_eval(s_nodes)
-        # h5_nodes = h5_scan.create_dataset('nodes', data=s_nodes)
         
         ## Relationships
         str_relationships = list() 
         for rel in scan_data['relationships']:
             str_relationships.append([str(s) for s in rel])
         d_scan['relationships']= str_relationships
-        
-        # h5_rel = h5f.create_dataset('relationships', data=np.array(str_relationships,dtype='S'))
-            
-        # h5_scan.attrs['relationships'] = str_relationships
         
         s_scan = str(d_scan)
         h5_scan = h5f.create_dataset(scan_id,data=np.array([s_scan],dtype='S'),compression='gzip')
@@ -449,8 +443,9 @@ if __name__ == '__main__':
         
         # ast.literal_eval(h5_scan)
     h5f.close()
-    pth_relationships_json = os.path.join(args.pth_out, "relationships_" + args.type + ".json")
-    with open(pth_relationships_json, 'w') as f:
-        json.dump(relationships_new, f)
+    
+    # pth_relationships_json = os.path.join(args.pth_out, "relationships_" + args.type + ".json")
+    # with open(pth_relationships_json, 'w') as f:
+    #     json.dump(relationships_new, f)
         
     

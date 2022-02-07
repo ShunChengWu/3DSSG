@@ -1,11 +1,11 @@
 import logging
-import trimesh
+#import trimesh
 import argparse,os
 import codeLib
 import ssg
 import torch
 import ssg.config as config
-from ssg.data.collate import graph_collate, batch_graph_collate
+from ssg.data.collate import graph_collate#, batch_graph_collate
 from ssg.checkpoints import CheckpointIO
 import torch.multiprocessing
 import cProfile

@@ -105,9 +105,9 @@ def evaluate_topk_predicate(gt_edges, rels_pred, threshold=0.5,k=-1):
 def get_gt(objs_target, rels_target, edges, instance2mask,multiple_prediction:bool):
     gt_edges = [] # initialize
     idx2instance = torch.zeros_like(objs_target)
-    for key, value in instance2mask.items():
-        if value > 0:
-            idx2instance[value - 1] = key
+    for iid, idx in instance2mask.items():
+        if idx > 0:
+            idx2instance[idx] = iid
 
     for edge_index in range(len(edges)):
         idx_eo = edges[edge_index][0].cpu().numpy().item()
@@ -772,20 +772,20 @@ class EvalSceneGraph():
         # idx2seg[0]=[0]
         for it in range(len(seg2idxs)):
             seg2idx = seg2idxs[it]
-            for key,item in seg2idx.items():
-                idx = item.item()-1 if isinstance(item, torch.Tensor) else item-1
-                if key==0:continue
+            for iid, idx in seg2idx.items():
+                idx = idx.item() if isinstance(idx, torch.Tensor) else idx
+                if iid==0:continue
                 if idx <0: continue
                 # print(idx)
                 # assert idx not in idx2seg
                 
                 if idx in idx2seg:
                     print('')
-                    print(key)
+                    print(iid)
                     print(idx)
                     print(seg2idxs)
                     assert idx not in idx2seg
-                idx2seg[idx] = key
+                idx2seg[idx] = iid
         
         b_pd=dict()
         b_gt=dict()
@@ -810,15 +810,15 @@ class EvalSceneGraph():
             seg2idx = seg2idxs[it]
             scan_id = scan_ids[it]
             
-            indices = torch.tensor(list(seg2idx.values())) - 1
+            indices = torch.tensor(list(seg2idx.values()))
             indices = indices[indices>=0]
             
             idx2seg=dict()
-            for key,item in seg2idx.items():
-                if isinstance(item, torch.Tensor):
-                    idx2seg[item.item()-1] = key
+            for iid,idx in seg2idx.items():
+                if isinstance(idx, torch.Tensor):
+                    idx2seg[idx.item()] = iid
                 else:
-                    idx2seg[item-1] = key
+                    idx2seg[idx] = iid
                     
             pd=dict()
             gt=dict()

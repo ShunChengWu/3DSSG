@@ -10,25 +10,92 @@ from torch import nn
 import ssg
 from .models.classifier import PointNetCls, PointNetRelClsMulti, PointNetRelCls
 from codeLib.utils.util import pytorch_count_params
+import logging
+logger_py = logging.getLogger(__name__)
 
 class SGFN(nn.Module):
     def __init__(self,cfg,num_obj_cls, num_rel_cls, device):
         super().__init__()
         self.cfg=cfg
         self._device=device
+        self.with_img_encoder = self.cfg.model.image_encoder.method != 'none'
+        self.with_pts_encoder = self.cfg.model.node_encoder.method != 'none'
         node_feature_dim = cfg.model.node_feature_dim
         edge_feature_dim = cfg.model.edge_feature_dim
         
+        if self.with_img_encoder and self.with_pts_encoder:
+            raise NotImplementedError("")
+        
         if self.cfg.model.use_spatial:
-            node_feature_dim -= cfg.model.edge_descriptor_dim-3 # ignore centroid
-        cfg.model.node_feature_dim = node_feature_dim
+            if self.with_pts_encoder:
+                # # ignore centroid (11-3=8)
+                sptial_feature_dim = 8
+                node_feature_dim -= sptial_feature_dim
+                cfg.model.node_feature_dim = node_feature_dim
+            if self.with_img_encoder:
+                sptial_feature_dim = 5
+                node_feature_dim -= sptial_feature_dim
+                cfg.model.node_feature_dim = node_feature_dim
         
         models = dict()
-        models['obj_encoder'] = ssg.models.node_encoder_list['sgfn'](cfg,device)
-        models['rel_encoder'] = ssg.models.edge_encoder_list['sgfn'](cfg,device)
+        '''point encoder'''
+        if self.with_pts_encoder:
+            if self.cfg.model.node_encoder.method == 'basic':
+                models['obj_encoder'] = ssg.models.node_encoder_list['sgfn'](cfg,device)
+            else:
+                models['obj_encoder'] = ssg.models.node_encoder_list[self.cfg.model.node_encoder.method](cfg,device)
+                
+        '''image encoder'''
+        if self.with_img_encoder:
+            img_encoder_method = self.cfg.model.image_encoder.method
+            if img_encoder_method == 'cvr':
+                logger_py.info('use CVR original implementation')
+                cfg.model.image_encoder.backend = 'res18'
+                cfg.model.node_feature_dim=512
+                encoder = ssg.models.node_encoder_list[img_encoder_method](cfg,cfg.model.image_encoder.backend,device)
+                node_feature_dim = encoder.node_feature_dim
+                # classifier = ssg2d.models.classifider_list['basic'](in_channels=node_feature_dim, out_channels=num_obj_cls)
+                classifier = ssg.models.classifider_list['cvr'](in_channels=512, out_channels=num_obj_cls)
+            elif img_encoder_method == 'mvcnn':
+                logger_py.info('use MVCNN original implementation')
+                cfg.model.image_encoder.backend = 'vgg16'
+                cfg.model.node_feature_dim=25088
+                cfg.model.image_encoder.aggr = 'max'
+                encoder = ssg.models.node_encoder_list[img_encoder_method](cfg,cfg.model.image_encoder.backend,device)
+                node_feature_dim = encoder.node_feature_dim
+                classifier = ssg.models.classifider_list['vgg16'](in_channels=node_feature_dim, out_channels=num_obj_cls)
+            elif img_encoder_method == 'gvcnn':
+                logger_py.info('use GVCNN original implementation')
+                encoder =  ssg.models.node_encoder_list[img_encoder_method](cfg,num_obj_cls,device)
+                classifier = torch.nn.Identity()
+            elif img_encoder_method == 'rnn':# use RNN with the assumption of Markov Random Fields(MRFs) and CRF  https://www.robots.ox.ac.uk/~szheng/papers/CRFasRNN.pdf
+                raise NotImplementedError()
+            elif img_encoder_method == 'mean':# prediction by running mean.
+                logger_py.info('use mean cls feature')
+                encoder = ssg.models.node_encoder_list[img_encoder_method](cfg,num_obj_cls,cfg.model.image_encoder.backend,device)
+                classifier = torch.nn.Identity()
+                # raise NotImplementedError()
+            elif img_encoder_method == 'gmu':# graph memory unit
+                logger_py.info('use GMU')
+                encoder = ssg.models.node_encoder_list[img_encoder_method](cfg,num_obj_cls,cfg.model.image_encoder.backend,device)
+                if cfg.model.mean_cls:
+                    classifier = torch.nn.Identity()
+                else:
+                    node_feature_dim = cfg.model.gmu.memory_dim
+                    node_clsifier = "res18" if cfg.model.node_classifier.method == 'basic' else cfg.model.node_classifier.method #default is res18
+                    classifier = ssg.models.classifider_list[node_clsifier](in_channels=node_feature_dim, out_channels=num_obj_cls)
+            else:
+                raise NotImplementedError()
+            models['img_encoder'] = encoder
+                
+        '''edge encoder'''
+        if self.cfg.model.edge_encoder.method == 'basic':
+            models['rel_encoder'] = ssg.models.edge_encoder_list['sgfn'](cfg,device)
+        else:
+            models['rel_encoder'] = ssg.models.edge_encoder_list[self.cfg.model.edge_encoder.method](cfg,device)
         
         if self.cfg.model.use_spatial:
-            node_feature_dim += cfg.model.edge_descriptor_dim-3 # ignore centroid
+            node_feature_dim += sptial_feature_dim
         cfg.model.node_feature_dim = node_feature_dim
         
         if cfg.model.gnn.method != 'none': 
@@ -42,9 +109,13 @@ class SGFN(nn.Module):
                 DROP_OUT_ATTEN=cfg.model.gnn.drop_out
                 )
         
+        '''build classifier'''
         with_bn =cfg.model.node_classifier.with_bn
-        models['obj_predictor'] = PointNetCls(num_obj_cls, in_size=node_feature_dim,
-                                 batch_norm=with_bn,drop_out=cfg.model.node_classifier.dropout)
+        if self.with_img_encoder:
+            models['obj_predictor'] = classifier
+        else:
+            models['obj_predictor'] = PointNetCls(num_obj_cls, in_size=node_feature_dim,
+                                     batch_norm=with_bn,drop_out=cfg.model.node_classifier.dropout)
         
         if cfg.model.multi_rel:
             models['rel_predictor'] = PointNetRelClsMulti(
@@ -70,13 +141,23 @@ class SGFN(nn.Module):
             params += list(model.parameters())
             print(name,pytorch_count_params(model))
         print('')
-    def forward(self, obj_points, descriptor, node_edges, **args):
-        nodes_feature = self.obj_encoder(obj_points)
-        
-        if self.cfg.model.use_spatial:
-            tmp = descriptor[:,3:].clone()
-            tmp[:,6:] = tmp[:,6:].log() # only log on volume and length
-            nodes_feature = torch.cat([nodes_feature, tmp],dim=1)
+    def forward(self, node_edges, **args):
+        if self.with_pts_encoder:
+            obj_points = args['obj_points']
+            nodes_pts_feature = self.obj_encoder(obj_points)
+            nodes_feature = nodes_pts_feature 
+            if self.cfg.model.use_spatial:
+                descriptor = args['descriptor']
+                tmp = descriptor[:,3:].clone()
+                tmp[:,6:] = tmp[:,6:].log() # only log on volume and length
+                nodes_pts_feature = torch.cat([nodes_pts_feature, tmp],dim=1)
+            
+        if self.with_img_encoder:
+            descriptor = args['node_descriptor_8']
+            
+            nodes_img_feature= self.img_encoder(args['roi_imgs'])
+            nodes_feature = nodes_img_feature['nodes_feature']
+            
 
         ''' Create edge feature '''
         # with torch.no_grad():

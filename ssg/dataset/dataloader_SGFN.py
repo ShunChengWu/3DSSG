@@ -6,16 +6,22 @@ import multiprocessing as mp
 # from utils import util_ply, util_data, util, define
 from codeLib.common import random_drop
 from codeLib import transformation
-from ssg.utils import util_ply, util_data, util
+from ssg.utils import util_ply, util_data
 from codeLib.utils.util import read_txt_to_list, check_file_exist
 from ssg import define
-# from data_processing import compute_weight_occurrences
+from codeLib.torch.visualization import show_tensor_images
+from codeLib.common import normalize_imagenet
+from torchvision import transforms
+import codeLib.torchvision.transforms as cltransform
 import ssg.utils.compute_weight as compute_weight
 from ssg.utils.util_data import raw_to_data, cvt_all_to_dict_from_h5
 import codeLib.utils.string_numpy as snp
 import logging
-import threading
 logger_py = logging.getLogger(__name__)
+
+DRAW_BBOX_IMAGE=True
+DRAW_BBOX_IMAGE=False
+
 class SGFNDataset (data.Dataset):
     def __init__(self,config,mode, **args):
         assert mode in ['train','validation','test']
@@ -27,7 +33,8 @@ class SGFNDataset (data.Dataset):
         self.use_data_augmentation=False
         self.root_3rscan = define.DATA_PATH
         self.path_h5 = os.path.join(self.path,'relationships_%s.h5' % (mode))
-        self.path_mv = config.data.get('img_file_path',None)
+        self.path_mv = os.path.join(self.path,'proposals.h5')
+        self.path_roi_img = self.mconfig.roi_img_path
         try:
             self.root_scannet = define.SCANNET_DATA_PATH
         except:
@@ -39,8 +46,8 @@ class SGFNDataset (data.Dataset):
         self.shuffle_objs = False
         self.use_rgb = config.model.use_rgb
         self.use_normal = config.model.use_normal
-        self.sample_in_runtime = sample_in_runtime = config.data.sample_in_runtime
-        self.load_cache  = load_cache = False
+        self.sample_in_runtime= config.data.sample_in_runtime
+        self.load_cache = False
         self.for_eval = mode != 'train'
         self.max_edges=config.data.max_num_edge
         self.full_edge = self.config.data.full_edge
@@ -65,21 +72,47 @@ class SGFNDataset (data.Dataset):
         self.relationNames = sorted(names_relationships)
         self.classNames = sorted(names_classes)
         
+        '''set transform'''
+        if self.mconfig.load_images:
+            if not self.for_eval:
+                self.transform  = transforms.Compose([
+                    transforms.Resize(config.data.roi_img_size),
+                    cltransform.TrivialAugmentWide(),
+                    # RandAugment(),
+                    ])
+            else:
+                self.transform = transforms.Compose([
+                    transforms.Resize(config.data.roi_img_size),
+                    ])
+        
         ''' load data '''
-        if self.mconfig.load_image:
+        if self.mconfig.load_images:
             self.open_mv_graph()
+            self.open_img()
         
         self.open_data()
         c_sg_data = cvt_all_to_dict_from_h5(self.sg_data)
-        del self.sg_data
         
         '''check scan_ids'''
+        # filter input scans with relationship data
         tmp   = set(c_sg_data.keys())
         inter = sorted(list(tmp.intersection(selected_scans)))
-        if self.mconfig.load_image:
-            # check intersection 
+        if self.mconfig.load_images:
+            # filter input scans with image data
             tmp   = set(self.mv_data.keys())
             inter = sorted(list(tmp.intersection(inter)))
+            #TODO: also filter out nodes when only with points input. this gives fair comparison on points and images methods.
+            filtered_sg_data = dict()
+            for scan_id in inter:
+                mv_node_ids = [int(x) for x in self.mv_data[scan_id]['nodes'].keys()]
+                sg_node_ids = c_sg_data[scan_id]['nodes'].keys()                
+                inter_node_ids = set(sg_node_ids).intersection(mv_node_ids)
+                
+                filtered_sg_data[scan_id] = dict()
+                filtered_sg_data[scan_id]['nodes'] = {nid: c_sg_data[scan_id]['nodes'][nid] for nid in inter_node_ids}
+                
+                filtered_sg_data[scan_id]['relationships'] = c_sg_data[scan_id]['relationships']
+            c_sg_data = filtered_sg_data
         
         '''pack with snp'''
         self.size = len(inter)
@@ -104,10 +137,15 @@ class SGFNDataset (data.Dataset):
             self.dim_pts += 3
         if self.use_normal:
             self.dim_pts += 3
+            
+        del self.sg_data
+        if self.mconfig.load_images:
+            del self.roi_imgs
+            del self.mv_data
         
         '''cache'''
         self.cache_data = dict()
-        if self.config.data.load_cache:
+        if self.config.data.load_cache and self.mconfig.load_points:
             print('load data to cache')
             pool = mp.Pool(8)
             pool.daemon = True
@@ -133,52 +171,24 @@ class SGFNDataset (data.Dataset):
     def open_data(self):
         if not hasattr(self,'sg_data'):
             self.sg_data = h5py.File(self.path_h5,'r')
+            
+    def open_img(self):
+        if not hasattr(self, 'roi_imgs'):
+            self.roi_imgs = h5py.File(self.path_roi_img,'r')
         
-    def data_augmentation(self, points):
-        # random rotate
-        matrix= np.eye(3)
-        matrix[0:3,0:3] = transformation.rotation_matrix([0,0,1], np.random.uniform(0,2*np.pi,1))
-        centroid = points[:,:3].mean(0)
-        points[:,:3] -= centroid
-        points[:,:3] = np.dot(points[:,:3], matrix.T)
-        if self.use_normal:
-            ofset=3
-            if self.use_rgb:
-                ofset+=3
-            points[:,ofset:3+ofset] = np.dot(points[:,ofset:3+ofset], matrix.T)     
-            
-        ## Add noise
-        # ## points
-        # noise = np.random.normal(0,1e-3,[points.shape[0],3]) # 1 mm std
-        # points[:,:3] += noise
-        
-        # ## colors
-        # if self.use_rgb:
-        #     noise = np.random.normal(0,0.078,[points.shape[0],3])
-        #     colors = points[:,3:6]
-        #     colors += noise
-        #     colors[np.where(colors>1)] = 1
-        #     colors[np.where(colors<-1)] = -1
-            
-        # ## normals
-        # if self.use_normal:
-        #     ofset=3
-        #     if self.use_rgb:
-        #         ofset+=3
-        #     normals = points[:,ofset:3+ofset]
-        #     normals = np.dot(normals, matrix.T)     
-            
-        #     noise = np.random.normal(0,1e-4,[points.shape[0],3])
-        #     normals += noise
-        #     normals = normals/ np.linalg.norm(normals)
-        return points
-
     def __getitem__(self, index):
         scan_id = snp.unpack(self.scans,index)# self.scans[idx]
         
         self.open_data()
         scan_data_raw = self.sg_data[scan_id]
         scan_data = raw_to_data(scan_data_raw)
+        
+        if self.mconfig.load_images:
+            self.open_mv_graph()
+            self.open_img()
+            mv_data = self.mv_data[scan_id]
+            mv_nodes = mv_data['nodes']
+            roi_imgs = self.roi_imgs[scan_id]
         
         object_data = scan_data['nodes']
         relationships_data = scan_data['relationships']
@@ -192,116 +202,142 @@ class SGFNDataset (data.Dataset):
         instance2labelName  = { int(key): node['label'] for key,node in object_data.items()  }
             
         ''' load point cloud data '''
-        if 'scene' in scan_id:
-            path = os.path.join(self.root_scannet, scan_id)
-        else:
-            path = os.path.join(self.root_3rscan, scan_id)
-            
-        if self.config.data.load_cache:
-            data = self.cache_data[scan_id]
-        else:
-            data = load_mesh(path, self.mconfig.label_file, self.use_rgb, self.use_normal)
-        points = copy.deepcopy( data['points'] )
-        instances = copy.deepcopy( data['instances'] )
-        instances_id = list(np.unique(instances))
+        if self.mconfig.load_points:
+            if 'scene' in scan_id:
+                path = os.path.join(self.root_scannet, scan_id)
+            else:
+                path = os.path.join(self.root_3rscan, scan_id)
+                
+            if self.config.data.load_cache:
+                data = self.cache_data[scan_id]
+            else:
+                data = load_mesh(path, self.mconfig.label_file, self.use_rgb, self.use_normal)
+            points = copy.deepcopy( data['points'] )
+            instances = copy.deepcopy( data['instances'] )
         
-        if self.use_data_augmentation and not self.for_eval:
-           points = self.data_augmentation(points)
-            
-        if self.sample_in_runtime:
+            if self.use_data_augmentation and not self.for_eval:
+               points = self.data_augmentation(points)
+
+        '''sample training set'''  
+        instances_ids = list(instance2labelName.keys())
+        if 0 in instances_ids: instances_ids.remove(0)
+        if self.sample_in_runtime and not self.for_eval:
             selected_nodes = list(object_data.keys())
+            if self.mconfig.load_images:
+                mv_node_ids = [int(x) for x in mv_data['nodes'].keys()]
+                selected_nodes = list( set(selected_nodes).intersection(mv_node_ids) )
             
             use_all=False
             sample_num_nn=self.mconfig.sample_num_nn# 1 if "sample_num_nn" not in self.config else self.config.sample_num_nn
             sample_num_seed=self.mconfig.sample_num_seed#1 if "sample_num_seed" not in self.config else self.config.sample_num_seed
             if sample_num_nn==0 or sample_num_seed ==0:
                 use_all=True
-            if self.for_eval:
-                use_all = True
                 
             if not use_all:
                 filtered_nodes = util_data.build_neighbor_sgfn(nns, selected_nodes, sample_num_nn, sample_num_seed) # select 1 node and include their neighbor nodes n times.
             else:
                 filtered_nodes = selected_nodes # use all nodes
                 
-            instances_id = list(filtered_nodes)
+            instances_ids = list(filtered_nodes)
+            if 0 in instances_ids: instances_ids.remove(0)
         
-        if 0 in instances_id:
-            instances_id.remove(0)
-            
         if self.shuffle_objs:
-            random.shuffle(instances_id)
-        
-        instance2mask = {}
+            random.shuffle(instances_ids)
 
         ''' 
-        Find instances we care abot. Build instance2mask and cat list
-        instance2mask maps instances to a mask id. to randomize the order of instance in training.
+        Find instances we care abot. Build oid2idx and cat list
+        oid2idx maps instances to a mask id. to randomize the order of instance in training.
         '''
+        oid2idx = {}
+        idx2oid = {}
         cat = []
         counter = 0
-        selected_instances = list(object_data.keys())
         filtered_instances = list()
-        for instance_id in instances_id:
-            # instance_id = instances_id[i]
-            
+        for instance_id in instances_ids:    
             class_id = -1
-            if instance_id not in selected_instances:
-                # instance2mask[instance_id] = 0
-                continue
             instance_labelName = instance2labelName[instance_id]
             if instance_labelName in self.classNames:
                 class_id = self.classNames.index(instance_labelName)
 
             # mask to cat:
             if (class_id >= 0) and (instance_id > 0): # insstance 0 is unlabeled.
+                oid2idx[int(instance_id)] = counter
+                idx2oid[counter] = int(instance_id)
                 counter += 1
-                instance2mask[instance_id] = counter
                 filtered_instances.append(instance_id)
                 cat.append(class_id)
         if len(cat) == 0:
-            logger_py.debug('filtered_nodes: {}'.format(filtered_nodes))
-            logger_py.debug('selected_instances: {}'.format(selected_instances))
+            # logger_py.debug('filtered_nodes: {}'.format(filtered_nodes))
             logger_py.debug('cat: {}'.format(cat))
             logger_py.debug('self.classNames: {}'.format(self.classNames))
             logger_py.debug('list(object_data.keys()): {}'.format(list(object_data.keys())))
             logger_py.debug('nn: {}'.format(nns))
-            
-            
-        assert len(cat) > 0
-        '''Map edge indices to mask indices'''
+            assert len(cat) > 0
 
         ''' random sample points '''
-        use_obj_context=False #TODO: not here
-        obj_points = torch.zeros([len(cat), self.mconfig.node_feature_dim, self.dim_pts])
-        descriptor = torch.zeros([len(cat), 11])
-        for i in range(len(filtered_instances)):
-            instance_id = filtered_instances[i]
-            obj_pointset = points[np.where(instances== instance_id)[0], :]
-            
-            if use_obj_context:
-                min_box = np.min(obj_pointset[:,:3], 0) - 0.02
-                max_box = np.max(obj_pointset[:,:3], 0) + 0.02
-                filter_mask = (points[:,0] > min_box[0]) * (points[:,0] < max_box[0]) \
-                    * (points[:,1] > min_box[1]) * (points[:,1] < max_box[1]) \
-                    * (points[:,2] > min_box[2]) * (points[:,2] < max_box[2])
-                obj_pointset = points[np.where(filter_mask > 0)[0], :]
+        if self.mconfig.load_points:
+            use_obj_context=False #TODO: not here
+            obj_points = torch.zeros([len(cat), self.mconfig.node_feature_dim, self.dim_pts])
+            descriptor = torch.zeros([len(cat), 11])
+            for i in range(len(filtered_instances)):
+                instance_id = filtered_instances[i]
+                obj_pointset = points[np.where(instances== instance_id)[0], :]
                 
-            if len(obj_pointset) == 0:
-                print('scan_id:',scan_id)
-                print('selected_instances:',len(selected_instances))
-                print('filtered_instances:',len(filtered_instances))
-                print('instance_id:',instance_id)
-            choice = np.random.choice(len(obj_pointset), self.mconfig.node_feature_dim, replace= len(obj_pointset) < self.mconfig.node_feature_dim)
-            obj_pointset = obj_pointset[choice, :]
-            descriptor[i] = util_data.gen_descriptor_pts(torch.from_numpy(obj_pointset)[:,:3])
-            obj_pointset = torch.from_numpy(obj_pointset.astype(np.float32))
+                if use_obj_context:
+                    min_box = np.min(obj_pointset[:,:3], 0) - 0.02
+                    max_box = np.max(obj_pointset[:,:3], 0) + 0.02
+                    filter_mask = (points[:,0] > min_box[0]) * (points[:,0] < max_box[0]) \
+                        * (points[:,1] > min_box[1]) * (points[:,1] < max_box[1]) \
+                        * (points[:,2] > min_box[2]) * (points[:,2] < max_box[2])
+                    obj_pointset = points[np.where(filter_mask > 0)[0], :]
+                    
+                if len(obj_pointset) == 0:
+                    print('scan_id:',scan_id)
+                    # print('selected_instances:',len(selected_instances))
+                    print('filtered_instances:',len(filtered_instances))
+                    print('instance_id:',instance_id)
+                choice = np.random.choice(len(obj_pointset), self.mconfig.node_feature_dim, replace= len(obj_pointset) < self.mconfig.node_feature_dim)
+                obj_pointset = obj_pointset[choice, :]
+                descriptor[i] = util_data.gen_descriptor_pts(torch.from_numpy(obj_pointset)[:,:3])
+                obj_pointset = torch.from_numpy(obj_pointset.astype(np.float32))
+                
+                # util_data.save_to_ply(obj_pointset[:,:3],'./tmp_{}.ply'.format(i))
+                
+                obj_pointset[:,:3] = self.norm_tensor(obj_pointset[:,:3])
+                obj_points[i] = obj_pointset
+            obj_points = obj_points.permute(0,2,1)
             
-            # util_data.save_to_ply(obj_pointset[:,:3],'./tmp_{}.ply'.format(i))
+        if self.mconfig.load_images:
+            '''load images'''
+            bounding_boxes = list()
+            for idx in range(len(cat)):
+                oid = str(idx2oid[idx])
+                node = mv_nodes[oid]
+                cls_label = node.attrs['label']
+                img = np.asarray(roi_imgs[oid])
+                
+                if not self.for_eval:
+                    kf_indices = random_drop(range(img.shape[0]), self.mconfig.drop_img_edge, replace=True)
+                    img = img[kf_indices]
+                # else:
+                #     kf_indices = [idx for idx in range(img.shape[0])]
+                
+                img = torch.as_tensor(img)
+                img = torch.clamp((img*255).byte(),0,255).byte()
+                t_img = torch.stack([self.transform(x) for x in img],dim=0)
+                if DRAW_BBOX_IMAGE:
+                    show_tensor_images(t_img.float()/255, cls_label)
+                t_img= normalize_imagenet(t_img.float()/255.0)
+                bounding_boxes.append( t_img)
+                
+            descriptor_8 = torch.zeros([len(cat), 8])
+            for i in range(len(filtered_instances)):
+                instance_id = filtered_instances[i]
+                obj = object_data[instance_id]
+                # obj = objects[str(instance_id)]
+                
+                descriptor_8[i] = util_data.gen_descriptor_8(obj)
             
-            obj_pointset[:,:3] = self.norm_tensor(obj_pointset[:,:3])
-            obj_points[i] = obj_pointset
-        obj_points = obj_points.permute(0,2,1)
         
         ''' Build rel class GT '''
         if self.multi_rel_outputs:
@@ -314,7 +350,7 @@ class SGFNDataset (data.Dataset):
         if self.sample_in_runtime:
             if not use_all:
                 edge_indices = util_data.build_edge_from_selection_sgfn(filtered_instances,nns,max_edges_per_node=-1)
-                edge_indices = [[instance2mask[edge[0]]-1,instance2mask[edge[1]]-1] for edge in edge_indices ]
+                edge_indices = [[oid2idx[edge[0]],oid2idx[edge[1]]] for edge in edge_indices ]
                 # edge_indices = util_data.build_edge_from_selection(filtered_nodes, nns, max_edges_per_node=-1)
             else:
                 edge_indices = list()
@@ -352,9 +388,9 @@ class SGFNDataset (data.Dataset):
             r_lid = int(r[2])
             r_cls = r[3]
             
-            if r_src not in instance2mask or r_tgt not in instance2mask: continue
-            index1 = instance2mask[r_src]-1
-            index2 = instance2mask[r_tgt]-1
+            if r_src not in oid2idx or r_tgt not in oid2idx: continue
+            index1 = oid2idx[r_src]
+            index2 = oid2idx[r_tgt]
             assert index1>=0
             assert index2>=0
             if self.sample_in_runtime:
@@ -391,24 +427,26 @@ class SGFNDataset (data.Dataset):
             else:
                 gt_rels[e] = adj_matrix[index1,index2]
         
-        ''' Build obj class GT '''
+        ''' to tensor '''
         gt_class = torch.from_numpy(np.array(cat))
-        
         edge_indices = torch.tensor(edge_indices,dtype=torch.long)
+        
         
         
         output = dict()
         output['scan_id'] = scan_id # str
         output['gt_rel'] = gt_rels  # tensor
         output['gt_cls'] = gt_class # tensor
-        output['obj_points'] = obj_points
-        output['descriptor'] = descriptor #tensor
+        if self.mconfig.load_points:
+            output['obj_points'] = obj_points
+            output['descriptor'] = descriptor #tensor
+        if self.mconfig.load_images:
+            output['roi_imgs'] = bounding_boxes #list
+            output['node_descriptor_8'] = descriptor_8
         output['node_edges'] = edge_indices # tensor
-        output['instance2mask'] = instance2mask #dict
+        output['instance2mask'] = oid2idx #dict
         return output
         
-        # return scan_id, instance2mask, obj_points, edge_indices, gt_class, gt_rels, descriptor
-
     def __len__(self):
         return self.size
     
@@ -467,6 +505,45 @@ class SGFNDataset (data.Dataset):
             objs[scan["scan"]+"_"+str(scan['split'])] = objects
 
         return rel, objs, scans, nns
+    
+    def data_augmentation(self, points):
+        # random rotate
+        matrix= np.eye(3)
+        matrix[0:3,0:3] = transformation.rotation_matrix([0,0,1], np.random.uniform(0,2*np.pi,1))
+        centroid = points[:,:3].mean(0)
+        points[:,:3] -= centroid
+        points[:,:3] = np.dot(points[:,:3], matrix.T)
+        if self.use_normal:
+            ofset=3
+            if self.use_rgb:
+                ofset+=3
+            points[:,ofset:3+ofset] = np.dot(points[:,ofset:3+ofset], matrix.T)     
+            
+        ## Add noise
+        # ## points
+        # noise = np.random.normal(0,1e-3,[points.shape[0],3]) # 1 mm std
+        # points[:,:3] += noise
+        
+        # ## colors
+        # if self.use_rgb:
+        #     noise = np.random.normal(0,0.078,[points.shape[0],3])
+        #     colors = points[:,3:6]
+        #     colors += noise
+        #     colors[np.where(colors>1)] = 1
+        #     colors[np.where(colors<-1)] = -1
+            
+        # ## normals
+        # if self.use_normal:
+        #     ofset=3
+        #     if self.use_rgb:
+        #         ofset+=3
+        #     normals = points[:,ofset:3+ofset]
+        #     normals = np.dot(normals, matrix.T)     
+            
+        #     noise = np.random.normal(0,1e-4,[points.shape[0],3])
+        #     normals += noise
+        #     normals = normals/ np.linalg.norm(normals)
+        return points
 
 def load_mesh(path,label_file,use_rgb,use_normal):
     result=dict()

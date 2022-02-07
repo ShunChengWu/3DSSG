@@ -19,6 +19,7 @@ conda env create --name <env_name> --file environment.yml
 or install the dependnecies manually
 
 ```
+
 ###
 # Dependencies
 ###
@@ -45,6 +46,20 @@ pip install torch-geometric
 # open3d
 pip install open3d
 ```
+
+# Data generation
+## Image graph
+Please use `--help` to check the required input arguments on each script.
+```
+cd ssg/utils
+# calculate occlusion & instance label information
+python makebb_img_3rscan.py
+# build up a img graph dataset connect with relationships
+python make_obj_graph_3rscan.py
+# extract object bounding boxes.
+python extract_mv_box_image_3rscan.py
+```
+
 
 # Run
 Run a toy example:

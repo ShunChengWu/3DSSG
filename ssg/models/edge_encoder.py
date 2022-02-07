@@ -7,7 +7,7 @@ from ssg.models.encoder import point_encoder_dict
 
 from torch_geometric.nn.conv import MessagePassing
 
-class EdgeDescriptor(MessagePassing):
+class EdgeDescriptor_8(MessagePassing):
     """ A sequence of scene graph convolution layers  """
     def __init__(self, flow="target_to_source"):
         '''
@@ -41,11 +41,11 @@ class EdgeDescriptor(MessagePassing):
 
        
 
-class EdgeEncoder(nn.Module):
+class EdgeEncoder_2DSSG(nn.Module):
     def __init__(self,cfg,device):
         super().__init__()
-        self.edge_descriptor = EdgeDescriptor()
-        self.encoder = point_encoder_dict['pointnet'](point_size=cfg.model.edge_descriptor_dim,
+        self.edge_descriptor = EdgeDescriptor_8()
+        self.encoder = point_encoder_dict['pointnet'](point_size=8,
                                                       out_size=cfg.model.edge_feature_dim,
                                                       batch_norm=cfg.model.edge_encoder.with_bn)
         
@@ -90,7 +90,7 @@ class EdgeEncoder_SGFN(nn.Module):
     def __init__(self,cfg,device):
         super().__init__()
         self.edge_descriptor = EdgeDescriptor_SGFN()
-        self.encoder = point_encoder_dict['pointnet'](point_size=cfg.model.edge_descriptor_dim,
+        self.encoder = point_encoder_dict['pointnet'](point_size=11,
                                                       out_size=cfg.model.edge_feature_dim,
                                                       batch_norm=cfg.model.edge_encoder.with_bn)
         

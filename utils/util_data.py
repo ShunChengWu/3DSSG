@@ -1,6 +1,21 @@
 import numpy as np
 import torch,random
 
+def gen_descriptor_8(obj:dict()):
+    '''
+    center,dims,volume,length
+    [3,3,1,1]
+    '''
+    # Rinv = torch.FloatTensor(np.array(obj['rotation']).reshape(3,3))
+    center = torch.FloatTensor(obj['center'])
+    dims = torch.FloatTensor(obj['dimension'])
+    rotation = torch.FloatTensor(obj['rotation'])
+    volume = (dims[0]*dims[1]*dims[2]).unsqueeze(0)
+    length = dims.max().unsqueeze(0)
+    return torch.cat([center,dims,volume,length],dim=0)
+
+
+
 def build_edge_from_selection(node_ids,neighbor_dict, max_edges_per_node):
     '''
     flow: an edge passes message from i to j is denoted as  [i,j]. 

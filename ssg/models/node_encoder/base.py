@@ -45,14 +45,14 @@ class NodeEncoderBase(nn.Module):
         super().__init__()
         logger_py.setLevel(cfg.log_level)
         self._device = device
-        self.img_batch_size = cfg.model.node_encoder.img_batch_size
-        self.use_global = cfg.model.node_encoder.use_global
+        self.img_batch_size = cfg.model.image_encoder.img_batch_size
+        self.use_global = cfg.model.image_encoder.use_global
         self.backbone = backbone.lower()
         self.with_precompute = cfg.data.use_precompute_img_feature
-        self.local_feature_dim = cfg.model.node_encoder.local_feature_dim # in the original paper they set 128 with ModelNet40, 64 with ModelNet10
+        self.local_feature_dim = cfg.model.image_encoder.local_feature_dim # in the original paper they set 128 with ModelNet40, 64 with ModelNet10
         self.node_feature_dim = cfg.model.node_feature_dim
-        self.roi_region = cfg.model.node_encoder.roi_region
-        self.input_is_roi = cfg.data.input_type == 'mv_roi'
+        self.roi_region = cfg.model.image_encoder.roi_region
+        self.input_is_roi = cfg.data.is_roi_img
         
         # set backend
         # assert self.backbone in ['vgg16','res18']
@@ -71,7 +71,7 @@ class NodeEncoderBase(nn.Module):
             if not self.with_precompute:
                 vgg16=models.vgg16(pretrained=True)
                 self.nn_enc = vgg16.features.eval()
-                if not cfg.model.node_encoder.backend_finetune:
+                if not cfg.model.image_encoder.backend_finetune:
                     logger_py.warning('freeze backend')
                     self.nn_enc.eval()
                     for param in self.nn_enc.parameters(): param.requires_grad = False
@@ -99,7 +99,7 @@ class NodeEncoderBase(nn.Module):
                     resnet18.layer4
                 )
                 # build image nn_enc
-                if not cfg.model.node_encoder.backend_finetune:
+                if not cfg.model.image_encoder.backend_finetune:
                     logger_py.warning('freeze backend')
                     self.nn_enc.eval()
                     for param in self.nn_enc.parameters(): param.requires_grad = False
