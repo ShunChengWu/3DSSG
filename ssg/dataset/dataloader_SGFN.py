@@ -224,7 +224,7 @@ class SGFNDataset (data.Dataset):
         if self.sample_in_runtime and not self.for_eval:
             selected_nodes = list(object_data.keys())
             if self.mconfig.load_images:
-                mv_node_ids = [int(x) for x in mv_data['nodes'].keys()]
+                mv_node_ids = [int(x) for x in mv_nodes.keys()]
                 selected_nodes = list( set(selected_nodes).intersection(mv_node_ids) )
             
             use_all=False
@@ -322,7 +322,7 @@ class SGFNDataset (data.Dataset):
                 # else:
                 #     kf_indices = [idx for idx in range(img.shape[0])]
                 
-                img = torch.as_tensor(img)
+                img = torch.as_tensor(img).clone()
                 img = torch.clamp((img*255).byte(),0,255).byte()
                 t_img = torch.stack([self.transform(x) for x in img],dim=0)
                 if DRAW_BBOX_IMAGE:
@@ -431,7 +431,10 @@ class SGFNDataset (data.Dataset):
         gt_class = torch.from_numpy(np.array(cat))
         edge_indices = torch.tensor(edge_indices,dtype=torch.long)
         
-        
+        del self.sg_data
+        if self.mconfig.load_images:
+            del self.roi_imgs
+            del self.mv_data
         
         output = dict()
         output['scan_id'] = scan_id # str
