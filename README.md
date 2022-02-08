@@ -34,7 +34,7 @@ or install the dependnecies manually
 # Main env
 conda create -n 3dssg pytorch=1.8.9 cudatoolkit=10.2 -c pytorch tensorboard trimesh -c conda-forge
 # Onnxruntime
-pip install onnxruntime
+pip install onnxruntime=1.7.2
 # Pytorch Geometric
 export CUDA=10.2
 pip install torch-scatter -f https://pytorch-geometric.com/whl/torch-1.8.0+${CUDA}.html
