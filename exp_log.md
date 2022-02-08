@@ -45,3 +45,8 @@ The result is still worse than the one reported from the paper. maybe increase i
 | SGFN               | 0.85 | 0.87 | 0.7  | 0.8  | 0.97 | 0.99 |
 | exp1_0             | 0.91 | 0.92 | 0.71 | 0.82 | 0.94 | 1.00 |
 | exp1_1             | 0.90 | 0.91 | 0.69 | 0.81 | 0.94 | 1.00 | 
+
+
+## 2DSSG
+img_batchsize: 8
+exp0: MVCNN+VGG16. no GNN 

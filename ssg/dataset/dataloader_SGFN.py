@@ -183,16 +183,24 @@ class SGFNDataset (data.Dataset):
         scan_data_raw = self.sg_data[scan_id]
         scan_data = raw_to_data(scan_data_raw)
         
+        object_data = scan_data['nodes']
+        relationships_data = scan_data['relationships']
+        
         if self.mconfig.load_images:
             self.open_mv_graph()
             self.open_img()
             mv_data = self.mv_data[scan_id]
             mv_nodes = mv_data['nodes']
             roi_imgs = self.roi_imgs[scan_id]
-        
-        object_data = scan_data['nodes']
-        relationships_data = scan_data['relationships']
-        
+            
+            '''filter'''
+            mv_node_ids = [int(x) for x in mv_data['nodes'].keys()]
+            
+            sg_node_ids = object_data.keys()                
+            inter_node_ids = set(sg_node_ids).intersection(mv_node_ids)
+            
+            object_data = {nid: object_data[nid] for nid in inter_node_ids}
+            
         ''' build nn dict '''
         nns = dict()
         for oid, odata in object_data.items():
@@ -348,7 +356,7 @@ class SGFNDataset (data.Dataset):
         
         
         if self.sample_in_runtime:
-            if not use_all:
+            if not self.for_eval:
                 edge_indices = util_data.build_edge_from_selection_sgfn(filtered_instances,nns,max_edges_per_node=-1)
                 edge_indices = [[oid2idx[edge[0]],oid2idx[edge[1]]] for edge in edge_indices ]
                 # edge_indices = util_data.build_edge_from_selection(filtered_nodes, nns, max_edges_per_node=-1)
@@ -361,8 +369,7 @@ class SGFNDataset (data.Dataset):
                         
             if len(edge_indices)>0:
                 if not self.for_eval:
-                    edge_indices = random_drop(edge_indices, self.mconfig.drop_edge)
-                    
+                    edge_indices = random_drop(edge_indices, self.mconfig.drop_edge)       
                 if self.for_eval :
                     edge_indices = random_drop(edge_indices, self.mconfig.drop_edge_eval)
                     

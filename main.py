@@ -101,7 +101,7 @@ def main():
     elif cfg.MODE == 'eval':
         dataset_test  = config.get_dataset(cfg,'test')
         val_loader = torch.utils.data.DataLoader(
-            dataset_test, batch_size=1, num_workers=0,
+            dataset_test, batch_size=1, num_workers=8,
             shuffle=False, drop_last=False,
             pin_memory=True,
             collate_fn=graph_collate,
@@ -138,7 +138,7 @@ def main():
         logger_py.info('start evaluation')
         pr = cProfile.Profile()
         pr.enable()
-        eval_dict, eval_tool = model_trainer.evaluate(val_loader, topk=100)
+        eval_dict, eval_tool = model_trainer.evaluate(val_loader, topk=cfg.eval.topK)
         pr.disable()
         logger_py.info('save time profile to {}'.format(os.path.join(out_dir,'tp_eval.dmp')))
         pr.dump_stats(os.path.join(out_dir,'tp_eval.dmp'))
