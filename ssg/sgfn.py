@@ -34,8 +34,9 @@ class SGFN(nn.Module):
                 cfg.model.node_feature_dim = node_feature_dim
             if self.with_img_encoder:
                 sptial_feature_dim = 5
-                node_feature_dim -= sptial_feature_dim
-                cfg.model.node_feature_dim = node_feature_dim
+                sptial_feature_dim = 0
+                # node_feature_dim -= sptial_feature_dim
+                # cfg.model.node_feature_dim = node_feature_dim
         
         models = dict()
         '''point encoder'''
@@ -54,8 +55,7 @@ class SGFN(nn.Module):
                 cfg.model.node_feature_dim=512
                 encoder = ssg.models.node_encoder_list[img_encoder_method](cfg,cfg.model.image_encoder.backend,device)
                 node_feature_dim = encoder.node_feature_dim
-                # classifier = ssg2d.models.classifider_list['basic'](in_channels=node_feature_dim, out_channels=num_obj_cls)
-                classifier = ssg.models.classifider_list['cvr'](in_channels=512, out_channels=num_obj_cls)
+                # classifier = ssg.models.classifider_list['cvr'](in_channels=512, out_channels=num_obj_cls)
             elif img_encoder_method == 'mvcnn':
                 logger_py.info('use MVCNN original implementation')
                 cfg.model.image_encoder.backend = 'vgg16'
@@ -63,29 +63,37 @@ class SGFN(nn.Module):
                 cfg.model.image_encoder.aggr = 'max'
                 encoder = ssg.models.node_encoder_list[img_encoder_method](cfg,cfg.model.image_encoder.backend,device)
                 node_feature_dim = encoder.node_feature_dim
-                classifier = ssg.models.classifider_list['vgg16'](in_channels=node_feature_dim, out_channels=num_obj_cls)
+                # classifier = ssg.models.classifider_list['vgg16'](in_channels=node_feature_dim, out_channels=num_obj_cls)
+            elif img_encoder_method == 'mvcnn_res18':
+                logger_py.info('use MVCNN original implementation')
+                cfg.model.image_encoder.backend = 'res18'
+                cfg.model.node_feature_dim=512
+                encoder = ssg.models.node_encoder_list['mvcnn'](cfg,cfg.model.image_encoder.backend,device)
+                node_feature_dim = encoder.node_feature_dim
+                # classifier = ssg.models.classifider_list['res18'](in_channels=node_feature_dim, out_channels=num_obj_cls)
             elif img_encoder_method == 'gvcnn':
                 logger_py.info('use GVCNN original implementation')
                 encoder =  ssg.models.node_encoder_list[img_encoder_method](cfg,num_obj_cls,device)
-                classifier = torch.nn.Identity()
+                # classifier = torch.nn.Identity()
             elif img_encoder_method == 'rnn':# use RNN with the assumption of Markov Random Fields(MRFs) and CRF  https://www.robots.ox.ac.uk/~szheng/papers/CRFasRNN.pdf
                 raise NotImplementedError()
             elif img_encoder_method == 'mean':# prediction by running mean.
                 logger_py.info('use mean cls feature')
                 encoder = ssg.models.node_encoder_list[img_encoder_method](cfg,num_obj_cls,cfg.model.image_encoder.backend,device)
-                classifier = torch.nn.Identity()
+                # classifier = torch.nn.Identity()
                 # raise NotImplementedError()
             elif img_encoder_method == 'gmu':# graph memory unit
                 logger_py.info('use GMU')
                 encoder = ssg.models.node_encoder_list[img_encoder_method](cfg,num_obj_cls,cfg.model.image_encoder.backend,device)
-                if cfg.model.mean_cls:
-                    classifier = torch.nn.Identity()
-                else:
-                    node_feature_dim = cfg.model.gmu.memory_dim
-                    node_clsifier = "res18" if cfg.model.node_classifier.method == 'basic' else cfg.model.node_classifier.method #default is res18
-                    classifier = ssg.models.classifider_list[node_clsifier](in_channels=node_feature_dim, out_channels=num_obj_cls)
+                # if cfg.model.mean_cls:
+                #     classifier = torch.nn.Identity()
+                # else:
+                #     node_feature_dim = cfg.model.gmu.memory_dim
+                #     node_clsifier = "res18" if cfg.model.node_classifier.method == 'basic' else cfg.model.node_classifier.method #default is res18
+                #     classifier = ssg.models.classifider_list[node_clsifier](in_channels=node_feature_dim, out_channels=num_obj_cls)
             else:
                 raise NotImplementedError()
+            node_feature_dim = encoder.node_feature_dim
             models['img_encoder'] = encoder
                 
         '''edge encoder'''
@@ -112,6 +120,25 @@ class SGFN(nn.Module):
         '''build classifier'''
         with_bn =cfg.model.node_classifier.with_bn
         if self.with_img_encoder:
+            if img_encoder_method == 'cvr':
+                classifier = ssg.models.classifider_list['cvr'](in_channels=node_feature_dim, out_channels=num_obj_cls)
+            elif img_encoder_method == 'mvcnn':
+                classifier = ssg.models.classifider_list['vgg16'](in_channels=node_feature_dim, out_channels=num_obj_cls)
+            elif img_encoder_method == 'mvcnn_res18':
+                classifier = ssg.models.classifider_list['res18'](in_channels=node_feature_dim, out_channels=num_obj_cls)
+            elif img_encoder_method == 'gvcnn':
+                classifier = torch.nn.Identity()
+            elif img_encoder_method == 'mean':# prediction by running mean.
+                classifier = torch.nn.Identity()
+            elif img_encoder_method == 'gmu':# graph memory unit
+                if cfg.model.mean_cls:
+                    classifier = torch.nn.Identity()
+                else:
+                    node_feature_dim = cfg.model.gmu.memory_dim
+                    node_clsifier = "res18" if cfg.model.node_classifier.method == 'basic' else cfg.model.node_classifier.method #default is res18
+                    classifier = ssg.models.classifider_list[node_clsifier](in_channels=node_feature_dim, out_channels=num_obj_cls)
+            else:
+                raise NotImplementedError()    
             models['obj_predictor'] = classifier
         else:
             models['obj_predictor'] = PointNetCls(num_obj_cls, in_size=node_feature_dim,
@@ -169,7 +196,9 @@ class SGFN(nn.Module):
         probs=None
         if hasattr(self, 'gnn') and self.gnn is not None:
             gnn_nodes_feature, gnn_edges_feature, probs = self.gnn(nodes_feature, edges_feature, node_edges)
-            nodes_feature = gnn_nodes_feature
+            
+            if self.cfg.model.gnn.node_from_gnn:
+                nodes_feature = gnn_nodes_feature
             edges_feature = gnn_edges_feature
         
         '''1. Node '''

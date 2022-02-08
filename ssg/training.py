@@ -105,6 +105,7 @@ class Trainer():
             if logger:
                 metrics = self.model_trainer.get_log_metrics()
                 for k,v in metrics.items(): logger.add_scalar('train/'+k, v,it)
+                logger.add_scalar('train/epoch', epoch,it)
             
             
             # Visualization
@@ -206,6 +207,7 @@ class Trainer():
         torch.cuda.empty_cache()
 
         if logger:
+            logger.add_scalar('val/epoch', epoch_it,it)
             for k,v in eval_dict['visualization'].items(): 
                 logger.add_figure('val/'+k, v,it)
             for k, v in eval_dict.items():
