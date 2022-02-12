@@ -52,8 +52,8 @@ class TripletGCN(MessagePassing):
         
     def forward(self, x, edge_feature, edge_index):
         gcn_x, gcn_e = self.propagate(edge_index, x=x, edge_feature=edge_feature)
-        x = self.nn2(gcn_x)
-        return x, gcn_e
+        gcn_x = x + self.nn2(gcn_x)
+        return gcn_x, gcn_e
 
     def message(self, x_i, x_j,edge_feature):
         x = torch.cat([x_i,edge_feature,x_j],dim=1)
