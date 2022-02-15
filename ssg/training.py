@@ -134,7 +134,8 @@ class Trainer():
                 scheduler.step(metric_val)
             else:
                 scheduler.step()
-            pass
+            
+            
         logger_py.info('Training finished.')
         
         # logger_py.info('Saving checkpoint')

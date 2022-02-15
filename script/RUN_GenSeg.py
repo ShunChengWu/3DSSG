@@ -16,7 +16,7 @@ import subprocess, os, sys, time, json, math, argparse
 import multiprocessing as mp
 import numpy as np
 
-exe_path='../../../c++/SceneGraphFusion/bin/exe_GraphSLAM'
+exe_path='/home/sc/research/SceneGraphFusion/bin/exe_GraphSLAM'
 
 parser = argparse.ArgumentParser(description='Generate InSeg segmentation on 3RScan or ScanNet dataset.',
                                  formatter_class=argparse.ArgumentDefaultsHelpFormatter)
@@ -27,6 +27,7 @@ parser.add_argument('--dataset',type=str,choices=['3RScan','ScanNet'],default='3
 parser.add_argument('--type', type=str, default='train', choices=['train', 'validation'], help="which split of scans to use",required=True)
 
 parser.add_argument('--thread', type=int, default=0, help='', required=False)
+parser.add_argument('--overwrite', type=int, default=0, help='overwrite', required=False)
 parser.add_argument('--rendered', type=int, default=1, help='use rendered depth (for ScanNet and 3RScan)', required=False)
 parser.add_argument('--debug', type=int, default=0, help='', required=False)
 
@@ -38,7 +39,7 @@ def process(pth_in, pth_out):
         output = subprocess.check_output([exe_path, 
                                           '--pth_in',pth_in, 
                                           '--pth_out',pth_out,
-                                          '--save_name',str(args.save_name),
+                                            '--save_name',str(args.save_name),
                                           '--rendered',str(args.rendered),
                                           '--min_pyr_level',str(args.min_pyr_level), # was 2
                                           '--depth_edge_threshold',str(args.depth_edge_threshold),
@@ -94,6 +95,8 @@ if __name__ == '__main__':
         
     ''' Read split '''
     if args.dataset == '3RScan':
+        # train_scans = read_txt_to_list(os.path.join(define.ROOT_PATH,'files','train_scans.txt'))
+        # val_scans = read_txt_to_list(os.path.join(define.ROOT_PATH,'files','validation_scans.txt'))
         train_scans,val_scans  = gen_splits(define.Scan3RJson_PATH)
     elif args.dataset == 'ScanNet':
         train_scans,val_scans = gen_splits_scannet(
@@ -102,6 +105,11 @@ if __name__ == '__main__':
             )
     else:
         raise RuntimeError('unknown dataset type')
+        
+    # print('0cac7536-8d6f-2d13-8dc2-2f9d7aa62dc4' in train_scans)
+    # print('0cac7536-8d6f-2d13-8dc2-2f9d7aa62dc4' in val_scans)
+    # import sys
+    # sys.exit()
       
     if args.type == 'train':
         scan_ids = train_scans
@@ -112,6 +120,7 @@ if __name__ == '__main__':
 
     results=[]
     for scan_id in sorted(scan_ids):
+        # scan_id = '4acaebcc-6c10-2a2a-858b-29c7e4fb410d'
         # --pth /media/sc/SSD1TB/dataset/3RScan/data/3RScan/0a4b8ef6-a83a-21f2-8672-dce34dd0d7ca/sequence/
         if args.dataset == '3RScan':
             pth_in = os.path.join(define.DATA_PATH,scan_id,'sequence')
@@ -121,6 +130,19 @@ if __name__ == '__main__':
             pth_out = os.path.join(define.SCANNET_DATA_PATH,scan_id)
         else:
             raise RuntimeError("Unknown dataset type ", args.dataset)
+            
+        # check exist
+        if not args.overwrite:
+            if args.dataset == '3RScan':
+                if os.path.isfile(os.path.join(define.DATA_PATH,scan_id,'graph.json')):
+                    # print('skip',scan_id)
+                    continue
+            elif args.dataset == 'ScanNet':
+                if os.path.isfile(os.path.join(define.SCANNET_DATA_PATH,scan_id,'graph.json')):
+                    # print('skip',scan_id)
+                    continue
+        
+        # continue
         
         # if scan_id != '2e369567-e133-204c-909a-c5da44bb58df':continue
         print('pth_in:',pth_in)

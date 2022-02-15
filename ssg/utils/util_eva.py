@@ -50,7 +50,6 @@ def evaluate_topk_object(objs_target, objs_pred, k=-1):
 
     return top_k
 
-
 def evaluate_topk_predicate(gt_edges, rels_pred, threshold=0.5,k=-1):
     '''
     Find the distance of the predicted probability to the target probability. 
@@ -295,8 +294,12 @@ def write_result_file(confusion:np.array,
         mean_iou = write_metric("IoU", ious)
         mean_pre = write_metric("Precision", precisions)
         mean_rec = write_metric("Recall", recalls)
-        f.write('{0:<14s}: {1:>5.3f}   ({2:>6f}/{3:<6f})\n\n'.format('accuracy', \
+        f.write('{0:<14s}: {1:>5.3f}   ({2:>6f}/{3:<6f})\n\n'.format('overall recall', \
                                                                   confusion.trace()/confusion.sum(),  \
+                                                                  confusion.trace(), \
+                                                                  confusion.sum()) )
+        f.write('{0:<14s}: {1:>5.3f}   ({2:>6f}/{3:<6f})\n\n'.format('mean recall', \
+                                                                  (confusion.diagonal()/confusion.sum(1)).sum(),  \
                                                                   confusion.trace(), \
                                                                   confusion.sum()) )
         

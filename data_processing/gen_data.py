@@ -8,6 +8,8 @@ from pathlib import Path
 from tqdm import tqdm
 from utils import util_ply, util_label, util, define
 from utils.util_search import SAMPLE_METHODS,find_neighbors
+import h5py,ast
+import copy
 
 def Parser(add_help=True):
     parser = argparse.ArgumentParser(description='Process some integers.', formatter_class = argparse.ArgumentDefaultsHelpFormatter,
@@ -231,8 +233,31 @@ def process(pth_3RScan, scan_id,label_type,
 
     _, label_name_mapping, _ = util_label.getLabelMapping(args.label_type)
     pth_semseg_file = os.path.join(pth_3RScan, scan_id, segseg_file_name)
-
     instance2labelName = util.load_semseg(pth_semseg_file, label_name_mapping,args.mapping)
+    
+    '''extract object bounding box info'''
+    # objs_obbinfo=dict()
+    # with open(pth_semseg_file) as f: 
+    #     data = json.load(f)
+    # for group in data['segGroups']:
+    #     obb = group['obb']
+    #     obj_obbinfo = objs_obbinfo[group["id"]] = dict()
+    #     obj_obbinfo['center'] = copy.deepcopy(obb['centroid'])
+    #     obj_obbinfo['dimension'] = copy.deepcopy(obb['axesLengths'])
+    #     obj_obbinfo['normAxes'] = copy.deepcopy( np.array(obb['normalizedAxes']).reshape(3,3).transpose().tolist() )
+    # del data
+    
+    objs_obbinfo=dict()
+    pth_obj_graph = os.path.join(pth_3RScan,scan_id,'graph.json')
+    with open(pth_obj_graph) as f: 
+        data = json.load(f)
+    for nid, node in data[scan_id]['nodes'].items():
+        
+        obj_obbinfo = objs_obbinfo[int(nid)] = dict()
+        obj_obbinfo['center'] = copy.deepcopy(node['center'])
+        obj_obbinfo['dimension'] = copy.deepcopy(node['dimension'])
+        obj_obbinfo['normAxes'] = copy.deepcopy( np.array(node['rotation']).reshape(3,3).transpose().tolist() )
+    del data
         
     # count gt segment size
     size_segments_gt = dict()
@@ -397,6 +422,10 @@ def process(pth_3RScan, scan_id,label_type,
                                                    gt_segments_2_pd_segments)
         if len(relationships["objects"]) != 0 and len(relationships['relationships']) != 0:
                 list_relationships.append(relationships)
+                
+    for relationships in list_relationships:
+        for oid in relationships['objects'].keys():
+            relationships['objects'][oid] = {**objs_obbinfo[oid], **relationships['objects'][oid]}
     
     return list_relationships, segs_neighbors
 
@@ -414,7 +443,8 @@ def gen_relationship(scan_id:str,split:int, map_segment_pd_2_gt:dict,instance2la
             if seg not in target_segments: continue
         name = instance2labelName[segment_gt]
         assert(name != '-' and name != 'none')
-        objects[int(seg)] = name
+        objects[int(seg)] = dict()
+        objects[int(seg)]['label'] = name
     relationships["objects"] = objects
     
     
@@ -453,12 +483,12 @@ def gen_relationship(scan_id:str,split:int, map_segment_pd_2_gt:dict,instance2la
                         ''' check if they are neighbors '''
                         split_relationships.append([ int(segment_src), int(segment_tar), idx_in_txt_new, name ])
                         if debug:print('inherit', instance2labelName[id_src],name, instance2labelName[id_tar])
-            else:
-                if debug:
-                    if id_src in gt_segments_2_pd_segments:
-                        print('filter', instance2labelName[id_src],name, instance2labelName[id_tar],'id_src', id_src, 'is not in the gt_segments_2_pd_segments')
-                    if id_tar in gt_segments_2_pd_segments:
-                        print('filter', instance2labelName[id_src],name, instance2labelName[id_tar],'id_tar', id_tar, 'is not in the gt_segments_2_pd_segments')
+            # else:
+            #     if debug:
+            #         if id_src in gt_segments_2_pd_segments:
+            #             print('filter', instance2labelName[id_src],name, instance2labelName[id_tar],'id_src', id_src, 'is not in the gt_segments_2_pd_segments')
+            #         if id_tar in gt_segments_2_pd_segments:
+            #             print('filter', instance2labelName[id_src],name, instance2labelName[id_tar],'id_tar', id_tar, 'is not in the gt_segments_2_pd_segments')
     
     ''' Build "same part" relationship '''
     idx_in_txt_new = target_relationships.index(define.NAME_SAME_PART)
@@ -521,21 +551,11 @@ if __name__ == '__main__':
     relationships_new['neighbors'] = dict()
     counter= 0
     with open(os.path.join(define.FILE_PATH + args.relation + ".json"), "r") as read_file:
-        data2 = json.load(read_file)
+        data = json.load(read_file)
+        filtered_data = list()
         
-        data = list()
-        for s in data2["scans"]:
+        for s in data["scans"]:
             scan_id = s["scan"]
-            if len(target_scan) ==0:
-                if scan2type[scan_id] != args.type: 
-                    continue
-            else:
-                if scan_id not in target_scan: continue
-            data.append(s)
-            
-        for s in tqdm(data):
-            scan_id = s["scan"]
-            
             if len(target_scan) ==0:
                 if scan2type[scan_id] != args.type: 
                     if args.verbose:
@@ -544,6 +564,10 @@ if __name__ == '__main__':
             else:
                 if scan_id not in target_scan: continue
             
+            filtered_data.append(s)
+            
+        for s in tqdm(filtered_data):
+            scan_id = s["scan"]
             gt_relationships = s["relationships"]
             if debug:print('processing scene',scan_id)
             valid_scans.append(scan_id)
@@ -554,6 +578,8 @@ if __name__ == '__main__':
             if len(relationships) == 0:
                 print('skip',scan_id,'due to not enough objs and relationships')
                 continue
+            else:
+                if debug:  print('no skip', scan_id)
             
             relationships_new["scans"] += relationships
             relationships_new['neighbors'][scan_id] = segs_neighbors
@@ -561,15 +587,13 @@ if __name__ == '__main__':
             if debug:
                 break
             
+    '''Save'''
     Path(args.pth_out).mkdir(parents=True, exist_ok=True)
     pth_args = os.path.join(args.pth_out,'args.json')
     with open(pth_args, 'w') as f:
             tmp = vars(args)
             json.dump(tmp, f, indent=2)
-    
-    pth_relationships_json = os.path.join(args.pth_out, "relationships_" + args.type + ".json")
-    with open(pth_relationships_json, 'w') as f:
-        json.dump(relationships_new, f)
+            
     pth_classes = os.path.join(args.pth_out, 'classes.txt')
     with open(pth_classes,'w') as f:
         for name in classes_json:
@@ -583,3 +607,47 @@ if __name__ == '__main__':
     with open(pth_split,'w') as f:
         for name in valid_scans:
             f.write('{}\n'.format(name))
+    # '''Save to json'''
+    # pth_relationships_json = os.path.join(args.pth_out, "relationships_" + args.type + ".json")
+    # with open(pth_relationships_json, 'w') as f:
+    #     json.dump(relationships_new, f)
+        
+    '''Save to h5'''
+    pth_relationships_json = os.path.join(args.pth_out, "relationships_" + args.type + ".h5")
+    h5f = h5py.File(pth_relationships_json, 'w')
+    # reorganize scans from list to dict
+    scans = dict()
+    for s in relationships_new['scans']:
+        scans[s['scan']] = s
+    all_neighbors = relationships_new['neighbors']
+    for scan_id in scans.keys():
+        scan_data = scans[scan_id]
+        neighbors = all_neighbors[scan_id]
+        objects = scan_data['objects']
+        
+        d_scan = dict()
+        d_nodes = d_scan['nodes'] = dict()
+        
+        ## Nodes
+        for idx, data in enumerate(objects.items()):
+            oid, obj_info = data
+            ascii_nn = [str(n).encode("ascii", "ignore") for n in neighbors[oid]]
+            d_nodes[oid] = dict()
+            d_nodes[oid] = obj_info
+            d_nodes[oid]['neighbors'] = ascii_nn
+        
+        ## Relationships
+        str_relationships = list() 
+        for rel in scan_data['relationships']:
+            str_relationships.append([str(s) for s in rel])
+        d_scan['relationships']= str_relationships
+        
+        s_scan = str(d_scan)
+        h5_scan = h5f.create_dataset(scan_id,data=np.array([s_scan],dtype='S'),compression='gzip')
+        # test decode 
+        tmp = h5_scan[0].decode()
+        assert isinstance(ast.literal_eval(tmp),dict)
+        
+        # ast.literal_eval(h5_scan)
+    h5f.close()
+    

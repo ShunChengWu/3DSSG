@@ -4,7 +4,7 @@ import numpy as np
 import multiprocessing as mp
 
 # from utils import util_ply, util_data, util, define
-from codeLib.common import random_drop
+from codeLib.common import random_drop, random_drop
 from codeLib import transformation
 from ssg.utils import util_ply, util_data
 from codeLib.utils.util import read_txt_to_list, check_file_exist
@@ -30,7 +30,7 @@ class SGFNDataset (data.Dataset):
         self.config = config
         self.mconfig = config.data
         self.path = config.data.path
-        self.use_data_augmentation=False
+        self.use_data_augmentation=self.mconfig.data_augmentation
         self.root_3rscan = define.DATA_PATH
         self.path_h5 = os.path.join(self.path,'relationships_%s.h5' % (mode))
         self.path_mv = os.path.join(self.path,'proposals.h5')
@@ -248,6 +248,9 @@ class SGFNDataset (data.Dataset):
                 
             instances_ids = list(filtered_nodes)
             if 0 in instances_ids: instances_ids.remove(0)
+            
+        if 'max_num_node' in self.mconfig and self.mconfig.max_num_node>0 and len(instances_ids)>self.mconfig.max_num_node:
+            instances_ids = random_drop(instances_ids, self.mconfig.max_num_node )
         
         if self.shuffle_objs:
             random.shuffle(instances_ids)
@@ -322,6 +325,8 @@ class SGFNDataset (data.Dataset):
                 oid = str(idx2oid[idx])
                 node = mv_nodes[oid]
                 cls_label = node.attrs['label']
+                if cls_label == 'unknown':
+                    cls_label = self.classNames[cat[idx]]
                 img = np.asarray(roi_imgs[oid])
                 
                 if not self.for_eval:
@@ -343,6 +348,25 @@ class SGFNDataset (data.Dataset):
                 instance_id = filtered_instances[i]
                 obj = object_data[instance_id]
                 # obj = objects[str(instance_id)]
+                
+                '''augmentation'''
+                # random scale dim with up to 0.3
+                if not self.for_eval and self.mconfig.bbox_aug_ratio>0:
+                    center = np.array(obj['center'])
+                    dim = np.array(obj['dimension'])
+                    
+                    max_ratio=self.mconfig.bbox_aug_ratio
+                    dim_scales = np.random.uniform(low=-max_ratio,high=max_ratio,size=3)
+                    reduce_amount = dim * dim_scales
+                    center += reduce_amount
+                    
+                    dim_scales = np.random.uniform(low=-max_ratio,high=max_ratio,size=3)
+                    reduce_amount = dim * dim_scales
+                    dim += reduce_amount
+                    obj['center'] = center.tolist()
+                    obj['dimension'] = dim.tolist()
+                
+                
                 
                 descriptor_8[i] = util_data.gen_descriptor_8(obj)
             
@@ -373,7 +397,7 @@ class SGFNDataset (data.Dataset):
                 if self.for_eval :
                     edge_indices = random_drop(edge_indices, self.mconfig.drop_edge_eval)
                     
-                if self.mconfig.max_num_edge > 0 and len(edge_indices) > self.max_num_edge:
+                if self.mconfig.max_num_edge > 0 and len(edge_indices) > self.mconfig.max_num_edge:
                     choices = np.random.choice(range(len(edge_indices)),self.mconfig.max_num_edge,replace=False).tolist()
                     edge_indices = [edge_indices[t] for t in choices]
         else:

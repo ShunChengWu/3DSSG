@@ -9,13 +9,17 @@ from ssg.data.collate import graph_collate#, batch_graph_collate
 from ssg.checkpoints import CheckpointIO
 import torch.multiprocessing
 import cProfile
-
+import matplotlib
+import PIL
+matplotlib.pyplot.set_loglevel("CRITICAL")
+logging.getLogger('PIL').setLevel('CRITICAL')
+logging.getLogger('trimesh').setLevel('CRITICAL')
 # import resource
 # resource.setrlimit(resource.RLIMIT_NOFILE, (131072, 131072))
 # logging.basicConfig()
 
 logger_py = logging.getLogger(__name__)
-logging.getLogger('trimesh').setLevel('CRITICAL')
+
 # logging.basicConfig()
 # logger_py.setLevel(logging.DEBUG)
 

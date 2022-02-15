@@ -1,6 +1,7 @@
 import numpy as np
 import torch,random
 import json
+import os
 # import ssg2d
 from ssg.objects import Node
 from collections import defaultdict
@@ -15,20 +16,22 @@ def cvt_all_to_dict_from_h5(data:dict):
         output[k]= raw_to_data(v)
     return output
 
-def load_graph(pth, box_filter_size: list=[]):
-    with open(pth, "r") as read_file:
-        data = json.load(read_file)
+def load_graph(data, box_filter_size: list=[]):
+    # with open(pth, "r") as read_file:
+    #     data = json.load(read_file)
     if 'nodes' not in data: raise RuntimeError('wrong format')
     if 'kfs' not in data: raise RuntimeError('wrong format')
     assert len(box_filter_size) in [0,1,2]
-    
-    # nodes = data['nodes']
-    # kfs = data['kfs']
     
     ''' keyframes '''
     node2kfs = dict()
     for kf_idx in range(len(data['kfs'])):
         kf = data['kfs'][kf_idx]
+        path = kf['path']
+        fname = os.path.basename(path)
+        fid = int(''.join([x for x in fname if x.isdigit()]))
+        data['kfs'][kf_idx]['fid'] = fid
+        
         for key, value in kf['bboxes'].items():
             node_id = int(key)
             
@@ -71,6 +74,7 @@ def load_graph(pth, box_filter_size: list=[]):
     output['nodes'] = nodes
     output['kfs'] = data['kfs']
     return output 
+
 def save_graph(graph:dict,pth:str):
     nodes = graph['nodes']
     

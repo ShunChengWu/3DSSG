@@ -8,11 +8,11 @@
 [nassir]:http://campar.in.tum.de/Main/NassirNavabCv
 [fede]:http://campar.in.tum.de/Main/FedericoTombari
 
-This repository contains the network part of the SceneGraphFusion work. For the incremental framework, 
+This repository contains the network part of the SceneGraphFusion work. For the incremental framework,
 please check [here](https://github.com/ShunChengWu/SceneGraphFusion).
 
 # Dependencies
-The code has been tested on Ubuntu 18.04 and gcc 7.5. You can either create a conda environment by 
+The code has been tested on Ubuntu 18.04 and gcc 7.5. You can either create a conda environment by
 ```
 conda env create --name <env_name> --file environment.yml
 ```
@@ -30,7 +30,7 @@ or install the dependnecies manually
 # for data generation:
 # - open3d
 ###
-# Install commends 
+# Install commends
 ###
 # Main env
 conda create -n 3dssg pytorch=1.8.9 cudatoolkit=10.2 -c pytorch tensorboard trimesh -c conda-forge
@@ -59,18 +59,34 @@ python make_obj_graph_3rscan.py
 # extract object bounding boxes.
 python extract_mv_box_image_3rscan.py
 ```
+## InSeg
+```
+# Geenrate `inseg.ply` and `graph.json`
+python script/RUN_GenSeg.py --dataset 3RScan --type validation --thread 8 --overwrite 1
+python script/RUN_GenSeg.py --dataset 3RScan --type train --thread 8 --overwrite 1
+
+# Generate training data
+cd data_processing
+python gen_data.py --pth_out ../data/3RScan_ScanNet20/ --target_scan ../data/3RScan_3RScan/train_scans.txt --type train; python gen_data.py --pth_out ../data/3RScan_ScanNet20/ --target_scan ../data/3RScan_3RScan/validation_scans.txt --type validation; python gen_data.py --pth_out ../data/3RScan_ScanNet20/ --target_scan ../data/3RScan_3RScan/test_scans.txt --type test
+
+# Generate object-image graph
+PYTHONPATH=./ python ssg/utils/make_obj_graph_incremental.py -o ./data/3RScan_ScanNet20/ --overwrite 0
+
+# extract mv images
+PYTHONPATH=./ python ssg/utils/extract_mv_box_image_3rscan.py -o /media/sc/SSD1TB/dataset/3RScan/incremental/ -f ./data/3RScan_ScanNet20/proposals.h5 --thread 0 --overwrite 1
+```
 
 
 # Run
 Run a toy example:
 ```
-python main.py --mode [train,eval,trace] --config ./config_example.json 
+python main.py --mode [train,eval,trace] --config ./config_example.json
 ```
-The main.py file will create a folder at the same directory of config with the NAME from config_[NAME] and a log folder 
-stors the logging from Tensorboard. The trained models/ evaluation results/ traced models will all be stored within the 
+The main.py file will create a folder at the same directory of config with the NAME from config_[NAME] and a log folder
+stors the logging from Tensorboard. The trained models/ evaluation results/ traced models will all be stored within the
 NAME folder.
 
-We provide a trained model [here](https://drive.google.com/file/d/1a2q7yMNNmEpUfC1_5Wuor0qDM-sBStFZ/view?usp=sharing). The model is able to perform equivelent result as reported in the SceneGraphFusion [paper][1]. 
+We provide a trained model [here](https://drive.google.com/file/d/1a2q7yMNNmEpUfC1_5Wuor0qDM-sBStFZ/view?usp=sharing). The model is able to perform equivelent result as reported in the SceneGraphFusion [paper][1].
 Note: The model is trained with 20 NYUv2 object classes used in ScanNet benchmark, and with 8 support types of predicates.
 
 
@@ -108,7 +124,7 @@ src/network_*    # basic network/layers/operations
 src/model_*      # a network model consists of multiple layers
 src/dataset_*    # data related
 src/*_base.py    # basic class templates
-src/*_util*.py   # utilities 
+src/*_util*.py   # utilities
 src/[name].py    # top-level class to train/eval/trace a model
 
 data_processing/ # the codes to generate training data from 3RScan/ScanNet
@@ -130,7 +146,7 @@ If you find the code useful please consider citing our [paper](https://arxiv.org
 @inproceedings{Wald2020,
     title = {{Learning 3D Semantic Scene Graphs from 3D Indoor Reconstructions}},
     author = {Wald, Johanna and Dhamo, Helisa and Navab, Nassir and Tombari, Federico},
-    booktitle = {Proceedings IEEE Conference on Computer Vision and Pattern Recognition (CVPR)}, 
+    booktitle = {Proceedings IEEE Conference on Computer Vision and Pattern Recognition (CVPR)},
     year = {2020}
 }
 ```
