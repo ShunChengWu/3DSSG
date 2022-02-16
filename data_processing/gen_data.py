@@ -10,6 +10,7 @@ from utils import util_ply, util_label, util, define
 from utils.util_search import SAMPLE_METHODS,find_neighbors
 import h5py,ast
 import copy
+import logging
 
 def Parser(add_help=True):
     parser = argparse.ArgumentParser(description='Process some integers.', formatter_class = argparse.ArgumentDefaultsHelpFormatter,
@@ -445,6 +446,7 @@ def gen_relationship(scan_id:str,split:int, map_segment_pd_2_gt:dict,instance2la
         assert(name != '-' and name != 'none')
         objects[int(seg)] = dict()
         objects[int(seg)]['label'] = name
+        objects[int(seg)]['instance_id'] = segment_gt
     relationships["objects"] = objects
     
     
@@ -511,8 +513,12 @@ def gen_relationship(scan_id:str,split:int, map_segment_pd_2_gt:dict,instance2la
     
 if __name__ == '__main__':
     args = Parser().parse_args()
-    debug |= args.debug
-    args.verbose |= args.debug
+    Path(args.pth_out).mkdir(parents=True, exist_ok=True)
+    logging.basicConfig(filename=os.path.join(args.pth_out,'gen_data_'+args.type+'.log'), level=logging.DEBUG)
+    logger_py = logging.getLogger(__name__)
+    
+    debug |= args.debug>0
+    args.verbose |= debug
     if args.search_method == 'BBOX':
         search_method = SAMPLE_METHODS.BBOX
     elif args.search_method == 'KNN':
@@ -565,18 +571,18 @@ if __name__ == '__main__':
                 if scan_id not in target_scan: continue
             
             filtered_data.append(s)
-            
+        
         for s in tqdm(filtered_data):
             scan_id = s["scan"]
             gt_relationships = s["relationships"]
-            if debug:print('processing scene',scan_id)
+            logger_py.info('processing scene {}'.format(scan_id))
             valid_scans.append(scan_id)
             relationships, segs_neighbors = process(define.DATA_PATH, scan_id, args.label_type, target_relationships,
                                     gt_relationships = gt_relationships,
                                     split_scene = args.split,
                                     verbose = args.verbose)
             if len(relationships) == 0:
-                print('skip',scan_id,'due to not enough objs and relationships')
+                logger_py.info('skip {} due to not enough objs and relationships'.format(scan_id))
                 continue
             else:
                 if debug:  print('no skip', scan_id)
@@ -588,7 +594,6 @@ if __name__ == '__main__':
                 break
             
     '''Save'''
-    Path(args.pth_out).mkdir(parents=True, exist_ok=True)
     pth_args = os.path.join(args.pth_out,'args.json')
     with open(pth_args, 'w') as f:
             tmp = vars(args)

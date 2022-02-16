@@ -54,3 +54,23 @@ img_batchsize: 8
 - exp2: MVCNN+Res18. FAN -> forgot to enable gnn
 - exp2_1: MVCNN+Res18. FAN 2 layer GNN
 - exp3: MVCNN+Res18, FAN, 1 layer GNN
+
+# SSG with InSeg Segmentation
+
+## SGFN
+3RSan with ScanNet20.
+- SGFN_inseg_0: SceneGraphFusion
+- SGFN_inseg_0_1: with Pts,RGB,Normal
+- SGFN_inseg_0_2: with Pts,RGB,Normal. change stop crite. to acc.
+- SGFN_inseg_0_3: same as 0_1. just to check if reproducable.
+- SGFN_inseg_0_4: same as 0_3. adjust schedular.
+- SGFN_inseg_1: with img
+- SGFN_full_0: use GT segments
+
+| method        | R@1  | R@3  | R@1  | R@3  | R@1  | R@2  |
+| ------------- | ---- | ---- | ---- | ---- | ---- | ---- |
+| SGFN(cvpr)(f) | 0.55 | 0.78 | 0.75 | 0.93 | 0.86 | 0.98 |
+| inseg_0       | 0.27 | 0.41 | 0.55 | 0.84 | 0.88 | 0.96 |
+| inseg_0_1     | 0.43 | 0.61 | 0.69 | 0.91 | 0.89 | 0.97 |
+| inseg_0_4     | 0.46 | 0.63 | 0.72 | 0.91 | 0.9  | 0.97 |
+|               |      |      |      |      |      |      |

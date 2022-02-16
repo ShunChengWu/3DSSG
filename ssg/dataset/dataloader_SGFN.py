@@ -30,6 +30,7 @@ class SGFNDataset (data.Dataset):
         self.config = config
         self.mconfig = config.data
         self.path = config.data.path
+        self.label_file = config.data.label_file
         self.use_data_augmentation=self.mconfig.data_augmentation
         self.root_3rscan = define.DATA_PATH
         self.path_h5 = os.path.join(self.path,'relationships_%s.h5' % (mode))
@@ -158,7 +159,7 @@ class SGFNDataset (data.Dataset):
                     path = os.path.join(self.root_3rscan, scan_id_no_split)
                 if scan_id_no_split not in self.cache_data:
                     self.cache_data[scan_id_no_split] = pool.apply_async(load_mesh,
-                                                                          (path, self.mconfig.label_file,self.use_rgb,self.use_normal))
+                                                                          (path, self.label_file,self.use_rgb,self.use_normal))
             pool.close()
             pool.join()
             for key, item in self.cache_data.items():
@@ -184,7 +185,7 @@ class SGFNDataset (data.Dataset):
         scan_data = raw_to_data(scan_data_raw)
         
         object_data = scan_data['nodes']
-        relationships_data = scan_data['relationships']
+        relationships_data = scan_data['relationships']        
         
         if self.mconfig.load_images:
             self.open_mv_graph()
@@ -203,8 +204,13 @@ class SGFNDataset (data.Dataset):
             
         ''' build nn dict '''
         nns = dict()
+        seg2inst = dict()
         for oid, odata in object_data.items():
             nns[str(oid)] = [int(s) for s in odata['neighbors']]
+            
+            '''build instance dict'''
+            if 'instance_id' in odata:
+                seg2inst[oid] = odata['instance_id']
 
         ''' build mapping '''
         instance2labelName  = { int(key): node['label'] for key,node in object_data.items()  }
@@ -219,7 +225,7 @@ class SGFNDataset (data.Dataset):
             if self.config.data.load_cache:
                 data = self.cache_data[scan_id]
             else:
-                data = load_mesh(path, self.mconfig.label_file, self.use_rgb, self.use_normal)
+                data = load_mesh(path, self.label_file, self.use_rgb, self.use_normal)
             points = copy.deepcopy( data['points'] )
             instances = copy.deepcopy( data['instances'] )
         
@@ -479,6 +485,7 @@ class SGFNDataset (data.Dataset):
             output['node_descriptor_8'] = descriptor_8
         output['node_edges'] = edge_indices # tensor
         output['instance2mask'] = oid2idx #dict
+        output['seg2inst'] = seg2inst
         return output
         
     def __len__(self):
@@ -503,7 +510,7 @@ class SGFNDataset (data.Dataset):
             nns = data['neighbors']
         for scan in data['scans']:
             if scan["scan"] == 'fa79392f-7766-2d5c-869a-f5d6cfb62fc6':
-                if self.mconfig.label_file == "labels.instances.align.annotated.v2.ply":
+                if self.label_file == "labels.instances.align.annotated.v2.ply":
                     '''
                     In the 3RScanV2, the segments on the semseg file and its ply file mismatch. 
                     This causes error in loading data.

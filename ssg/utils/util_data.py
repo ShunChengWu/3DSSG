@@ -7,6 +7,44 @@ from ssg.objects import Node
 from collections import defaultdict
 import ast
 
+def merge_batch_seg2idx(seg2idxs):
+    idx2seg=dict()
+    # idx2seg[0]=[0]
+    if isinstance(seg2idxs,list):
+        for it in range(len(seg2idxs)):
+            seg2idx = seg2idxs[it]
+            for iid, idx in seg2idx.items():
+                idx = idx.item() if isinstance(idx, torch.Tensor) else idx
+                if iid==0:continue
+                if idx <0: continue
+                # print(idx)
+                # assert idx not in idx2seg
+                
+                if idx in idx2seg:
+                    print('')
+                    print(iid)
+                    print(idx)
+                    print(seg2idxs)
+                    assert idx not in idx2seg
+                idx2seg[idx] = iid
+    else:
+        seg2idx = seg2idxs
+        for iid, idx in seg2idx.items():
+            idx = idx.item() if isinstance(idx, torch.Tensor) else idx
+            if iid==0:continue
+            if idx <0: continue
+            # print(idx)
+            # assert idx not in idx2seg
+            
+            if idx in idx2seg:
+                print('')
+                print(iid)
+                print(idx)
+                print(seg2idxs)
+                assert idx not in idx2seg
+            idx2seg[idx] = iid
+    return idx2seg
+
 def raw_to_data(raw):
     return ast.literal_eval(raw[0].decode())
 

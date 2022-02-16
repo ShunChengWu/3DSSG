@@ -19,13 +19,12 @@ logger_py = logging.getLogger(__name__)
 class Trainer():
     def __init__(self, cfg, model_trainer:BaseTrainer, #node_cls_names, edge_cls_names,
                  logger=None,
-                 optimizer=None, device=None, 
+                 device=None, 
                  **kwargs):
         super().__init__()
         self._device=device if device is not None else 'cpu'
         self.cfg = cfg
         self.model_trainer = model_trainer
-        self.optimizer = optimizer
         #self.node_cls_names = node_cls_names#kwargs['node_cls_names']
         #self.edge_cls_names = edge_cls_names#kwargs['edge_cls_names']
         self.logger = logger        
@@ -106,6 +105,7 @@ class Trainer():
                 metrics = self.model_trainer.get_log_metrics()
                 for k,v in metrics.items(): logger.add_scalar('train/'+k, v,it)
                 logger.add_scalar('train/epoch', epoch,it)
+                logger.add_scalar('train/lr', self.model_trainer.optimizer.param_groups[0]['lr'],it)
             
             
             # Visualization

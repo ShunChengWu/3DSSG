@@ -15,6 +15,7 @@ import argparse
 import h5py
 import ast
 import copy
+import logging
 
 def Parser(add_help=True):
     parser = argparse.ArgumentParser(description='Process some integers.', formatter_class = argparse.ArgumentDefaultsHelpFormatter,
@@ -24,7 +25,8 @@ def Parser(add_help=True):
     parser.add_argument('--pth_out', type=str,default='../data/tmp', help='pth to output directory',required=True)
     parser.add_argument('--relation', type=str,default='relationships', choices=['relationships_extended', 'relationships'])
     parser.add_argument('--target_scan', type=str, default='', help='')
-    parser.add_argument('--label_type', type=str,default='3RScan160', choices=['3RScan160'], help='label',required=False)
+    parser.add_argument('--label_type', type=str,default='3RScan160', choices=['3RScan160', 'ScanNet20'], help='label',required=False)
+    parser.add_argument('--only_support_type', type=int,default=0, help='use only support type of relationship',required=False)
     
     # options
     parser.add_argument('--mapping',type=int,default=1,
@@ -280,6 +282,7 @@ def gen_relationship(scan_id:str,
             continue
         objects[int(seg)] = dict()
         objects[int(seg)]['label'] = name
+        objects[int(seg)]['instance_id'] = segment_gt
     relationships["objects"] = objects
     
     
@@ -308,6 +311,8 @@ def gen_relationship(scan_id:str,
     
 if __name__ == '__main__':
     args = Parser().parse_args()
+    logging.basicConfig(filename=os.path.join(args.pth_out,'gen_data_'+args.type+'.log'), level=logging.INFO)
+    logger_py = logging.getLogger(__name__)
     debug = args.debug > 0
     if args.search_method == 'BBOX':
         search_method = SAMPLE_METHODS.BBOX
@@ -317,18 +322,22 @@ if __name__ == '__main__':
     util.set_random_seed(2020)
     
     ''' Map label to 160'''
-    label_names = sorted(util.read_classes(define.CLASS160_FILE))
+    label_names, _, _ = util_label.getLabelMapping(args.label_type)
+    # label_names = sorted(util.read_classes(define.CLASS160_FILE))
     target_relationships = sorted(util.read_relationships(define.RELATIONSHIP27_FILE))
+    
+    if args.only_support_type>0:
     # target_relationships = sorted(util.read_classes(define.RELEASE_PATH + '/classes160.txt'))
-    # target_relationships = ['supported by', 'attached to','standing on','hanging on','connected to','part of','build in']
+        target_relationships = ['supported by', 'attached to','standing on','hanging on','connected to','part of','build in']
+        # target_relationships.append(define.NAME_SAME_PART)
     # remove none.
     # if 'none' in target_relationships:
     #     target_relationships.remove('none')
     
     classes_json = list()
-    for name in label_names:
-        if name == '-':continue
-        classes_json.append(name)
+    for key,value in label_names.items():
+        if value == '-':continue
+        classes_json.append(value)
         
     ''' Read Scan and their type=['train', 'test', 'validation'] '''
     scan2type = {}
@@ -368,14 +377,14 @@ if __name__ == '__main__':
         # for s in data["scans"]:
             scan_id = s["scan"]
             gt_relationships = s["relationships"]
-            if debug:print('processing scene',scan_id)
+            logger_py.info('processing scene {}'.format(scan_id))
             valid_scans.append(scan_id)
             relationships, segs_neighbors = process(args.scans, scan_id, target_relationships,
                                     gt_relationships = gt_relationships,
                                     split_scene = args.split,
                                     verbose = args.verbose)
             if len(relationships) == 0:
-                if debug: print('skip',scan_id,'due to not enough objs and relationships')
+                logger_py.info('skip {} due to not enough objs and relationships'.format(scan_id))
                 continue
             else:
                 if debug:  print('no skip', scan_id)

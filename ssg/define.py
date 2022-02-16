@@ -36,3 +36,4 @@ SCANNET_PLY_SUBFIX = '_vh_clean_2.labels.ply'
 
 
 NAME_SAME_PART = 'same part'
+NAME_NONE='none'
