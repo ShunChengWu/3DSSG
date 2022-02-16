@@ -1,0 +1,114 @@
+SEED: 2021
+VERBOSE: true
+GPU: [0]
+name: 'test'
+training:
+ batch: 1
+ data_workers: 0
+ lr: 1e-4
+ patient: 0
+ optimizer: 'adamw'
+ amsgrad: true
+ lambda_mode: constant # [constant, dynamic]. dynamic will calculate the ratio of the number of node and edge.
+ lambda_node: 1.0 # learning rate ratio
+ lambda_edge: 1.0 # learning rate ratio
+ scheduler:
+  method: reduceluronplateau # [none, multisteplr, reduceluronplateau]
+  milestones: [750, 1000]
+  gamma: 0.5
+  factor: 0.1
+  args: {
+    "mode":"max", 
+    "verbose": true,
+  }
+ log_every: 10
+ print_every: 50
+ checkpoint_every: 500
+ validate_every: 1000
+ visualize_every: 500
+ backup_every: 5000
+ out_dir: experiments/
+ model_selection_metric: loss
+ model_selection_mode: minimize # can be maximize or minimize. e.g. if it's "loss", should "minimize", if it's accuracy, should "maximize"
+ max_epoch: 500
+eval: #evaluation
+ data_workers: 4
+ topK: 100
+ mode: segment #eval on [segment, instance]. 
+model:
+ method: sgfn
+ multi_rel: true # multiple relationship 
+ use_rgb: false
+ use_normal: false
+ use_spatial: true
+ img_feature_dim: 256
+ num_points_union: 512 # for 3DSSG
+ node_feature_dim: 256
+ edge_feature_dim: 256
+# edge_descriptor_dim: 11
+ node_encoder:
+  method: none #[none, basic]
+  with_bn: false
+ image_encoder:
+  method: mvcnn #[none,mvcnn,mean]
+  backend: vgg16
+  img_batch_size: 4 # this is the batch processing limit. if input is larger, the maximum batch process will still be 4.
+  backend_finetune: true # only works for the standard backend
+  use_global: false
+  roi_region: [3,3]
+  aggr: max # aggrigation method [mean, max, sum]
+  with_bn: false
+  hidden: 1024
+  drop_out: 0.3
+  local_feature_dim: 64
+ edge_encoder:
+  method: 2dssg # [basic,sgfn,2dssg]
+  with_bn: false
+ gnn:
+  method: none                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                # [none, fan, triplet]
+  hidden_dim: 256
+  num_layers: 5
+  num_heads: 0
+  drop_out: 0
+  node_from_gnn: true
+ node_classifier:
+  with_bn: false
+  dropout: 0.3
+data:
+ input_type: sgfn #[3RScan, graph, sgfn, sgpn]
+ path: "./data/3RScan_3RScan160/"
+ img_feature_path: "/media/sc/SSD1TB/storage/kf_feature/"
+ label_file: "labels.instances.align.annotated.v2.ply"
+ roi_img_path: "/media/sc/SSD1TB/dataset/3RScan/roi_images.h5"
+ data_augmentation: false
+ sample_in_runtime: true
+ is_roi_img: true
+ load_images: true
+ load_points: false
+ load_cache: false
+ sample_num_nn: 1
+ sample_num_seed: 1
+ drop_img_edge: 4 # if is int and >0, select given number. if is float/double, select percentage between [1-x,1]
+ drop_img_edge_eval: 0
+ drop_edge: 0 # if is int and >0, select given number. if is float/double, select percentage between [1-x,1]
+ drop_edge_eval: 0 # if is int and >0, select given number. if is float/double, select percentage between [1-x,1]
+ normalize_weight: true
+ max_num_node: -1 # maximum number of nodes for training (memory)
+ max_num_edge: -1 # maximum number of edges for training (memory)
+ full_edge: true # connect all selected nodes
+ img_size: -1 # minimum image edge will be resize to this. (-1: keep origianl)
+ roi_img_size: [256,256]
+ obj_ignore_list: []
+ use_precompute_img_feature: false
+ bbox_aug_ratio: 0 # [0.,1.]. 0: no aug. 
+logging:
+ method: tensorboard # [tensorboard, wandb, none]
+ log_grad_freq: 1000 
+ log_graph: True
+wandb:
+ dry_run: true
+ entity: 'shunchengwu'
+ project: "ssg"
+# id: "001" # id will be set to name
+ tags: ["ssg", "3dssg"]
+ dir: logs/
