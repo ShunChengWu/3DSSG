@@ -65,13 +65,16 @@ class SGFNDataset (data.Dataset):
         names_relationships = read_txt_to_list(pth_relationships)
         
         if not multi_rel_outputs:
-            if 'none' not in names_relationships:
-                names_relationships.append('none')
-        elif 'none' in names_relationships:
-            names_relationships.remove('none')
+            if define.NAME_NONE not in names_relationships:
+                names_relationships.append(define.NAME_NONE)
+        elif define.NAME_NONE in names_relationships:
+            names_relationships.remove(define.NAME_NONE)
         
         self.relationNames = sorted(names_relationships)
         self.classNames = sorted(names_classes)
+        
+        if not multi_rel_outputs:
+            self.none_idx = self.relationNames.index(define.NAME_NONE)
         
         '''set transform'''
         if self.mconfig.load_images:
@@ -381,8 +384,8 @@ class SGFNDataset (data.Dataset):
         if self.multi_rel_outputs:
             adj_matrix_onehot = np.zeros([len(cat), len(cat), len(self.relationNames)])
         else:
-            adj_matrix = np.zeros([len(cat), len(cat)])
-            adj_matrix += len(self.relationNames)-1 #set all to none label.
+            adj_matrix = np.ones([len(cat), len(cat)]) * self.none_idx#set all to none label.
+            # adj_matrix += self.none_idx 
         
         
         if self.sample_in_runtime:
