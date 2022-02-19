@@ -48,6 +48,12 @@ pip install open3d
 ```
 
 # Data generation
+## Generate aligned RGB
+This steps is required if you want to train SceneGraphFusion with RGB.
+```
+cd script
+python RUN_replace_color_to_real.py --help # check arugments
+```
 ## Image graph
 Please use `--help` to check the required input arguments on each script.
 ```
@@ -55,7 +61,7 @@ cd ssg/utils
 # calculate occlusion & instance label information
 python makebb_img_3rscan.py
 # build up a img graph dataset connect with relationships
-python make_obj_graph_3rscan.py
+python make_obj_graph_3rscan.py -o output/dir -l [labeltype]
 # extract object bounding boxes.
 python extract_mv_box_image_3rscan.py
 ```

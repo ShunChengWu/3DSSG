@@ -85,6 +85,7 @@ data:
  data_augmentation: false
  sample_in_runtime: true
  is_roi_img: true
+ rel_data_type: descriptor # [points, descriptor]
  load_images: true
  load_points: false
  load_cache: false
