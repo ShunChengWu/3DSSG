@@ -51,7 +51,7 @@ def Parse():
     parser.add_argument('-o','--outdir',default='/home/sc/research/PersistentSLAM/python/3DSSG/data/3RScan_3RScan160/', help='output dir',required=True)
     parser.add_argument('-m','--min_occ',default=0.2,help='The threshold for the visibility of an object. If below this value, discard (higher, more occurance)')
     parser.add_argument('--min_object', help='if less thant min_obj objects, ignore image', default=1)
-    parser.add_argument('-l','--label_type',default='3rscan160', choices=['nyu40','eigen13','rio27', 'rio7','3rscan','3rscan160'], 
+    parser.add_argument('-l','--label_type',default='3rscan160', choices=['nyu40','eigen13','rio27', 'rio7','3rscan','3rscan160','scannet20'], 
                         help='target label type.')
     parser.add_argument('--min_size', default=60, help='min length on bbox')
     # parser.add_argument('-lf','--label_file',default='/media/sc/space1/dataset/scannet/scannetv2-labels.combined.tsv', 

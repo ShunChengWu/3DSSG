@@ -37,6 +37,7 @@ import codeLib.utils.string_numpy as snp
 import logging
 from ssg.utils.util_data import merge_batch_seg2idx
 from ssg import define
+from ssg.data.collate import graph_collate#, batch_graph_collate
 logger_py = logging.getLogger(__name__)
 
 class Trainer_SGFN(BaseTrainer):
@@ -63,7 +64,7 @@ class Trainer_SGFN(BaseTrainer):
             self.w_edge_cls= self.w_edge_cls.to(self._device)
         
         
-        self.eva_tool = EvalSceneGraph(self.node_cls_names, self.edge_cls_names,multi_rel_prediction=self.cfg.model.multi_rel,k=0) # do not calculate topK in training mode        
+        self.eva_tool = EvalSceneGraph(self.node_cls_names, self.edge_cls_names,multi_rel_prediction=self.cfg.model.multi_rel,k=0,none_name=define.NAME_NONE) # do not calculate topK in training mode        
         self.loss_node_cls = torch.nn.CrossEntropyLoss(weight=self.w_node_cls)
         if self.cfg.model.multi_rel:
             self.loss_rel_cls = torch.nn.BCEWithLogitsLoss(pos_weight=self.w_edge_cls)
@@ -75,7 +76,8 @@ class Trainer_SGFN(BaseTrainer):
         
     def evaluate(self, val_loader, topk):
         it_dataset = val_loader.__iter__()
-        eval_tool = EvalSceneGraph(self.node_cls_names, self.edge_cls_names,multi_rel_prediction=self.cfg.model.multi_rel,k=topk,save_prediction=True) 
+        eval_tool = EvalSceneGraph(self.node_cls_names, self.edge_cls_names,multi_rel_prediction=self.cfg.model.multi_rel,k=topk,save_prediction=True,
+                                   none_name=define.NAME_NONE) 
         eval_list = defaultdict(moving_average.CMA)
 
         time.sleep(2)# Prevent possible deadlock during epoch transition
@@ -112,7 +114,8 @@ class Trainer_SGFN(BaseTrainer):
             edge_cls_names.append(define.NAME_NONE)
         # remove same part
         # samepart_idx_edge_cls = self.edge_cls_names.index(define.NAME_SAME_PART)
-        edge_cls_names.remove(define.NAME_SAME_PART)
+        if define.NAME_SAME_PART in edge_cls_names:
+            edge_cls_names.remove(define.NAME_SAME_PART)
         
         noneidx_node_cls = node_cls_names.index(define.NAME_NONE)
         noneidx_edge_cls = edge_cls_names.index(define.NAME_NONE)
@@ -124,7 +127,8 @@ class Trainer_SGFN(BaseTrainer):
             seg_valid_edge_cls_indices.append(idx)
         
         
-        eval_tool = EvalSceneGraph(node_cls_names, edge_cls_names,multi_rel_prediction=self.cfg.model.multi_rel,k=topk,save_prediction=True,none_name=define.NAME_NONE) 
+        eval_tool = EvalSceneGraph(node_cls_names, edge_cls_names,multi_rel_prediction=self.cfg.model.multi_rel,k=topk,save_prediction=True,
+                                   none_name=define.NAME_NONE) 
         eval_list = defaultdict(moving_average.CMA)
         
         '''check'''
@@ -143,10 +147,20 @@ class Trainer_SGFN(BaseTrainer):
         for index in range(len(dataset_inst)):
             scan_id = snp.unpack(dataset_inst.scans,index)# self.scans[idx]
             scanid2idx_inst[scan_id] = index
+            
+        
+        # '''build main seg loader'''
+        # seg_dataloader = torch.utils.data.DataLoader(
+        #     dataset_seg, batch_size=1, num_workers=0,
+        #     shuffle=False, drop_last=False,
+        #     pin_memory=True,
+        #     collate_fn=graph_collate,
+        # )
         
         '''start eval'''
         self.model.eval()
         for index in tqdm(range(len(dataset_inst))):
+        # for data_inst in seg_dataloader:
             data_inst = dataset_inst.__getitem__(index)                
             scan_id_inst = data_inst['scan_id']
             

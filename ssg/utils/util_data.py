@@ -384,10 +384,9 @@ def data_preparation(points, instances, selected_instances, num_points, num_poin
             class_id = classNames.index(instance_labelName)
             
         if (class_id >= 0) and (instance_id>0):
-            counter += 1
             instance2mask[instance_id] = counter
+            counter += 1
             instance2mask_formask[instance_id] = counter
-            
             filtered_instances.append(instance_id)
             cat.append(class_id)
         else:
@@ -395,7 +394,7 @@ def data_preparation(points, instances, selected_instances, num_points, num_poin
             
     '''Map edge indices to mask indices'''
     if sample_in_runtime:
-        edge_indices = [[instance2mask[edge[0]]-1,instance2mask[edge[1]]-1] for edge in edge_indices ]
+        edge_indices = [[instance2mask[edge[0]],instance2mask[edge[1]]] for edge in edge_indices ]
             
     num_objects = len(instances_id) if selected_instances is None else len(selected_instances)
 
@@ -446,8 +445,8 @@ def data_preparation(points, instances, selected_instances, num_points, num_poin
             r_lid = int(r[2])
             r_cls = r[3]
             if r_src not in instance2mask or r_tgt not in instance2mask: continue
-            index1 = instance2mask[r_src]-1
-            index2 = instance2mask[r_tgt]-1
+            index1 = instance2mask[r_src]
+            index2 = instance2mask[r_tgt]
             if sample_in_runtime:
                 if [index1,index2] not in edge_indices: continue
             
@@ -513,7 +512,7 @@ def data_preparation(points, instances, selected_instances, num_points, num_poin
         except:
             rel_points = torch.zeros([0, num_points_union, 4])
     else:
-        rel_points = torch.zeros([0, num_points_union, 4])
+        rel_points = torch.stack(rel_points, 0)
 
     cat = torch.from_numpy(np.array(cat, dtype=np.int64))
     edge_indices = torch.tensor(edge_indices,dtype=torch.long)

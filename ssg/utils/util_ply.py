@@ -2,6 +2,8 @@ import os, trimesh
 import numpy as np
 from codeLib.utils.util import check_file_exist
 import ssg.define as define
+from plyfile import PlyElement, PlyData
+
 
 def read_labels(plydata):
     data = plydata.metadata['ply_raw']['vertex']['data']
@@ -10,6 +12,16 @@ def read_labels(plydata):
     except:
         labels = data['label']
     return labels
+
+def save_trimesh_to_ply(trimeshply, pth, binary=False):
+    dtypes = [(k,v) for k,v in trimeshply.metadata['ply_raw']['vertex']['properties'].items()]
+    tmp = [v.flatten() for k, v in trimeshply.metadata['ply_raw']['vertex']['data'].items()]
+    tmp = np.array(tmp)
+    vertex = [tuple(tmp[:,v]) for v in range(tmp.shape[1])]
+    vertex = np.array(vertex,dtype=dtypes)
+    el = PlyElement.describe(vertex, 'vertex')
+    PlyData([el], text=not binary).write(pth)
+    pass
 
 
 def get_label(ply_in, dataset_type, label_type):
@@ -36,7 +48,7 @@ def get_label(ply_in, dataset_type, label_type):
         raise RuntimeError('unsupported dataset type:',dataset_type)
     return labels
 
-def load_rgb(path, target_name = define.LABEL_FILE_NAME):
+def load_rgb(path, target_name = define.LABEL_FILE_NAME, with_worker=True):
     '''
     path: path to the folder contains config.OBJ_NAME, config.MTL_NAME, config.TEXTURE_NAME,
     config.LABEL_FILE_NAME and config.LABEL_FILE_NAME_RAW
@@ -95,7 +107,7 @@ def load_rgb(path, target_name = define.LABEL_FILE_NAME):
         for i in range(len(query_points)):
             if isinstance(mesh, trimesh.base.Trimesh):
                 point = query_points[i]
-                raise RuntimeError('open3d doesn\'t work with nn.DataLoader workers')
+                if with_worker: raise RuntimeError('open3d doesn\'t work with nn.DataLoader workers')
                 [k, idx, distance] = tree.search_radius_vector_3d(point,0.001)
             else:
                 idx = [i]

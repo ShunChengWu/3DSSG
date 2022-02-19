@@ -182,11 +182,11 @@ def process(scan_id):
     fp.close()
 
 if __name__ == '__main__':
+    if not os.path.exists(pth_out):
+        os.makedirs(pth_out)
     logging.basicConfig(filename=os.path.join(args.outdir,'extract_mv_box_image_3rscan.log'), level=logging.INFO)
     logger_py = logging.getLogger(__name__)
     
-    if not os.path.exists(pth_out):
-        os.makedirs(pth_out)
     with h5py.File(pth_proposal, 'r') as fp:
         scan_ids = [s  for s in list(fp.keys())  if isinstance(fp[s], h5py._hl.group.Group)]
     

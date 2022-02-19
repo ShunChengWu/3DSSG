@@ -70,10 +70,10 @@ def show_obj_properties(pth):
         print('\t',k,'\t',v/num_of_object)
         
     print('number of attributes:',len(attributs_count))
-    # for key, value in attributs_count.items():
-    #     print('\t',key,'(',len(value),')')
-    #     for kk, vv in value.items():
-    #         print('\t\t',kk,vv)
+    for key, value in attributs_count.items():
+        print('\t',key,'(',len(value),')')
+        for kk, vv in value.items():
+            print('\t\t',kk,vv)
     print('number of labels:', len(labels_count))
     # for key ,value in labels_count.items():
     #     print('\t',key,'\t',value)
