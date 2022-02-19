@@ -183,7 +183,7 @@ def main():
             cfg.model.use_normal = tmp_normal
             
             '''check'''
-            assert len(dataset_seg.relationNames) == len(dataset_inst.relationNames)+1
+            # assert len(dataset_seg.relationNames) == len(dataset_inst.relationNames)+1
             assert len(dataset_seg.classNames)==len(dataset_inst.classNames)
             
             ''' Get logger '''
