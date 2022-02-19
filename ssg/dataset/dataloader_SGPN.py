@@ -165,27 +165,55 @@ class SGPNDataset(torch.utils.data.Dataset):
         object_data = scan_data['nodes']
         relationships_data = scan_data['relationships']
         
-        # build nn dict
+        ''' build nn dict '''
         nns = dict()
+        seg2inst = dict()
         for oid, odata in object_data.items():
             nns[str(oid)] = [int(s) for s in odata['neighbors']]
             
-        # build mapping 
+            '''build instance dict'''
+            if 'instance_id' in odata:
+                seg2inst[oid] = odata['instance_id']
+                
+        ''' build mapping '''
         instance2labelName  = { int(key): node['label'] for key,node in object_data.items()  }
         
-        # load point cloud data
-        if 'scene' in scan_id:
-            path = os.path.join(self.root_scannet, scan_id)
-        else:
-            path = os.path.join(self.root_3rscan, scan_id)
+        ''' load point cloud data '''
+        if self.mconfig.load_points:
+            if 'scene' in scan_id:
+                path = os.path.join(self.root_scannet, scan_id)
+            else:
+                path = os.path.join(self.root_3rscan, scan_id)
+                
+            if self.config.data.load_cache:
+                data = self.cache_data[scan_id]
+            else:
+                data = load_mesh(path, self.label_file, self.use_rgb, self.use_normal)
+            points = copy.deepcopy( data['points'] )
+            instances = copy.deepcopy( data['instances'] )
+        
+            if self.use_data_augmentation and not self.for_eval:
+               points = self.data_augmentation(points)
+               
+        '''sample training set'''  
+        instances_ids = list(instance2labelName.keys())
+        if 0 in instances_ids: instances_ids.remove(0)
+        if self.sample_in_runtime and not self.for_eval:
+            selected_nodes = list(object_data.keys())
+        
+        use_all=False
+        sample_num_nn=self.mconfig.sample_num_nn# 1 if "sample_num_nn" not in self.config else self.config.sample_num_nn
+        sample_num_seed=self.mconfig.sample_num_seed#1 if "sample_num_seed" not in self.config else self.config.sample_num_seed
+        if sample_num_nn==0 or sample_num_seed ==0:
+            use_all=True
             
-        if self.config.data.load_cache:
-            data = self.cache_data[scan_id]
+        if not use_all:
+            filtered_nodes = util_data.build_neighbor_sgfn(nns, selected_nodes, sample_num_nn, sample_num_seed) # select 1 node and include their neighbor nodes n times.
         else:
-            data = load_mesh(path, self.mconfig.label_file, self.use_rgb, self.use_normal)
-        points = copy.deepcopy( data['points'] )
-        instances = copy.deepcopy( data['instances'] )
-        # del data
+            filtered_nodes = selected_nodes # use all nodes
+            
+        instances_ids = list(filtered_nodes)
+        if 0 in instances_ids: instances_ids.remove(0)               
         
         instances_id = list(np.unique(instances))
         

@@ -73,8 +73,8 @@ class SGFNDataset (data.Dataset):
         self.relationNames = sorted(names_relationships)
         self.classNames = sorted(names_classes)
         
-        if not multi_rel_outputs:
-            self.none_idx = self.relationNames.index(define.NAME_NONE)
+        
+        self.none_idx = self.relationNames.index(define.NAME_NONE) if not multi_rel_outputs else None
         
         '''set transform'''
         if self.mconfig.load_images:
@@ -132,6 +132,7 @@ class SGFNDataset (data.Dataset):
                                                                         normalize=config.data.normalize_weight,
                                                                         for_BCE=multi_rel_outputs==True,
                                                                         edge_mode=edge_mode,
+                                                                        none_index=self.none_idx,
                                                                         verbose=config.VERBOSE)
             self.w_node_cls = torch.from_numpy(np.array(wobjs)).float()
             self.w_edge_cls = torch.from_numpy(np.array(wrels)).float()
@@ -296,6 +297,7 @@ class SGFNDataset (data.Dataset):
 
         ''' random sample points '''
         if self.mconfig.load_points:
+            bboxes = list()
             use_obj_context=False #TODO: not here
             obj_points = torch.zeros([len(cat), self.mconfig.node_feature_dim, self.dim_pts])
             descriptor = torch.zeros([len(cat), 11])
@@ -303,13 +305,16 @@ class SGFNDataset (data.Dataset):
                 instance_id = filtered_instances[i]
                 obj_pointset = points[np.where(instances== instance_id)[0], :]
                 
+                min_box = np.min(obj_pointset[:,:3], 0)
+                max_box = np.max(obj_pointset[:,:3], 0)
                 if use_obj_context:
-                    min_box = np.min(obj_pointset[:,:3], 0) - 0.02
-                    max_box = np.max(obj_pointset[:,:3], 0) + 0.02
+                    min_box -= 0.02
+                    max_box += 0.02
                     filter_mask = (points[:,0] > min_box[0]) * (points[:,0] < max_box[0]) \
                         * (points[:,1] > min_box[1]) * (points[:,1] < max_box[1]) \
                         * (points[:,2] > min_box[2]) * (points[:,2] < max_box[2])
                     obj_pointset = points[np.where(filter_mask > 0)[0], :]
+                bboxes.append([min_box,max_box])
                     
                 if len(obj_pointset) == 0:
                     print('scan_id:',scan_id)
@@ -387,7 +392,7 @@ class SGFNDataset (data.Dataset):
             adj_matrix = np.ones([len(cat), len(cat)]) * self.none_idx#set all to none label.
             # adj_matrix += self.none_idx 
         
-        
+        '''sample connections'''
         if self.sample_in_runtime:
             if not self.for_eval:
                 edge_indices = util_data.build_edge_from_selection_sgfn(filtered_instances,nns,max_edges_per_node=-1)
@@ -446,7 +451,8 @@ class SGFNDataset (data.Dataset):
                     adj_matrix_onehot[index1, index2, r_lid] = 1
                 else:
                     adj_matrix[index1, index2] = r_lid        
-                    
+           
+        '''edge GT to tensor'''
         if self.multi_rel_outputs:
             rel_dtype = np.float32
             adj_matrix_onehot = torch.from_numpy(np.array(adj_matrix_onehot, dtype=rel_dtype))
@@ -466,6 +472,51 @@ class SGFNDataset (data.Dataset):
                 gt_rels[e,:] = adj_matrix_onehot[index1,index2,:]
             else:
                 gt_rels[e] = adj_matrix[index1,index2]
+                
+        '''build rel points'''
+        if self.mconfig.load_points and self.mconfig.rel_data_type == 'points':
+            rel_points = list()
+            for e in range(len(edge_indices)):
+                edge = edge_indices[e]
+                index1 = edge[0]
+                index2 = edge[1]
+                
+                mask1 = (instances==idx2oid[index1]).astype(np.int32) * 1
+                mask2 = (instances==idx2oid[index2]).astype(np.int32) * 2
+                mask_ = np.expand_dims(mask1 + mask2, 1)
+                bbox1 = bboxes[index1]
+                bbox2 = bboxes[index2]
+                min_box = np.minimum(bbox1[0], bbox2[0])
+                max_box = np.maximum(bbox1[1], bbox2[1])
+                filter_mask = (points[:,0] > min_box[0]) * (points[:,0] < max_box[0]) \
+                            * (points[:,1] > min_box[1]) * (points[:,1] < max_box[1]) \
+                            * (points[:,2] > min_box[2]) * (points[:,2] < max_box[2])
+                points4d = np.concatenate([points, mask_], 1)
+        
+                pointset = points4d[np.where(filter_mask > 0)[0], :]
+                choice = np.random.choice(len(pointset), self.mconfig.num_points_union, replace=True)
+                pointset = pointset[choice, :]
+                pointset = torch.from_numpy(pointset.astype(np.float32))
+                
+                # save_to_ply(pointset[:,:3],'./tmp_rel_{}.ply'.format(e))
+                
+                pointset[:,:3] = zero_mean(pointset[:,:3],False)
+                rel_points.append(pointset)
+                
+            if not self.for_eval:
+                try:
+                    rel_points = torch.stack(rel_points, 0)
+                except:
+                    rel_points = torch.zeros([0, self.mconfig.num_points_union, 4])
+            else:
+                if len(rel_points) == 0:
+                    # print('len(edge_indices)',len(edge_indices))
+                    # sometimes tere will have no edge because of only 1 ndoe exist. 
+                    # this is due to the label mapping/filtering process in the data generation
+                    rel_points = torch.zeros([0, self.mconfig.num_points_union, 4])
+                else:
+                    rel_points = torch.stack(rel_points, 0)
+            rel_points = rel_points.permute(0,2,1)
         
         ''' to tensor '''
         gt_class = torch.from_numpy(np.array(cat))
@@ -483,6 +534,8 @@ class SGFNDataset (data.Dataset):
         if self.mconfig.load_points:
             output['obj_points'] = obj_points
             output['descriptor'] = descriptor #tensor
+            if self.mconfig.rel_data_type == 'points':
+                output['rel_points'] = rel_points
         if self.mconfig.load_images:
             output['roi_imgs'] = bounding_boxes #list
             output['node_descriptor_8'] = descriptor_8
@@ -715,6 +768,14 @@ def dataset_loading_3RScan(root:str, pth_selection:str,mode:str,class_choice:lis
         data['neighbors'] = {**data1['neighbors'], **data2['neighbors']}
     return  classNames, relationNames, data, selected_scans
 
+def zero_mean(point, normalize:bool):
+    mean = torch.mean(point, dim=0)
+    point -= mean.unsqueeze(0)
+    ''' without norm to 1  '''
+    if normalize:
+        furthest_distance = point.pow(2).sum(1).sqrt().max() # find maximum distance for each n -> [n]
+        point /= furthest_distance
+    return point
 
 if __name__ == '__main__':
     import codeLib
