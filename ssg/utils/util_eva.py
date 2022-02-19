@@ -17,6 +17,7 @@ def get_metrics(label_id, confusion, VALID_CLASS_IDS:list=None):
         not_ignored = [l for l in VALID_CLASS_IDS if not l == label_id]
         fp = np.longlong(confusion[not_ignored, label_id].sum())
     else:
+        not_ignored = [l for l in range(confusion.shape[1]) if not l == label_id]
         fp = np.longlong(confusion[:, label_id].sum())
     
     denom = (tp + fp + fn)
@@ -64,6 +65,8 @@ def evaluate_topk_predicate(gt_edges, rels_pred, threshold=0.5,k=-1):
 
     for rel in range(size_p):
         rel_pred = rels_pred[rel]
+        rels_target = gt_edges[rel][2]
+        # if len(rels_target) == 0: continue
         sorted_conf, sorted_args = torch.sort(rel_pred, descending=True)  # 1D
         if k<1:
             maxk=len(sorted_conf)
@@ -74,7 +77,7 @@ def evaluate_topk_predicate(gt_edges, rels_pred, threshold=0.5,k=-1):
         sorted_args=sorted_args[:maxk]
 
         temp_topk = []
-        rels_target = gt_edges[rel][2]
+        
         
         if len(rels_target) == 0:# Ground truth is None
             '''If gt is none, find the first prediction that is below threshold (which predicts "no relationship")'''
@@ -134,9 +137,14 @@ def evaluate_topk(gt_rel, objs_pred, rels_pred, edges, threshold=0.5, k=40):
     rels_pred = rels_pred.detach().cpu()
     
     for edge in range(len(edges)):
-
         edge_from = edges[edge][0]
         edge_to = edges[edge][1]
+        e = gt_rel[edge]
+        gt_s = e[0]
+        gt_t = e[1]
+        gt_r = e[2]
+        # if len(gt_r) == 0: continue
+        
         rel_predictions = rels_pred[edge]
         objs_pred_1 = objs_pred[edge_from]
         objs_pred_2 = objs_pred[edge_to]
@@ -151,10 +159,7 @@ def evaluate_topk(gt_rel, objs_pred, rels_pred, edges, threshold=0.5, k=40):
             maxk=k
         sorted_conf_matrix=sorted_conf_matrix[:maxk]
         sorted_args_1d=sorted_args_1d[:maxk]
-        e = gt_rel[edge]
-        gt_s = e[0]
-        gt_t = e[1]
-        gt_r = e[2]
+        
         temp_topk = []
         
         if len(gt_r) == 0:
