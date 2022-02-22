@@ -55,7 +55,8 @@ pth_json = '/media/sc/SSD1TB/dataset/3RScan/data/3RScan/'+scan_id+'/graph.json'
 
 scan_id = '4acaebcc-6c10-2a2a-858b-29c7e4fb410d'
 pth_json = '/home/sc/research/SceneGraphFusion/bin/test/graph.json'
-# pth_json = '/home/sc/research/SceneGraphFusion/bin/tmp/graph.json'
+pth_json = '/home/sc/research/ORB_SLAM3/bin/test/graph_2dssg.json'
+pth_json='/media/sc/SSD1TB/dataset/3RScan/data/3RScan/4acaebcc-6c10-2a2a-858b-29c7e4fb410d/graph_2dssg_orbslam3.json'
 
 with open(pth_json ) as f: 
     data = json.load(f)

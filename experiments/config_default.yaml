@@ -12,6 +12,7 @@ training:
  lambda_mode: constant # [constant, dynamic]. dynamic will calculate the ratio of the number of node and edge.
  lambda_node: 1.0 # learning rate ratio
  lambda_edge: 1.0 # learning rate ratio
+# WEIGHT_EDGE: #[none,]
  scheduler:
   method: reduceluronplateau # [none, multisteplr, reduceluronplateau]
   milestones: [750, 1000]

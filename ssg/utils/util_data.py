@@ -99,10 +99,12 @@ def load_graph(data, box_filter_size: list=[]):
         center = node['center']
         dims = node['dimension']
         neighbors = node['neighbors']
+        gtInstance = node.get('gtInstance',None)
         nodes[node_id] = Node(center = center, 
                               dimension = dims, 
                               neighbors = neighbors, 
                               Rwc = Rwc, 
+                              gtInstance=gtInstance,
                               kfs = node2kfs[node_id])    
     # if len(data['nodes']) != len(nodes):
     #     print('before,filtered',len(data['nodes']), len(nodes))

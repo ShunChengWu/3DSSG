@@ -41,7 +41,7 @@ width=540
 height=960
 
 DEBUG=True
-DEBUG=False
+# DEBUG=False
 
 random_clr_i = [color_rgb(rand_24_bit()) for _ in range(1500)]
 random_clr_i[0] = (0,0,0)
@@ -61,6 +61,7 @@ def Parse():
     # parser.add_argument('-l','--label_type',default='3rscan160', choices=['nyu40','eigen13','rio27', 'rio7','3rscan','3rscan160'], 
     #                     help='target label type.')
     parser.add_argument('--min_size', default=60, help='min length on bbox')
+    parser.add_argument('--target_name','-n', default='graph.json', help='target graph json file name')
     # parser.add_argument('-lf','--label_file',default='/media/sc/space1/dataset/scannet/scannetv2-labels.combined.tsv', 
     #                     help='file path to scannetv2-labels.combined.tsv')
     # parser.add_argument('--skip_structure',default=0,help='should ignore sturcture labels or not')
@@ -121,7 +122,7 @@ if __name__ == '__main__':
         logger_py.info(scan_id)
         pbar.set_description('processing {}'.format(scan_id))
         
-        pth_graph = os.path.join(fdata,scan_id,'graph.json')
+        pth_graph = os.path.join(fdata,scan_id,args.target_name)
         with open(pth_graph, "r") as read_file:
             data = json.load(read_file)[scan_id]
         

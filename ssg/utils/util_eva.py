@@ -18,9 +18,9 @@ def get_metrics(label_id, confusion, VALID_CLASS_IDS:list=None):
         fp = np.longlong(confusion[not_ignored, label_id].sum())
     else:
         not_ignored = [l for l in range(confusion.shape[1]) if not l == label_id]
-        fp = np.longlong(confusion[:, label_id].sum())
+        fp = np.longlong(confusion[not_ignored, label_id].sum())
     
-    denom = (tp + fp + fn)
+    denom = (tp + fp + fn) #denominator
     
     iou = float('nan') if denom == 0 else (float(tp) / denom, tp, denom)
     precision = float('nan') if (tp+fp)==0 else (float(tp) / (tp+fp), tp,tp+fp)
@@ -148,7 +148,7 @@ def evaluate_topk(gt_rel, objs_pred, rels_pred, edges, threshold=0.5, k=40):
         rel_predictions = rels_pred[edge]
         objs_pred_1 = objs_pred[edge_from]
         objs_pred_2 = objs_pred[edge_to]
-        node_score = torch.einsum('n,m->nm',objs_pred_1,objs_pred_2)
+        node_score = torch.einsum('n,l->nl',objs_pred_1,objs_pred_2)
         conf_matrix = torch.einsum('nl,m->nlm',node_score,rel_predictions)
         conf_matrix_1d = conf_matrix.reshape(-1)
         sorted_conf_matrix, sorted_args_1d = torch.sort(conf_matrix_1d, descending=True) # 1D
@@ -746,16 +746,21 @@ class EvalSceneGraph():
         self.k=k
         self.none_name=none_name
         self.save_prediction=save_prediction
-        # containers
+        
+        # object cls
         self.eva_o_cls = EvaClassification(obj_class_names,none_name=none_name)
-        self.eva_r_cls = EvaClassification(rel_class_names,none_name=none_name) if not multi_rel_prediction else EvaMultiBinaryClassification(rel_class_names)
+        # predicate cls
+        self.eva_p_cls = EvaClassification(rel_class_names,none_name=none_name) if not multi_rel_prediction else EvaMultiBinaryClassification(rel_class_names)
+        # relationship cls
+        self.eva_p_cls = EvaClassification(rel_class_names,none_name=none_name) if not multi_rel_prediction else EvaMultiBinaryClassification(rel_class_names)
+        
         self.predictions=dict()
         self.top_k_triplet=list()
         self.top_k_obj=list()
         self.top_k_rel=list()
     def reset(self):
         self.eva_o_cls.reset()
-        self.eva_r_cls.reset()
+        self.eva_p_cls.reset()
         self.top_k_triplet=list()
         self.top_k_obj=list()
         self.top_k_rel=list()
@@ -803,16 +808,15 @@ class EvalSceneGraph():
         #         b_pd['edges'] = build_edge2name(r_pds,    bedge_indices, idx2seg, self.rel_class_names)
         #         b_gt['edges'] = build_edge2name(brel_gts, bedge_indices, idx2seg, self.rel_class_names)
         #         '''for multiple rel prediction. every predicate should be treated individually'''
-        #         self.eva_r_cls.update(r_pds, brel_gts)
+        #         self.eva_p_cls.update(r_pds, brel_gts)
         #     else:         
         #         b_pd['edges'] = build_edge2name(r_pds,    bedge_indices, idx2seg, self.rel_class_names)
         #         b_gt['edges'] = build_edge2name(brel_gts, bedge_indices, idx2seg, self.rel_class_names)
-        #         self.eva_r_cls.update(b_pd['edges'],b_gt['edges'],False)
+        #         self.eva_p_cls.update(b_pd['edges'],b_gt['edges'],False)
                 
         b_pd['nodes'] = build_seg2name(o_pds,   idx2seg,self.obj_class_names)
         b_gt['nodes'] = build_seg2name(bobj_gts,idx2seg,self.obj_class_names)
         self.eva_o_cls.update(b_pd['nodes'], b_gt['nodes'], False)
-                
         
         for it in range(len(seg2idxs)):
             seg2idx = seg2idxs[it]
@@ -858,11 +862,11 @@ class EvalSceneGraph():
                     pd['edges'] = build_edge2name(r_pd,    edge_indices, idx2seg, self.rel_class_names)
                     gt['edges'] = build_edge2name(rel_gts, edge_indices, idx2seg, self.rel_class_names)
                     '''for multiple rel prediction. every predicate should be treated individually'''
-                    self.eva_r_cls.update(r_pd, rel_gts)
+                    self.eva_p_cls.update(r_pd, rel_gts)
                 else:         
                     pd['edges'] = build_edge2name(r_pd,    edge_indices, idx2seg, self.rel_class_names)
                     gt['edges'] = build_edge2name(rel_gts, edge_indices, idx2seg, self.rel_class_names)
-                    self.eva_r_cls.update(pd['edges'],gt['edges'],False)
+                    self.eva_p_cls.update(pd['edges'],gt['edges'],False)
             
             if self.save_prediction:
                 self.predictions[scan_id]=dict()
@@ -881,14 +885,14 @@ class EvalSceneGraph():
                 self.top_k_triplet += evaluate_topk(gt_edges, obj_pds, rel_pds, edge_indices, 
                                       threshold=self.multi_rel_threshold, k=self.k) # class_labels, relationships_dict)
     def get_recall(self):
-        return self.eva_o_cls.get_recall(), self.eva_r_cls.get_recall()
+        return self.eva_o_cls.get_recall(), self.eva_p_cls.get_recall()
     
     def get_mean_metrics(self):
-        return self.eva_o_cls.get_mean_metrics(),self.eva_r_cls.get_mean_metrics()
+        return self.eva_o_cls.get_mean_metrics(),self.eva_p_cls.get_mean_metrics()
         
     def gen_text(self):
         c_recall = self.eva_o_cls.get_recall()
-        r_recall = self.eva_r_cls.get_recall()
+        r_recall = self.eva_p_cls.get_recall()
         
         txt = "recall obj cls {}".format(c_recall) +'\n'
         txt += "recall rel cls {}".format(r_recall) +'\n'
@@ -938,7 +942,7 @@ class EvalSceneGraph():
             title='object confusion matrix',
             **args
         )
-        fig_r = self.eva_r_cls.draw(
+        fig_r = self.eva_p_cls.draw(
             title='predicate confusion matrix',
             **args
         )
@@ -952,7 +956,7 @@ class EvalSceneGraph():
             json.dump(self.predictions,f, indent=4)   
     
         obj_results = self.eva_o_cls.write_result_file(os.path.join(path,model_name+'_results_obj.txt'), [])
-        rel_results = self.eva_r_cls.write_result_file(os.path.join(path,model_name+'_results_rel.txt'), [])
+        rel_results = self.eva_p_cls.write_result_file(os.path.join(path,model_name+'_results_rel.txt'), [])
         
         r_o = {k: v for v, k in zip(obj_results, ['Obj_IOU','Obj_Precision', 'Obj_Recall']) }
         r_r = {k: v for v, k in zip(rel_results, ['Rel_IOU','Rel_Precision', 'Rel_Recall']) }
@@ -966,7 +970,7 @@ class EvalSceneGraph():
             grid=False,
             pth_out=os.path.join(path, model_name + "_obj_cmat.png")
         )
-        self.eva_r_cls.draw(
+        self.eva_p_cls.draw(
             title='predicate confusion matrix',
             normalize='log',
             plot_text=False,
@@ -982,8 +986,8 @@ class EvalSceneGraph():
         #                   plot=False,
         #                   grid=False,
         #                   pth_out=os.path.join(path, model_name + "_obj_cmat.png"))
-        # plot_confusion_matrix(self.eva_r_cls.c_mat,
-        #                   target_names=self.eva_r_cls.class_names,
+        # plot_confusion_matrix(self.eva_p_cls.c_mat,
+        #                   target_names=self.eva_p_cls.class_names,
         #                   title='predicate confusion matrix',
         #                   normalize=True,
         #                   plot_text=False,

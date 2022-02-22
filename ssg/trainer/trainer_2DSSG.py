@@ -207,6 +207,7 @@ class Trainer_2DSSG(BaseTrainer):
         
     def calc_edge_loss(self, logs, edge_cls_pred, edge_cls_gt, weights=None):
         if self.cfg.model.multi_rel:
+            '''calculate'''
             loss_rel = self.loss_rel_cls(edge_cls_pred, edge_cls_gt)
             # loss_rel = F.binary_cross_entropy(edge_cls_pred, edge_cls_gt, weight=weights)
         else:

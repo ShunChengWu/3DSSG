@@ -312,8 +312,8 @@ def compute_sgfn(classNames,relationNames, relationship_data, selections:list = 
         if verbose: print('edge mode:',edge_mode)
         wrels = compute_weights_forBCE(relationNames, o_rel_cls, total_num_edges,normalize=normalize,verbose=verbose)
     else:
-        if none_index is not None:
-            o_rel_cls[none_index] = n_edges_fully_connected-o_rel_cls.sum()
+        # if none_index is not None:
+        #     o_rel_cls[none_index] = n_edges_fully_connected-o_rel_cls.sum()
         wrels = compute_weights(relationNames, o_rel_cls,normalize=normalize,verbose=verbose)
     # wrels = compute_weights(relationNames, o_rel_cls, classes_count,verbose)
     return wobjs,wrels,o_obj_cls,o_rel_cls

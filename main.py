@@ -105,6 +105,7 @@ def main():
         logger_py.info('save time profile to {}'.format(os.path.join(out_dir,'tp_train.dmp')))
         pr.dump_stats(os.path.join(out_dir,'tp_train.dmp'))
     elif cfg.MODE == 'eval':
+        cfg.data.load_cache=False
         eval_mode = cfg.eval.mode
         assert eval_mode in ['segment','instance']
         if eval_mode == 'segment':

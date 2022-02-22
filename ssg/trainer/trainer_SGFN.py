@@ -458,8 +458,17 @@ class Trainer_SGFN(BaseTrainer):
         logs['loss_obj'] = loss_obj
         
     def calc_edge_loss(self, logs, edge_cls_pred, edge_cls_gt, weights=None):
-        # if self.cfg.model.multi_rel:
-        loss_rel = self.loss_rel_cls(edge_cls_pred, edge_cls_gt)
+        if self.cfg.model.multi_rel:
+            # batch_mean = torch.sum(edge_cls_gt, dim=(0))
+            # zeros = (edge_cls_gt ==0).sum().unsqueeze(0)
+            # batch_mean = torch.cat([zeros,batch_mean],dim=0)
+            # weight = torch.abs(1.0 / (torch.log(batch_mean+1)+1)) # +1 to prevent 1 /log(1) = inf                
+            # weight[torch.where(weight==0)] = weight[0].clone()
+            # weight = weight[1:]
+            # pass
+            loss_rel = self.loss_rel_cls(edge_cls_pred, edge_cls_gt)
+        else:
+            loss_rel = self.loss_rel_cls(edge_cls_pred, edge_cls_gt)
             # loss_rel = F.binary_cross_entropy(edge_cls_pred, edge_cls_gt, weight=weights)
         # else:
             # loss_rel = self.loss_rel_cls(edge_cls_pred,edge_cls_gt)

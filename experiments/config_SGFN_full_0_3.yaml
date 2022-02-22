@@ -28,7 +28,7 @@ training:
 eval: #evaluation
  mode: instance #eval on [segment, instance].  
  data_workers: 8
- topK: 100
+ topK: 10
 model:
  method: sgfn
  multi_rel: false # multiple relationship 

@@ -175,7 +175,7 @@ def process(scan_id):
             if len(img_boxes)==0: 
                 raise RuntimeError("scan:{}.node_id:{} has 0 img boxes".format(scan_id,oid))
             img_boxes = torch.stack(img_boxes)
-            # show_tensor_images(img_boxes, title=cls_label)
+            show_tensor_images(img_boxes, title=cls_label)
             
             h5d = h5f.create_dataset(oid,data=img_boxes.numpy(), compression="gzip", compression_opts=9)
             h5d.attrs['seg2idx'] = fidx2idx

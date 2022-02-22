@@ -539,7 +539,8 @@ if __name__ == '__main__':
             scan2type[scene["reference"]] = scene["type"]
             for scan in scene["scans"]:
                 scan2type[scan["reference"]] = scene["type"]
-        
+    
+    '''read relationships'''
     target_relationships=list()
     if args.inherit:
         # target_relationships += ['supported by', 'attached to','standing on', 'lying on','hanging on','connected to',

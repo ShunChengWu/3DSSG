@@ -4,7 +4,7 @@ name: '3DSSG_full_l20_0'
 GPU: [0]
 training:
  batch: 1
- data_workers: 0
+ data_workers: 4
  lr: 1e-4
  patient: 30
  optimizer: 'adamw'
@@ -26,6 +26,10 @@ training:
  model_selection_metric: iou_node_cls
  model_selection_mode: maximize # can be maximize or minimize. e.g. if it's "loss", should "minimize", if it's accuracy, should "maximize"
  max_epoch: 200
+eval: #evaluation
+ mode: instance #eval on [segment, instance].  
+ data_workers: 8
+ topK: 100
 model:
  method: sgpn
  multi_rel: false # multiple relationship 
@@ -64,7 +68,7 @@ logging:
  log_grad_freq: 1000 
  log_graph: True
 wandb:
- dry_run: true
+ dry_run: false
  entity: 'shunchengwu'
  project: "ssg"
  tags: ["ssg", "3dssg"]
