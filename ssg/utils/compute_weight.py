@@ -198,7 +198,10 @@ def compute(classNames,relationNames, relationship_data, selections:list = None,
 
 def compute_sgfn(classNames,relationNames, relationship_data, selections:list = None, 
                  normalize=False, for_BCE=False,edge_mode:str='gt', none_index:int=None, verbose=False):
-    o_rel_cls = np.zeros((len(relationNames)))
+    if relationNames is not None:
+        o_rel_cls = np.zeros((len(relationNames)))
+    else:
+        o_rel_cls=None
     o_obj_cls = np.zeros((len(classNames)))
     
     assert edge_mode in ['gt','fully_connected', 'nn']
@@ -232,7 +235,8 @@ def compute_sgfn(classNames,relationNames, relationship_data, selections:list = 
         instance2LabelName = {}
         
         nodes = scan_data['nodes']
-        relationships = scan_data['relationships']
+        if relationNames is not None:
+            relationships = scan_data['relationships']
         
         n_obj = 0
         for k, v in nodes.items():
@@ -246,44 +250,45 @@ def compute_sgfn(classNames,relationNames, relationship_data, selections:list = 
             
         n_edges_fully_connected += n_obj*n_obj-n_obj
 
-        nnk=dict()
-        n_rel = 0
-        for relationship in relationships:
-            obj=int(relationship[0])
-            sub=int(relationship[1])
-            rel=int(relationship[2])
-            name=relationship[3]
-            if name not in relationNames:
-                if verbose: print(relationship[3],'not in relationNames')
-                continue
-            
-            if obj == 0 or sub == 0:
-                raise RuntimeError('found obj or sub is 0')
-            
-            if not obj in instance2LabelName:
-                RuntimeWarning('key not found:',obj)
-                continue
-
-            if not sub in instance2LabelName:
-                RuntimeWarning('key not found:',sub)
-                continue
-            
-            if relationNames.index(name) >= len(relationNames): 
-                if rel not in exceed_ids:
-                    exceed_ids[relationNames.index(name)]=0
-                else:
-                    exceed_ids[relationNames.index(name)]+=1
-                continue
-            o_rel_cls[relationNames.index(name)] += 1
-            # classes_count += 1
-            
-            nn = str(obj)+'_'+str(sub)
-            if nn not in nnk:
-                nnk[nn] = 0
-            nnk[str(obj)+'_'+str(sub)] +=1
-            n_rel+=1
+        if relationNames is not None:
+            nnk=dict()
+            n_rel = 0
+            for relationship in relationships:
+                obj=int(relationship[0])
+                sub=int(relationship[1])
+                rel=int(relationship[2])
+                name=relationship[3]
+                if name not in relationNames:
+                    if verbose: print(relationship[3],'not in relationNames')
+                    continue
+                
+                if obj == 0 or sub == 0:
+                    raise RuntimeError('found obj or sub is 0')
+                
+                if not obj in instance2LabelName:
+                    RuntimeWarning('key not found:',obj)
+                    continue
+    
+                if not sub in instance2LabelName:
+                    RuntimeWarning('key not found:',sub)
+                    continue
+                
+                if relationNames.index(name) >= len(relationNames): 
+                    if rel not in exceed_ids:
+                        exceed_ids[relationNames.index(name)]=0
+                    else:
+                        exceed_ids[relationNames.index(name)]+=1
+                    continue
+                o_rel_cls[relationNames.index(name)] += 1
+                # classes_count += 1
+                
+                nn = str(obj)+'_'+str(sub)
+                if nn not in nnk:
+                    nnk[nn] = 0
+                nnk[str(obj)+'_'+str(sub)] +=1
+                n_rel+=1
         
-        n_edge_with_gt = len(nnk)
+            n_edge_with_gt = len(nnk)
         # for v in nnk.values():
         #     if v > 1:
         #         n_edge_with_gt+=1
@@ -292,7 +297,8 @@ def compute_sgfn(classNames,relationNames, relationship_data, selections:list = 
         
         scene_analysis[scan_id] = dict()
         scene_analysis[scan_id]['num objects'] = n_obj
-        scene_analysis[scan_id]['num relationships'] = n_rel
+        if relationNames is not None:
+            scene_analysis[scan_id]['num relationships'] = n_rel
     if verbose: print('num multi predicates:',n_edge_with_gt)
         
     if len(exceed_ids)>1:
@@ -302,18 +308,21 @@ def compute_sgfn(classNames,relationNames, relationship_data, selections:list = 
 
     if verbose: print("objects:")
     wobjs = compute_weights(classNames, o_obj_cls,normalize=normalize,verbose=verbose)
-    if verbose: print("relationships:")
-    if for_BCE:
-        if verbose: print('use bce weighting for relationships')
-        total_num_edges = edge_mode
-        if edge_mode == 'gt': total_num_edges=n_edge_with_gt
-        elif edge_mode == 'fully_connected': total_num_edges = n_edges_fully_connected
-        elif edge_mode == 'nn': total_num_edges = n_edge_nn
-        if verbose: print('edge mode:',edge_mode)
-        wrels = compute_weights_forBCE(relationNames, o_rel_cls, total_num_edges,normalize=normalize,verbose=verbose)
+    if relationNames is not None:
+        if verbose: print("relationships:")
+        if for_BCE:
+            if verbose: print('use bce weighting for relationships')
+            total_num_edges = edge_mode
+            if edge_mode == 'gt': total_num_edges=n_edge_with_gt
+            elif edge_mode == 'fully_connected': total_num_edges = n_edges_fully_connected
+            elif edge_mode == 'nn': total_num_edges = n_edge_nn
+            if verbose: print('edge mode:',edge_mode)
+            wrels = compute_weights_forBCE(relationNames, o_rel_cls, total_num_edges,normalize=normalize,verbose=verbose)
+        else:
+            # if none_index is not None:
+            #     o_rel_cls[none_index] = n_edges_fully_connected-o_rel_cls.sum()
+            wrels = compute_weights(relationNames, o_rel_cls,normalize=normalize,verbose=verbose)
     else:
-        # if none_index is not None:
-        #     o_rel_cls[none_index] = n_edges_fully_connected-o_rel_cls.sum()
-        wrels = compute_weights(relationNames, o_rel_cls,normalize=normalize,verbose=verbose)
+        wrels=None
     # wrels = compute_weights(relationNames, o_rel_cls, classes_count,verbose)
     return wobjs,wrels,o_obj_cls,o_rel_cls

@@ -65,6 +65,7 @@ def Parse():
     # parser.add_argument('--skip_size',default=1,type=int,help='should filter out too small objs')
     parser.add_argument('--thread', type=int, default=0, help='thread.')
     parser.add_argument('--overwrite', type=int, default=0, help='overwrite existing file.')
+    parser.add_argument('--debug', action='store_true', help='debug mode')
     return parser
 
 args = Parse().parse_args()
@@ -78,7 +79,7 @@ pth_link = os.path.join(args.outdir,'roi_images.h5')
 toTensor = transforms.ToTensor()
 resize = transforms.Resize([256,256])
 fdata = define.DATA_PATH# '/media/sc/SSD1TB/dataset/3RScan/data/3RScan'
-pattern = './roi_images/*.h5'
+pattern = 'roi_images/*.h5'
 rgb_filepattern = 'frame-{0:06d}.color.jpg'
 pose_filepattern = 'frame-{0:06d}.pose.txt'
 
@@ -116,13 +117,12 @@ def process(scan_id):
     
     fp = h5py.File(pth_proposal, 'r')
     scan_data = fp[scan_id]
-    
+    kfs = scan_data['kfs']
+    nodes = scan_data['nodes']
+    node_ids = list(nodes.keys())
+    if len(node_ids)==0:return
     if n_workers==0: logger_py.info(scan_id)
     with h5py.File(path,'w') as h5f:
-        kfs = scan_data['kfs']
-        nodes = scan_data['nodes']
-        node_ids = list(nodes.keys())
-        
         for oid in node_ids:
             node = nodes[oid]
             cls_label = node.attrs['label']
@@ -175,35 +175,37 @@ def process(scan_id):
             if len(img_boxes)==0: 
                 raise RuntimeError("scan:{}.node_id:{} has 0 img boxes".format(scan_id,oid))
             img_boxes = torch.stack(img_boxes)
-            show_tensor_images(img_boxes, title=cls_label)
+            if args.debug:
+                show_tensor_images(img_boxes, title=cls_label)
             
             h5d = h5f.create_dataset(oid,data=img_boxes.numpy(), compression="gzip", compression_opts=9)
             h5d.attrs['seg2idx'] = fidx2idx
     fp.close()
 
 if __name__ == '__main__':
-    if not os.path.exists(pth_out):
-        os.makedirs(pth_out)
-    logging.basicConfig(filename=os.path.join(args.outdir,'extract_mv_box_image_3rscan.log'), level=logging.INFO)
-    logger_py = logging.getLogger(__name__)
+    # if not os.path.exists(pth_out):
+    #     os.makedirs(pth_out)
+    # logging.basicConfig(filename=os.path.join(args.outdir,'extract_mv_box_image_3rscan.log'), level=logging.INFO)
+    # logger_py = logging.getLogger(__name__)
     
-    with h5py.File(pth_proposal, 'r') as fp:
-        scan_ids = [s  for s in list(fp.keys())  if isinstance(fp[s], h5py._hl.group.Group)]
+    # with h5py.File(pth_proposal, 'r') as fp:
+    #     scan_ids = [s  for s in list(fp.keys())  if isinstance(fp[s], h5py._hl.group.Group)]
     
-    # for scan_id in scan_ids: process(scan_id)
-    if n_workers>0:
-        process_map(process, scan_ids, max_workers=n_workers, chunksize=1 )
-    else:
-        pbar = tqdm(scan_ids)
-        for scan_id in pbar:
-            # scan_id = '4acaebcc-6c10-2a2a-858b-29c7e4fb410d'
-            pbar.set_description(scan_id)
-            process(scan_id)
+    # # for scan_id in scan_ids: process(scan_id)
+    # if n_workers>0:
+    #     process_map(process, scan_ids, max_workers=n_workers, chunksize=1 )
+    # else:
+    #     pbar = tqdm(scan_ids)
+    #     for scan_id in pbar:
+    #         # scan_id = '4acaebcc-6c10-2a2a-858b-29c7e4fb410d'
+    #         pbar.set_description(scan_id)
+    #         process(scan_id)
     
     '''create a link h5 db'''
+    if fbase[-1] != '/': fbase+='/'
     with h5py.File(pth_link, 'w') as h5f:
         for path in glob.glob(os.path.join(fbase,pattern)):
-            name = path.split('/')[-1]
+            # name = path.split('/')[-1]
             name = path[len(fbase):]
             scan_id = path.split('/')[-1].split('.')[0]
             h5f[scan_id] = h5py.ExternalLink(name, './')

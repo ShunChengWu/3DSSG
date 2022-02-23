@@ -20,10 +20,11 @@ import logging
 logger_py = logging.getLogger(__name__)
 
 DRAW_BBOX_IMAGE=True
-DRAW_BBOX_IMAGE=False
+# DRAW_BBOX_IMAGE=False
 
 class SGFNDataset (data.Dataset):
     def __init__(self,config,mode, **args):
+        super().__init__()
         assert mode in ['train','validation','test']
         self._device = config.DEVICE
         path = config.data['path']
@@ -105,6 +106,11 @@ class SGFNDataset (data.Dataset):
             # filter input scans with image data
             tmp   = set(self.mv_data.keys())
             inter = sorted(list(tmp.intersection(inter)))
+            
+            # filter input scans with roi images
+            tmp   = set(self.roi_imgs.keys())
+            inter = sorted(list(tmp.intersection(inter)))
+            
             #TODO: also filter out nodes when only with points input. this gives fair comparison on points and images methods.
             filtered_sg_data = dict()
             for scan_id in inter:

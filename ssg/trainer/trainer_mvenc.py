@@ -10,8 +10,8 @@ from collections import defaultdict
 from tqdm import tqdm
 import numpy as np
 from codeLib.models import BaseTrainer
-import ssg2d
-from ssg2d.utils.util_eva import EvaClassificationSimple
+import ssg
+from ssg.utils.util_eva import EvaClassificationSimple
 import codeLib.utils.moving_average as moving_average 
 import time
 from codeLib.common import check_weights, convert_torch_to_scalar
@@ -35,15 +35,8 @@ class Trainer_MVENC(BaseTrainer):
         self.w_node_cls = kwards.get('w_node_cls',None)
         self.input_is_roi = cfg.data.input_type == 'mv_roi'
         
-        # if model.method == 'gcvnn':
-        #     '''gcvnn uses two stage training'''
-        #     svcnn = self.model.svcnn
-        #     trainable_params = filter(lambda p: p.requires_grad, svcnn.parameters())
-        #     self.optimizer1 = ssg2d.config.get_optimizer(cfg, trainable_params)
-        #     # self.optimizer = 
-        # else:
         trainable_params = filter(lambda p: p.requires_grad, model.parameters())
-        self.optimizer = ssg2d.config.get_optimizer(cfg, trainable_params)
+        self.optimizer = ssg.config.get_optimizer(cfg, trainable_params)
         
         
         if self.w_node_cls is not None: 
@@ -53,7 +46,7 @@ class Trainer_MVENC(BaseTrainer):
         
         self.eva_tool = EvaClassificationSimple(self.node_cls_names)
         
-        if cfg.model.node_encoder.method == 'gmu':
+        if cfg.model.image_encoder.method == 'gmu':
             self.loss_mu = torch.nn.CrossEntropyLoss()
         
     def get_log_metrics(self):
@@ -184,9 +177,9 @@ class Trainer_MVENC(BaseTrainer):
         ''' 1. node class loss'''
         self.calc_node_loss(logs, node_cls, gt_cls, self.w_node_cls)
         
-        if self.cfg.model.node_encoder.method == 'cvr':
+        if self.cfg.model.image_encoder.method == 'cvr':
             self.calc_cvr_loss(logs,outputs)
-        elif self.cfg.model.node_encoder.method == 'gmu':
+        elif self.cfg.model.image_encoder.method == 'gmu':
             self.calc_mu_loss(logs,outputs)
             # self.cal_KLD_loss(logs, outputs)
         

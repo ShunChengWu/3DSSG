@@ -15,12 +15,12 @@ training:
 # WEIGHT_EDGE: #[none,]
  scheduler:
   method: reduceluronplateau # [none, multisteplr, reduceluronplateau]
-  milestones: [750, 1000]
-  gamma: 0.5
-  factor: 0.1
   args: {
-    "mode":"max", 
-    "verbose": true,
+    mode: max, 
+    verbose: true,
+    milestones: [750, 1000],
+    gamma: 0.5,
+    factor: 0.9,
   }
  log_every: 10
  print_every: 50

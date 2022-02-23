@@ -36,11 +36,12 @@ class Trainer():
         # else:
         #     self.loss_rel_cls = torch.nn.CrossEntropyLoss(weight=self.w_edge_cls)
         #     pass
+        self.scheduler = ssg.config.get_schedular(cfg, self.model_trainer.optimizer, last_epoch=-1)
         
         ''' load model and previous information '''
         out_dir = os.path.join(self.cfg['training']['out_dir'], cfg.name)
         if not os.path.exists(out_dir): os.makedirs(out_dir)
-        ckpt_io = CheckpointIO(out_dir, model=self.model_trainer.model, optimizer=self.model_trainer.optimizer)
+        ckpt_io = CheckpointIO(out_dir, model=self.model_trainer.model, optimizer=self.model_trainer.optimizer,scheduler=self.scheduler)
         
         if cfg['training']['model_selection_mode'] == 'maximize':
             model_selection_sign = 1
@@ -49,7 +50,6 @@ class Trainer():
         else:
             raise ValueError('model_selection_mode must be '
                             'either maximize or minimize.')
-        
             
         self.ckpt_io = ckpt_io
         self.metric_sign = model_selection_sign
@@ -78,8 +78,9 @@ class Trainer():
         it = load_dict.get('it', -1)
         self.metric_val_best = load_dict.get('loss_val_best', -self.metric_sign * np.inf)
             
-        # scheduler
-        scheduler = ssg.config.get_schedular(cfg, self.model_trainer.optimizer, last_epoch=epoch_it)
+        # self.scheduler = ssg.config.get_schedular(cfg, self.model_trainer.optimizer, last_epoch=epoch_it)
+        
+        
         '''  '''
         if logger:
             try:
@@ -131,26 +132,14 @@ class Trainer():
             
             if cfg.training.scheduler.method.lower() == 'reduceluronplateau':
                 metric_val = eval_dict[self.selected_metric]
-                scheduler.step(metric_val)
+                self.scheduler.step(metric_val) # maybe make a EMA otherwise it's too sensitive to outliers.
             else:
-                scheduler.step()
+                self.scheduler.step()
             
             
         logger_py.info('Training finished.')
-        
-        # logger_py.info('Saving checkpoint')
-        # self.ckpt_io.save('model.pt', epoch_it=max_epoch, it=it,
-        #                 loss_val_best=metric_val_best)
-        # logger_py.info('Run Validation')
-        # metric_val_best = self.run_validation(val_loader, logger, 
-        #                             metric_val_best,
-        #                             max_epoch,it)
 
     def train(self, train_loader,val_loader, epoch_it, it_start, **args):
-        # checkpoint_every = self.cfg['training']['checkpoint_every']
-        # visualize_every = self.cfg['training']['visualize_every']
-        # backup_every = self.cfg['training']['backup_every']
-        # validate_every = self.cfg['training']['validate_every']
         log_every = self.cfg['training']['log_every']
         logger = args.get('logger', None)
         scalar_list = defaultdict(moving_average.CMA)
@@ -191,7 +180,7 @@ class Trainer():
                 for k, v in scalar_list.items():
                     logger.add_scalar(k, v.avg,it)
                 scalar_list = defaultdict(moving_average.CMA)
-            # break
+            break
         epo_time = time.time() - epo_time
         del it_dataset
         return it, epo_time, avg_time.avg, avg_loss.avg

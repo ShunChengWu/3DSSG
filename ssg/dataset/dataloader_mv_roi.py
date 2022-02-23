@@ -7,286 +7,289 @@ Created on Mon Nov  1 09:25:32 2021
 vis imgs in tensor: https://pytorch.org/vision/stable/auto_examples/plot_visualization_utils.html#sphx-glr-auto-examples-plot-visualization-utils-py
 
 """
-# import os
-# from ssg2d.utils import util_data
-import sys
-from codeLib.utils.util import read_txt_to_list
-from codeLib.torch.visualization import show_tensor_images
-import codeLib.utils.string_numpy as snp
-from codeLib.common import normalize_imagenet, denormalize_imagenet, random_drop#, load_obj
-import h5py
 import torch.utils.data as data
-from torchvision import transforms
-# import ssg2d.utils.compute_weight as compute_weight
-import torch
-# import json
+import os, random, torch, json, trimesh, h5py, copy
 import numpy as np
-# import pandas
-from PIL import Image
-# from torchvision.io import read_image
-from ssg2d.utils.compute_weight import compute_weights
-import ssg2d.data.transforms as T
-import imageio
-import torchvision
-from torchvision.ops import roi_align
-# from torchvision.io import read_image
-import matplotlib.pyplot as plt
-import matplotlib
-from matplotlib.patches import Rectangle
+import multiprocessing as mp
 
+# from utils import util_ply, util_data, util, define
+from codeLib.common import random_drop, random_drop
+from codeLib import transformation
+from ssg.utils import util_ply, util_data
+from codeLib.utils.util import read_txt_to_list, check_file_exist
+from ssg import define
+from codeLib.torch.visualization import show_tensor_images
+from codeLib.common import normalize_imagenet
+from torchvision import transforms
+import codeLib.torchvision.transforms as cltransform
+import ssg.utils.compute_weight as compute_weight
+from ssg.utils.util_data import raw_to_data, cvt_all_to_dict_from_h5
+import codeLib.utils.string_numpy as snp
+import logging
+logger_py = logging.getLogger(__name__)
 DRAW_BBOX_IMAGE=True
-# DRAW_BBOX_IMAGE=False
-
-def compute_weight(data,classNames:list, scan_list:list, normalize:bool, verbose:bool):
-    '''go thorugh all sequences and check occurance'''
-    o_obj_cls = np.zeros((len(classNames)))
-    for scan_id in scan_list:
-        nodes = data[scan_id]['nodes']
-        for node in nodes.values():
-            label = node.attrs['label']
-            if label not in classNames:
-                continue
-                raise RuntimeError('unknown label')
-            idx = classNames.index(label)
-            o_obj_cls[idx] += 1
-        
-    wobjs = compute_weights(classNames, o_obj_cls,normalize,verbose)
-    return wobjs, o_obj_cls
-
-def get_invalid_scan_ids(x):
-    invalid = list()
-    for scan_id in x.keys():
-        if len(x[scan_id]) == 0:
-            invalid.append(scan_id)
-        else:
-            for oid in x[scan_id].keys():
-                if len(x[scan_id][oid]) == 0:
-                    invalid.append(scan_id)
-                    break
-    return invalid
-
-
-class TrivialAugmentWide(transforms.TrivialAugmentWide):
-     # def _augmentation_space(self, num_bins: int):
-     #    return {
-     #        # op_name: (magnitudes, signed)
-     #        "Identity": (torch.tensor(0.0), False),
-     #        "ShearX": (torch.linspace(0.0, 0.5, num_bins), True),
-     #        "ShearY": (torch.linspace(0.0, 0.5, num_bins), True),
-     #        "TranslateX": (torch.linspace(0.0, 32.0, num_bins), True),
-     #        "TranslateY": (torch.linspace(0.0, 32.0, num_bins), True),
-     #        "Rotate": (torch.linspace(0.0, 135.0, num_bins), True),
-     #        "Brightness": (torch.linspace(0.0, 0.1, num_bins), True),
-     #        "Color": (torch.linspace(0.0, 0.1, num_bins), True),
-     #        "Contrast": (torch.linspace(0.0, 0.1, num_bins), True),
-     #        "Sharpness": (torch.linspace(0.0, 0.99, num_bins), True),
-     #        "Posterize": (8 - (torch.arange(num_bins) / ((num_bins - 1) / 6)).round().int(), False),
-     #        # "Solarize": (torch.linspace(255.0, 0.0, num_bins), False),
-     #        "AutoContrast": (torch.tensor(0.0), False),
-     #        # "Equalize": (torch.tensor(0.0), False),
-     #    }
-    def _augmentation_space(self, num_bins: int):
-        return {
-            # op_name: (magnitudes, signed)
-            "Identity": (torch.tensor(0.0), False),
-            "ShearX": (torch.linspace(0.0, 0.99, num_bins), True),
-            "ShearY": (torch.linspace(0.0, 0.99, num_bins), True),
-            "TranslateX": (torch.linspace(0.0, 32.0, num_bins), True),
-            "TranslateY": (torch.linspace(0.0, 32.0, num_bins), True),
-            "Rotate": (torch.linspace(0.0, 135.0, num_bins), True),
-            "Brightness": (torch.linspace(0.2, 0.8, num_bins), True),
-            "Color": (torch.linspace(0.2, 0.8, num_bins), True),
-            "Contrast": (torch.linspace(0.2, 0.8, num_bins), True),
-            "Sharpness": (torch.linspace(0.0, 0.8, num_bins), True),
-            "Posterize": (8 - (torch.arange(num_bins) / ((num_bins - 1) / 6)).round().int(), False),
-            # "Solarize": (torch.linspace(256.0, 0.0, num_bins), False),
-            "AutoContrast": (torch.tensor(0.0), False),
-            # "Equalize": (torch.tensor(0.0), False),
-        }
-class RandAugment(transforms.RandAugment):
-      def _augmentation_space(self, num_bins, image_size):
-        return {
-            # op_name: (magnitudes, signed)
-            "Identity": (torch.tensor(0.0), False),
-            "ShearX": (torch.linspace(0.0, 0.3, num_bins), True),
-            "ShearY": (torch.linspace(0.0, 0.3, num_bins), True),
-            "TranslateX": (torch.linspace(0.0, 150.0 / 331.0 * image_size[0], num_bins), True),
-            "TranslateY": (torch.linspace(0.0, 150.0 / 331.0 * image_size[1], num_bins), True),
-            "Rotate": (torch.linspace(0.0, 30.0, num_bins), True),
-            "Brightness": (torch.linspace(0.0, 0.9, num_bins), True),
-            "Color": (torch.linspace(0.0, 0.9, num_bins), True),
-            "Contrast": (torch.linspace(0.0, 0.9, num_bins), True),
-            "Sharpness": (torch.linspace(0.0, 0.9, num_bins), True),
-            "Posterize": (8 - (torch.arange(num_bins) / ((num_bins - 1) / 4)).round().int(), False),
-            # "Solarize": (torch.linspace(255.0, 0.0, num_bins), False),
-            "AutoContrast": (torch.tensor(0.0), False),
-            # "Equalize": (torch.tensor(0.0), False),
-        }
+DRAW_BBOX_IMAGE=False
 
 class MultiViewROIImageLoader(data.Dataset):
-    def __init__(self,config,mode):
+    def __init__(self,config,mode, **args):
         super().__init__()
         assert mode in ['train','validation','test']
-        
-        '''copy config values'''
-        self.mode = mode
         self._device = config.DEVICE
+        path = config.data['path']
+        self.config = config
+        self.mconfig = config.data
         self.path = config.data.path
-        self.h5_path = config.data.proposal_path
-        self.img_path = config.data.roi_path
-        self.sample_num_nn = config.data.sample_num_nn
-        self.drop_img_edge = config.data.drop_img_edge
+        self.label_file = config.data.label_file
+        self.use_data_augmentation=self.mconfig.data_augmentation
+        self.root_3rscan = define.DATA_PATH
+        self.path_h5 = os.path.join(self.path,'relationships_%s.h5' % (mode))
+        self.path_mv = os.path.join(self.path,'proposals.h5')
+        self.path_roi_img = self.mconfig.roi_img_path
+        try:
+            self.root_scannet = define.SCANNET_DATA_PATH
+        except:
+            self.root_scannet = None
+        
+        selected_scans = set()
+        self.w_cls_obj=self.w_cls_rel=None
+        # self.multi_rel_outputs = multi_rel_outputs = config.model.multi_rel
+        self.shuffle_objs = False
+        # self.use_rgb = config.model.use_rgb
+        # self.use_normal = config.model.use_normal
+        self.sample_in_runtime= config.data.sample_in_runtime
+        # self.load_cache = False
+        self.for_eval = mode != 'train'
+        # self.max_edges=config.data.max_num_edge
+        # self.full_edge = self.config.data.full_edge
+        
+        self.output_node = args.get('output_node', True)
+        # self.output_edge = args.get('output_edge', True)    
+
+        ''' read classes '''
+        pth_classes = os.path.join(path,'classes.txt')
+        pth_relationships = os.path.join(path,'relationships.txt')      
+        selected_scans = read_txt_to_list(os.path.join(path,'%s_scans.txt' % (mode)))
+        
+        names_classes = read_txt_to_list(pth_classes)
+        # names_relationships = read_txt_to_list(pth_relationships)
+        
+        self.classNames = sorted(names_classes)
         self.relationNames=None
-        self.w_node_cls=None
-        self.w_edge_cls=None
-        self.img_size = config.data.img_size
-        
         '''set transform'''
-        if self.mode == 'train':
-            self.transform  = transforms.Compose([
-                transforms.Resize(config.data.roi_img_size),
-                TrivialAugmentWide(),
-                # RandAugment(),
-                ])
-        else:
-            self.transform = transforms.Compose([
-                transforms.Resize(config.data.roi_img_size),
-                ])
-            
-        '''read info'''
-        # classes
-        self.classNames = read_txt_to_list(config.data.path+'classes.txt')
-        # scan ids
-        scan_ids = read_txt_to_list(config.data.path+mode+'_scans.txt')
+        if self.mconfig.load_images:
+            if not self.for_eval:
+                self.transform  = transforms.Compose([
+                    transforms.Resize(config.data.roi_img_size),
+                    cltransform.TrivialAugmentWide(),
+                    # RandAugment(),
+                    ])
+            else:
+                self.transform = transforms.Compose([
+                    transforms.Resize(config.data.roi_img_size),
+                    ])
         
-        '''load data from graph'''
-        self.open_hdf5(self.h5_path)
-        id_from_prop = set(self.data.keys())
-        '''check roi images are valid'''
-        self.open_img_hdf5(self.img_path)
-        # invalid_scan_ids = get_invalid_scan_ids(self.imgs)
-        # id_from_prop -= set(invalid_scan_ids)
+        ''' load data '''
+        if self.mconfig.load_images:
+            self.open_mv_graph()
+            self.open_img()
         
-        #check scan id matches
-        diff = set(scan_ids).difference(id_from_prop)
-        if len(diff )> 0:
-            if config.VERBOSE:
-                print('remove {} invalid/unexist scans.'.format(len(diff)))
-            scan_ids = set(scan_ids).intersection(id_from_prop)
-            if len(scan_ids) == 0:
-                raise RuntimeError('no valid scans!')
-        scan_ids = random_drop(list(scan_ids), config.data.fraction , replace=False)
-        scan_ids = sorted(scan_ids) # use sorted here to prevent randomness
-            
-        if config.VERBOSE:
-            print('total scans:',len(scan_ids))
+        self.open_data()
+        c_sg_data = cvt_all_to_dict_from_h5(self.sg_data)
         
-        self.scans = snp.pack(scan_ids)#[s for s in data.keys()]
-        self.size = len(scan_ids)
-        ''' compute weight '''
-        if mode == 'train':
-            weights = compute_weight(self.data,self.classNames,scan_ids,config.data.normalize_weight, config.VERBOSE)
-            self.w_node_cls = torch.from_numpy(weights[0]).float()
+        '''check scan_ids'''
+        # filter input scans with relationship data
+        tmp   = set(c_sg_data.keys())
+        inter = sorted(list(tmp.intersection(selected_scans)))
+        if self.mconfig.load_images:
+            # filter input scans with image data
+            tmp   = set(self.mv_data.keys())
+            inter = sorted(list(tmp.intersection(inter)))
             
-        # delete data (should be opened in getitem due to multithreading issue)
-        del self.data
-        del self.imgs
+            # filter input scans with roi images
+            tmp   = set(self.roi_imgs.keys())
+            inter = sorted(list(tmp.intersection(inter)))
+            
+            #TODO: also filter out nodes when only with points input. this gives fair comparison on points and images methods.
+            filtered_sg_data = dict()
+            for scan_id in inter:
+                mv_node_ids = [int(x) for x in self.mv_data[scan_id]['nodes'].keys()]
+                sg_node_ids = c_sg_data[scan_id]['nodes'].keys()                
+                inter_node_ids = set(sg_node_ids).intersection(mv_node_ids)
+                
+                filtered_sg_data[scan_id] = dict()
+                filtered_sg_data[scan_id]['nodes'] = {nid: c_sg_data[scan_id]['nodes'][nid] for nid in inter_node_ids}
+            
+            c_sg_data = filtered_sg_data
+        
+        '''pack with snp'''
+        self.size = len(inter)
+        self.scans = snp.pack(inter)#[s for s in data.keys()]
+
+        '''compute weight  ''' #TODO: rewrite this. in runtime sampling the weight might need to be calculated in each epoch.
+        if not self.for_eval:
+            if config.data.full_edge:
+                edge_mode='fully_connected'
+            else:
+                edge_mode='nn'
+            wobjs, wrels, o_obj_cls, o_rel_cls = compute_weight.compute_sgfn(self.classNames, None, c_sg_data, selected_scans,
+                                                                        normalize=config.data.normalize_weight,
+                                                                        for_BCE=False,
+                                                                        edge_mode=edge_mode,
+                                                                        verbose=config.VERBOSE)
+            self.w_node_cls = torch.from_numpy(np.array(wobjs)).float()
+            self.w_edge_cls=None
+            # self.w_edge_cls = torch.from_numpy(np.array(wrels)).float()
+            
+        del self.sg_data
+        if self.mconfig.load_images:
+            del self.roi_imgs
+            del self.mv_data
         
     def __len__(self):
         return self.size
     
-    def open_hdf5(self, path):
-        if not hasattr(self, 'data'):
-            self.data = h5py.File(path,'r')
-            
-    def open_img_hdf5(self, path):
-        if not hasattr(self, 'imgs'):
-            self.imgs = h5py.File(path,'r')
-            
-    def reset(self):
-        if hasattr(self, 'imgs'):
-            self.imgs.close()
-            del self.imgs
-        if hasattr(self, 'data'):
-            self.data.close()
-            del self.data
-        
-    def __getitem__(self,idx):
-        scan_id = snp.unpack(self.scans,idx)# self.scans[idx]
-        self.open_hdf5(self.h5_path)
-        self.open_img_hdf5(self.img_path)
-        scan_data = self.data[scan_id]
-        imgs = self.imgs[scan_id]        
-        kfs = scan_data['kfs']
-        nodes = scan_data['nodes']
+    def open_mv_graph(self):
+        if not hasattr(self, 'mv_data'):
+            self.mv_data = h5py.File(self.path_mv,'r')
                 
-        '''sample nodes'''
-        node_ids = list(nodes.keys())
-        if self.mode == 'train':
-            node_ids = random_drop(node_ids, self.sample_num_nn)
-        # print('node_ids',node_ids)
+    def open_data(self):
+        if not hasattr(self,'sg_data'):
+            self.sg_data = h5py.File(self.path_h5,'r')
+            
+    def open_img(self):
+        if not hasattr(self, 'roi_imgs'):
+            self.roi_imgs = h5py.File(self.path_roi_img,'r')
+            
+    def __getitem__(self,index):
+        scan_id = snp.unpack(self.scans,index)# self.scans[idx]
         
-        '''select nodes'''
-        kfs_indices=list()
-        cat=list()
-        images_indices = set()
-        oid2idx = dict()
-        idx2oid = dict()
-        counter=0
-        for n_id in node_ids:
-            node = nodes[n_id]
+        self.open_data()
+        scan_data_raw = self.sg_data[scan_id]
+        scan_data = raw_to_data(scan_data_raw)
+        
+        object_data = scan_data['nodes']
+        # relationships_data = scan_data['relationships']        
+        
+        
+        self.open_mv_graph()
+        self.open_img()
+        mv_data = self.mv_data[scan_id]
+        mv_nodes = mv_data['nodes']
+        roi_imgs = self.roi_imgs[scan_id]
+            
+        '''filter'''
+        mv_node_ids = [int(x) for x in mv_data['nodes'].keys()]
+        
+        sg_node_ids = object_data.keys()                
+        inter_node_ids = set(sg_node_ids).intersection(mv_node_ids)
+        
+        object_data = {nid: object_data[nid] for nid in inter_node_ids}
+            
+        ''' build mapping '''
+        instance2labelName  = { int(key): node['label'] for key,node in object_data.items()  }
+        
+        '''build instance dict'''
+        seg2inst = dict()
+        for oid, odata in object_data.items():
+            if 'instance_id' in odata:
+                seg2inst[oid] = odata['instance_id']
+            
+        '''sample training set'''  
+        instances_ids = list(instance2labelName.keys())
+        if 0 in instances_ids: instances_ids.remove(0)
+        if self.sample_in_runtime and not self.for_eval:
+            selected_nodes = list(object_data.keys())
+            
+            mv_node_ids = [int(x) for x in mv_nodes.keys()]
+            selected_nodes = list( set(selected_nodes).intersection(mv_node_ids) )
+            
+            use_all=False
+            sample_num_nn=self.mconfig.sample_num_nn# 1 if "sample_num_nn" not in self.config else self.config.sample_num_nn
+            sample_num_seed=self.mconfig.sample_num_seed#1 if "sample_num_seed" not in self.config else self.config.sample_num_seed
+            if sample_num_nn<=0 or sample_num_seed <=0:
+                use_all=True
+                
+            if not use_all:
+                filtered_nodes = random_drop(selected_nodes, self.mconfig.drop_img_edge, replace=True)
+            else:
+                filtered_nodes = selected_nodes # use all nodes
+                
+            instances_ids = list(filtered_nodes)
+            if 0 in instances_ids: instances_ids.remove(0)
+            
+        if 'max_num_node' in self.mconfig and self.mconfig.max_num_node>0 and len(instances_ids)>self.mconfig.max_num_node:
+            instances_ids = random_drop(instances_ids, self.mconfig.max_num_node )
+        
+        if self.shuffle_objs:
+            random.shuffle(instances_ids)
+
+        ''' 
+        Find instances we care abot. Build oid2idx and cat list
+        oid2idx maps instances to a mask id. to randomize the order of instance in training.
+        '''
+        oid2idx = {}
+        idx2oid = {}
+        cat = []
+        counter = 0
+        filtered_instances = list()
+        for instance_id in instances_ids:    
             class_id = -1
-            cls_label = node.attrs['label']
-            
-            if cls_label in self.classNames:
-                class_id = self.classNames.index(cls_label)
-                
-            if class_id >=0:
-                oid2idx[int(n_id)] = counter
-                idx2oid[counter] = int(n_id)
-                counter+=1
+            instance_labelName = instance2labelName[instance_id]
+            if instance_labelName in self.classNames:
+                class_id = self.classNames.index(instance_labelName)
+
+            # mask to cat:
+            if (class_id >= 0) and (instance_id > 0): # insstance 0 is unlabeled.
+                oid2idx[int(instance_id)] = counter
+                idx2oid[counter] = int(instance_id)
+                counter += 1
+                filtered_instances.append(instance_id)
                 cat.append(class_id)
-                
-                
+        if len(cat) == 0:
+            # logger_py.debug('filtered_nodes: {}'.format(filtered_nodes))
+            logger_py.debug('cat: {}'.format(cat))
+            logger_py.debug('self.classNames: {}'.format(self.classNames))
+            logger_py.debug('list(object_data.keys()): {}'.format(list(object_data.keys())))
+            assert len(cat) > 0
+
         '''load images'''
         bounding_boxes = list()
         for idx in range(len(cat)):
             oid = str(idx2oid[idx])
-            node = nodes[oid]
+            node = mv_nodes[oid]
             cls_label = node.attrs['label']
-            img = np.asarray(imgs[oid])
+            if cls_label == 'unknown':
+                cls_label = self.classNames[cat[idx]]
+            img = np.asarray(roi_imgs[oid])
             
-            if self.mode == 'train':
-                kf_indices = random_drop(range(img.shape[0]), self.drop_img_edge, replace=True)
+            if not self.for_eval:
+                kf_indices = random_drop(range(img.shape[0]), self.mconfig.drop_img_edge, replace=True)
                 img = img[kf_indices]
             # else:
             #     kf_indices = [idx for idx in range(img.shape[0])]
             
-            img = torch.as_tensor(img)
+            img = torch.as_tensor(img).clone()
             img = torch.clamp((img*255).byte(),0,255).byte()
             t_img = torch.stack([self.transform(x) for x in img],dim=0)
             if DRAW_BBOX_IMAGE:
                 show_tensor_images(t_img.float()/255, cls_label)
             t_img= normalize_imagenet(t_img.float()/255.0)
             bounding_boxes.append( t_img)
-            
-        '''to tensor'''
-        # Object 
-        gt_class = torch.as_tensor(cat)
-        # Images
-        # images = torch.stack(images)
-        # Poses
-        # poses = torch.stack(poses)
         
-                
+        ''' to tensor '''
+        gt_class = torch.from_numpy(np.array(cat))
+        
+        del self.sg_data
+        if self.mconfig.load_images:
+            del self.roi_imgs
+            del self.mv_data
+        
         output = dict()
         output['scan_id'] = scan_id # str
         output['gt_cls'] = gt_class # tensor
-        # output['images'] = images# tensor
-        # output['poses'] = poses# tensor
         output['roi_imgs'] = bounding_boxes #list
-        
-        self.reset()
+        output['instance2mask'] = oid2idx #dict
+        output['seg2inst'] = seg2inst
         return output
     
 if __name__ == '__main__':

@@ -1,6 +1,6 @@
 import os
 import ssg
-from ssg import SSG3D, SGFN, SGPN#, MVEnc, SVEnc, DestCmp
+from ssg import SSG3D, SGFN, SGPN, MVEnc#, SVEnc, DestCmp
 import logging
 from torch.utils.tensorboard import SummaryWriter
 from codeLib.loggers import WandbLogger
@@ -17,7 +17,7 @@ method_dict = {
     'sgfn': SGFN,
     'sgpn': SGPN,
     # 'dcmp': DestCmp,
-    # 'mv': MVEnc,
+    'mv': MVEnc,
     # 'sv': SVEnc,
 }
 

@@ -167,21 +167,15 @@ def main():
             ''' Get segment dataset '''
             dataset_seg  = config.get_dataset(cfg,'test')
             ''' Get instance dataset'''
-            # overwrite data.path
-            tmp_rgb = copy.copy(cfg.model.use_rgb)
-            tmp_normal = copy.copy(cfg.model.use_normal)
-            tmp_path = copy.copy(cfg.data.path)
-            tmp_label_file = copy.copy(cfg.data.label_file)
-            cfg.model.use_rgb = False
-            cfg.model.use_normal = False
-            cfg.data.path = cfg.data.path_gt
-            cfg.data.label_file = cfg.data.label_file_gt
-            dataset_inst  = config.get_dataset(cfg,'test')
+            tmp_cfg = copy.deepcopy(cfg)
+            tmp_cfg.model.use_rgb = False
+            tmp_cfg.model.use_normal = False
+            tmp_cfg.data.load_images=False
+            tmp_cfg.data.load_points=False
+            tmp_cfg.data.path = cfg.data.path_gt
+            tmp_cfg.data.label_file = cfg.data.label_file_gt
+            dataset_inst  = config.get_dataset(tmp_cfg,'test')
             # write back
-            cfg.data.path = tmp_path
-            cfg.data.label_file = tmp_label_file
-            cfg.model.use_rgb = tmp_rgb
-            cfg.model.use_normal = tmp_normal
             
             '''check'''
             # assert len(dataset_seg.relationNames) == len(dataset_inst.relationNames)+1

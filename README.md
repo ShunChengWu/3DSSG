@@ -73,13 +73,29 @@ python script/RUN_GenSeg.py --dataset 3RScan --type train --thread 8 --overwrite
 
 # Generate training data
 cd data_processing
-python gen_data.py --pth_out ../data/3RScan_ScanNet20/ --target_scan ../data/3RScan_3RScan/train_scans.txt --type train; python gen_data.py --pth_out ../data/3RScan_ScanNet20/ --target_scan ../data/3RScan_3RScan/validation_scans.txt --type validation; python gen_data.py --pth_out ../data/3RScan_ScanNet20/ --target_scan ../data/3RScan_3RScan/test_scans.txt --type test
+python gen_data.py --pth_out ../data/3RScan_ScanNet20/ --target_scan ../data/3RScan_3RScan/train_scans.txt --type train; python gen_data.py --pth_out ../data/3RScan_ScanNet20/ --target_scan ../data/3RScan_3RScan/validation_scans.txt --type validation;
+python gen_data.py --pth_out ../data/3RScan_ScanNet20/ --target_scan ../data/3RScan_3RScan/test_scans.txt --type test
 
 # Generate object-image graph
 PYTHONPATH=./ python ssg/utils/make_obj_graph_incremental.py -o ./data/3RScan_ScanNet20/ --overwrite 0
 
 # extract mv images
 PYTHONPATH=./ python ssg/utils/extract_mv_box_image_3rscan.py -o /media/sc/SSD1TB/dataset/3RScan/incremental/ -f ./data/3RScan_ScanNet20/proposals.h5 --thread 0 --overwrite 1
+```
+
+## 2DSSG
+```
+# Generate training data
+PYTHONPATH=./ python script/RUN_Gen2DSSG.py --thread 4 --dataset 3RScan --type train --overwrite 0;
+PYTHONPATH=./ python script/RUN_Gen2DSSG.py --thread 4 --dataset 3RScan --type validation --overwrite 0;
+
+# geneate object-image graph
+PYTHONPATH=./ python ssg/utils/make_obj_graph_incremental.py -o ./data/3RScan_ScanNet20_2DSSG_ORBSLAM3/ --target_name graph_2dssg_orbslam3.json
+
+# extract mv images
+PYTHONPATH=./ python ssg/utils/extract_mv_box_image_3rscan.py -o /media/sc/SSD4TB/roi_2dssg_orbslam3 -f ./data/3RScan_ScanNet20_2DSSG_ORBSLAM3/proposals.h5 --thread 4
+
+
 ```
 
 

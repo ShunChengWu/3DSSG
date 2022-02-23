@@ -41,7 +41,7 @@ width=540
 height=960
 
 DEBUG=True
-# DEBUG=False
+DEBUG=False
 
 random_clr_i = [color_rgb(rand_24_bit()) for _ in range(1500)]
 random_clr_i[0] = (0,0,0)
@@ -68,10 +68,12 @@ def Parse():
     # parser.add_argument('--skip_edge',default=0,type=int,help='should bbox close to image boundary')
     # parser.add_argument('--skip_size',default=1,type=int,help='should filter out too small objs')
     parser.add_argument('--overwrite', type=int, default=0, help='overwrite existing file.')
+    parser.add_argument('--debug', action='store_true', help='debug mode')
     return parser
 
 if __name__ == '__main__':
     args = Parse().parse_args()
+    DEBUG = args.debug
     print(args)
     outdir=args.outdir
     # min_oc=float(args.min_occ) # maximum occlusion rate authorised
@@ -97,7 +99,10 @@ if __name__ == '__main__':
         for k,v in args.__dict__.items():
             f.write('{}:{}\n'.format(k,v))
         pass
-    h5f = h5py.File(os.path.join(outdir,'proposals.h5'), 'a')
+    try:
+        h5f = h5py.File(os.path.join(outdir,'proposals.h5'), 'a')
+    except:
+        h5f = h5py.File(os.path.join(outdir,'proposals.h5'), 'w')
     # h5f.attrs['label_type'] = args.label_type
     
     '''read scenes'''
@@ -118,7 +123,7 @@ if __name__ == '__main__':
     invalid_scans=0
     valid_scans=0
     for scan_id in pbar: #['scene0000_00']: #glob.glob('scene*'):
-        if DEBUG: scan_id = '4acaebcc-6c10-2a2a-858b-29c7e4fb410d'
+        if DEBUG: scan_id = '095821f7-e2c2-2de1-9568-b9ce59920e29'
         logger_py.info(scan_id)
         pbar.set_description('processing {}'.format(scan_id))
         

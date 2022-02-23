@@ -43,20 +43,20 @@ def create_box(dimensions, width = 0.01):
     # box.apply_translation(centroid)
     return box
 
-scan_id = '8eabc453-5af7-2f32-859d-405eb6a2e0d0'
-scan_id = '02b33e01-be2b-2d54-93fb-4145a709cec5'
-scan_id = '2e369549-e133-204c-91af-a19767a23bf2'
-scan_id = '8eabc453-5af7-2f32-859d-405eb6a2e0d0'
-scan_id = '8eabc447-5af7-2f32-8712-301083e291b3'
-scan_id = 'fcf66d88-622d-291c-871f-699b2d063630'
-scan_id = 'f62fd5fd-9a3f-2f44-883a-1e5cf819608e'
-# scan_i d= 'a644cb93-0ee5-2f66-9efb-b16adfb14eff'
-pth_json = '/media/sc/SSD1TB/dataset/3RScan/data/3RScan/'+scan_id+'/graph.json'
+# scan_id = '8eabc453-5af7-2f32-859d-405eb6a2e0d0'
+# scan_id = '02b33e01-be2b-2d54-93fb-4145a709cec5'
+# scan_id = '2e369549-e133-204c-91af-a19767a23bf2'
+# scan_id = '8eabc453-5af7-2f32-859d-405eb6a2e0d0'
+# scan_id = '8eabc447-5af7-2f32-8712-301083e291b3'
+# scan_id = 'fcf66d88-622d-291c-871f-699b2d063630'
+# scan_id = 'f62fd5fd-9a3f-2f44-883a-1e5cf819608e'
+# # scan_i d= 'a644cb93-0ee5-2f66-9efb-b16adfb14eff'
+# pth_json = '/media/sc/SSD1TB/dataset/3RScan/data/3RScan/'+scan_id+'/graph.json'
 
-scan_id = '4acaebcc-6c10-2a2a-858b-29c7e4fb410d'
+# scan_id = '4acaebcc-6c10-2a2a-858b-29c7e4fb410d'
 pth_json = '/home/sc/research/SceneGraphFusion/bin/test/graph.json'
 pth_json = '/home/sc/research/ORB_SLAM3/bin/test/graph_2dssg.json'
-pth_json='/media/sc/SSD1TB/dataset/3RScan/data/3RScan/4acaebcc-6c10-2a2a-858b-29c7e4fb410d/graph_2dssg_orbslam3.json'
+pth_json='/media/sc/SSD1TB/dataset/3RScan/data/3RScan/095821f7-e2c2-2de1-9568-b9ce59920e29/graph_2dssg_orbslam3.json'
 
 with open(pth_json ) as f: 
     data = json.load(f)

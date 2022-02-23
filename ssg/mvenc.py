@@ -1,8 +1,8 @@
 import torch
 from torch import nn
 from codeLib.utils.util import pytorch_count_params
-from ssg2d.models.node_encoder import node_encoder_list
-from ssg2d.models.classifier import classifider_list
+from ssg.models.node_encoder import node_encoder_list
+from ssg.models.classifier import classifider_list
 import logging
 logger_py = logging.getLogger(__name__)
 
@@ -12,23 +12,23 @@ class MVEnc(nn.Module):
         logger_py.setLevel(cfg.log_level)
         self.cfg=cfg
         self._device=device
-        self.method = cfg.model.node_encoder.method
+        self.method = cfg.model.image_encoder.method
         models = dict()
         
         if self.method == 'cvr':
             logger_py.info('use CVR original implementation')
-            cfg.model.node_encoder.backend = 'res18'
+            cfg.model.image_encoder.backend = 'res18'
             cfg.model.node_feature_dim=512
-            encoder = node_encoder_list[self.method](cfg,cfg.model.node_encoder.backend,device)
+            encoder = node_encoder_list[self.method](cfg,cfg.model.image_encoder.backend,device)
             node_feature_dim = encoder.node_feature_dim
             # classifier = ssg2d.models.classifider_list['basic'](in_channels=node_feature_dim, out_channels=num_obj_cls)
             classifier = classifider_list['cvr'](in_channels=512, out_channels=num_obj_cls)
         elif self.method == 'mvcnn':
             logger_py.info('use MVCNN original implementation')
-            cfg.model.node_encoder.backend = 'vgg16'
+            cfg.model.image_encoder.backend = 'vgg16'
             cfg.model.node_feature_dim=25088
-            cfg.model.node_encoder.aggr = 'max'
-            encoder = node_encoder_list[self.method](cfg,cfg.model.node_encoder.backend,device)
+            cfg.model.image_encoder.aggr = 'max'
+            encoder = node_encoder_list[self.method](cfg,cfg.model.image_encoder.backend,device)
             node_feature_dim = encoder.node_feature_dim
             classifier = classifider_list['vgg16'](in_channels=node_feature_dim, out_channels=num_obj_cls)
         elif self.method == 'gvcnn':
@@ -39,12 +39,12 @@ class MVEnc(nn.Module):
             raise NotImplementedError()
         elif self.method == 'mean':# prediction by running mean.
             logger_py.info('use mean cls feature')
-            encoder = node_encoder_list[self.method](cfg,num_obj_cls,cfg.model.node_encoder.backend,device)
+            encoder = node_encoder_list[self.method](cfg,num_obj_cls,cfg.model.image_encoder.backend,device)
             classifier = torch.nn.Identity()
             # raise NotImplementedError()
         elif self.method == 'gmu':# graph memory unit
             logger_py.info('use GMU')
-            encoder = node_encoder_list[self.method](cfg,num_obj_cls,cfg.model.node_encoder.backend,device)
+            encoder = node_encoder_list[self.method](cfg,num_obj_cls,cfg.model.image_encoder.backend,device)
             if cfg.model.mean_cls:
                 classifier = torch.nn.Identity()
             else:
@@ -94,9 +94,9 @@ if __name__ == '__main__':
     import codeLib
     config = codeLib.Config('./configs/default_mv.yaml')
     config.path = '/home/sc/research/PersistentSLAM/python/2DTSG/data/test/'
-    config.model.node_encoder.method='mvcnn'
-    config.model.node_encoder.method='mean'
-    config.model.node_encoder.backend='res18'
+    config.model.image_encoder.method='mvcnn'
+    config.model.image_encoder.method='mean'
+    config.model.image_encoder.backend='res18'
     model = MVEnc(config,num_obj_cls=40,device='cpu')
     print(model)
     # if config.data.use_precompute_img_feature:
