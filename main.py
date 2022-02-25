@@ -212,14 +212,17 @@ def main():
             pr.dump_stats(os.path.join(out_dir,'tp_eval_inst.dmp'))
             
             '''log'''
+            # ignore_missing=cfg.eval.ignore_missing
+            prefix='inst' if not cfg.eval.ignore_missing else 'inst_ignore'
+            
             print(eval_tool.gen_text())
-            _ = eval_tool.write(out_dir, 'inst')
+            _ = eval_tool.write(out_dir, prefix)
             if logger:
                 for k,v in eval_dict['visualization'].items(): 
-                    logger.add_figure('test/inst_'+k, v, global_step=it)
+                    logger.add_figure('test/'+prefix+'_'+k, v, global_step=it)
                 for k, v in eval_dict.items():
                     if isinstance(v,dict): continue
-                    logger.add_scalar('test/inst_%s' % k, v, it)
+                    logger.add_scalar('test/'+prefix+'_'+'%s' % k, v, it)
             
             
     elif cfg.MODE == 'sample':

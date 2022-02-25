@@ -183,23 +183,23 @@ def process(scan_id):
     fp.close()
 
 if __name__ == '__main__':
-    # if not os.path.exists(pth_out):
-    #     os.makedirs(pth_out)
-    # logging.basicConfig(filename=os.path.join(args.outdir,'extract_mv_box_image_3rscan.log'), level=logging.INFO)
-    # logger_py = logging.getLogger(__name__)
+    if not os.path.exists(pth_out):
+        os.makedirs(pth_out)
+    logging.basicConfig(filename=os.path.join(args.outdir,'extract_mv_box_image_3rscan.log'), level=logging.INFO)
+    logger_py = logging.getLogger(__name__)
     
-    # with h5py.File(pth_proposal, 'r') as fp:
-    #     scan_ids = [s  for s in list(fp.keys())  if isinstance(fp[s], h5py._hl.group.Group)]
+    with h5py.File(pth_proposal, 'r') as fp:
+        scan_ids = [s  for s in list(fp.keys())  if isinstance(fp[s], h5py._hl.group.Group)]
     
-    # # for scan_id in scan_ids: process(scan_id)
-    # if n_workers>0:
-    #     process_map(process, scan_ids, max_workers=n_workers, chunksize=1 )
-    # else:
-    #     pbar = tqdm(scan_ids)
-    #     for scan_id in pbar:
-    #         # scan_id = '4acaebcc-6c10-2a2a-858b-29c7e4fb410d'
-    #         pbar.set_description(scan_id)
-    #         process(scan_id)
+    # for scan_id in scan_ids: process(scan_id)
+    if n_workers>0:
+        process_map(process, scan_ids, max_workers=n_workers, chunksize=1 )
+    else:
+        pbar = tqdm(scan_ids)
+        for scan_id in pbar:
+            # scan_id = '4acaebcc-6c10-2a2a-858b-29c7e4fb410d'
+            pbar.set_description(scan_id)
+            process(scan_id)
     
     '''create a link h5 db'''
     if fbase[-1] != '/': fbase+='/'

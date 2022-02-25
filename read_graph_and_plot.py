@@ -57,7 +57,7 @@ def create_box(dimensions, width = 0.01):
 pth_json = '/home/sc/research/SceneGraphFusion/bin/test/graph.json'
 pth_json = '/home/sc/research/ORB_SLAM3/bin/test/graph_2dssg.json'
 pth_json='/media/sc/SSD1TB/dataset/3RScan/data/3RScan/095821f7-e2c2-2de1-9568-b9ce59920e29/graph_2dssg_orbslam3.json'
-
+pth_json='/media/sc/SSD1TB/dataset/3RScan/data/3RScan/bf9a3de1-45a5-2e80-8325-6cf2b519d40c/graph_2dssg_orbslam3.json'
 with open(pth_json ) as f: 
     data = json.load(f)
 

@@ -20,7 +20,7 @@ import logging
 logger_py = logging.getLogger(__name__)
 
 DRAW_BBOX_IMAGE=True
-# DRAW_BBOX_IMAGE=False
+DRAW_BBOX_IMAGE=False
 
 class SGFNDataset (data.Dataset):
     def __init__(self,config,mode, **args):

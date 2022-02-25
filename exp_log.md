@@ -24,7 +24,7 @@ Note:
 - 0: test. batchsize 0
 - 1: batchsize 4
 - SGFN_full_l160_0: forgot to use full_edge
-- SGFN_full_l160_1
+- SGFN_full_l160_1: use full edge
 
 ## 2DSSG
 img_batchsize: 8
@@ -103,54 +103,87 @@ Note: the IoU is extremely high because of the overwhelming true negatives (none
 - 2DSSG_full_1_3: try to roll back to the previous predicate class weighting.
 - 3DSSG_full_l20_0: -> not valid. was using the full edge in training.
 - 3DSSG_full_l20_1: don't use full edge
-
+- 2DSSG_ORBSLAM3_l20_0: with est. entities from ORBSLAM3 (forgot to finetune)
+- 2DSSG_ORBSLAM3_l20_1: with improved bboxes
+- 2DSSG_ORBSLAM3_l20_2: with improved bboxes. w/o finetune
 
 
 
 ## Segment level
-| method         | R@1  | R@3  | R@1  | R@3  | R@1  | R@2  |
-| -------------- | ---- | ---- | ---- | ---- | ---- | ---- |
-| SGFN(cvpr)(f)  | 0.55 | 0.78 | 0.75 | 0.93 | 0.86 | 0.98 |
-| inseg_0        | 0.27 | 0.41 | 0.55 | 0.84 | 0.88 | 0.96 |
-| inseg_0_1      | 0.43 | 0.61 | 0.69 | 0.91 | 0.89 | 0.97 |
-| inseg_0_4      | 0.46 | 0.63 | 0.72 | 0.91 | 0.9  | 0.97 |
-| SGFN_inseg_0_5 | 0.39 | 0.55 | 0.67 | 0.90 | 0.83 | 0.95 |
+#### Relationship
+| method               | rel.R@1 | rel.R@3 | obj.R@1 | obj.R@3 | pred.R@1 | pred.R@2 |
+| -------------------- | ------- | ------- | ------- | ------- | -------- | -------- |
+| SGFN(cvpr)(f)        | 0.55    | 0.78    | 0.75    | 0.93    | 0.86     | 0.98     |
+| inseg_0              | 0.27    | 0.41    | 0.55    | 0.84    | 0.88     | 0.96     |
+| inseg_0_1            | 0.43    | 0.61    | 0.69    | 0.91    | 0.89     | 0.97     |
+| inseg_0_4            | 0.46    | 0.63    | 0.72    | 0.91    | 0.9      | 0.97     |
+| SGFN_inseg_0_5       | 0.39    | 0.55    | 0.67    | 0.90    | 0.83     | 0.95     |
+| 2DSSG_ORBSLAM3_l20_0 | 22.7    | 32.3    | 53.8    | 80.3    | 82.1     | 91.6     |
+| 2DSSG_ORBSLAM3_l20_1 | 21.5    | 29.3    | 48.2    | 72.7    | 80.5     | 90.6     |
+
+#### Object
+| method               | IoU  | Precision | Recall |
+| -------------------- | ---- | --------- | ------ |
+| 2DSSG_ORBSLAM3_l20_0 | 28.9 | 41.8      | 47.4   |
+| 2DSSG_full_1_3       | 51.0 | 61.1      | 75.8   |
+| SGFN_inseg_0_5       | 41.7 | 52.1      | 59.3   |
+| 2DSSG_ORBSLAM3_l20_1 | 22.1 | 33.6      | 39.9   |
+
+
+#### Predicates
+| method               | IoU  | Precision | Recall |
+| -------------------- | ---- | --------- | ------ |
+| 2DSSG_ORBSLAM3_l20_0 | 21.2 | 28.9      | 32.0   |
+| 2DSSG_full_1_3       | 40.9 | 46.0      | 73.0   |
+| SGFN_inseg_0_5       | 31.1 | 34.7      | 61.6   |
+| 2DSSG_ORBSLAM3_l20_1 | 24.6 | 35.6      | 41.5   |
+
 
 ## Instance level
 #### Relationship
-| method           | R@1  | R@3  | R@1  | R@3  | R@1   | R@2   |
-| ---------------- | ---- | ---- | ---- | ---- | ----- | ----- |
-|                  | rel. | rel. | obj. | obj. | pred. | pred. |
-| SGFN_full_0_2    | 0.32 | 0.56 | 0.56 | 0.85 | 0.96  | 1.00  |
-| SGFN_inseg_0_1   | 0.31 | 0.45 | 0.56 | 0.74 | 0.54  | 0.57  |
-| SGFN_full_0_3    | 31.4 | 55.3 | 58.4 | 84.8 | 92.0  | 98.6  |
-| SGFN_inseg_0_5   | 28.0 | 41.5 | 54.6 | 72.8 | 94.2  | 98.2  |
-| 3DSSG_full_l20_1 | 26.5 | 39.6 | 52.3 | 81.8 | 91.3  | 95.7  |
-| 2DSSG_full_1_2   | 45.5 | 58.9 | 72.5 | 91.9 | 87.2  | 95.8  |
-| 2DSSG_full_1_3   | 49.9 | 58.3 | 73.0 | 92.4 | 95.2  | 97.4  |
+| method                | rel.R@1 | rel.R@3 | obj.R@1 | obj.R@3 | pred.R@1 | pred.R@2 |
+| --------------------- | ------- | ------- | ------- | ------- | -------- | -------- |
+| SGFN_full_0_2         | 0.32    | 0.56    | 0.56    | 0.85    | 0.96     | 1.00     |
+| SGFN_inseg_0_1        | 0.31    | 0.45    | 0.56    | 0.74    | 0.54     | 0.57     |
+| SGFN_full_0_3         | 31.4    | 55.3    | 58.4    | 84.8    | 92.0     | 98.6     |
+| SGFN_inseg_0_5        | 28.0    | 41.5    | 54.6    | 72.8    | 94.2     | 98.2     |
+| 3DSSG_full_l20_1      | 26.5    | 39.6    | 52.3    | 81.8    | 91.3     | 95.7     |
+| 2DSSG_full_1_2        | 45.5    | 58.9    | 72.5    | 91.9    | 87.2     | 95.8     |
+| 2DSSG_full_1_3        | 49.9    | 58.3    | 73.0    | 92.4    | 95.2     | 97.4     |
+| 2DSSG_ORBSLAM3_l20_0  | 3.6     | 7.0     | 19.2    | 37.5    | 95.3     | 97.8     |
+| 2DSSG_ORBSLAM3_l20_1  | 5.6     | 10.0    | 24.2    | 43.4    | 95.0     | 98.0     |
+| 2DSSG_ORBSLAM3_l20_1* | 21.5    | 29.3    | 48.2    | 72.7    | 80.5     | 90.6     |
+
+Note: `2DSSG_ORBSLAM3_l20_1*` is ignore missing objects and scans.
 
 for the instance case, maybe it is better to show precision, since a lot of
 objects and predicates are missing due to the missing nodes.
 
 #### Object
-| method           | IoU   | Precision | Recall |
-| ---------------- | ----- | --------- | ------ |
-| SGFN_full_0_2    | 0.316 | 0.426     | 0.506  |
-| SGFN_inseg_0_1   | 0.283 | 0.716     | 0.304  |
-| SGFN_full_0_3    | 0.326 | 0.457     | 0.482  |
-| SGFN_inseg_0_5   | 0.335 | 0.521     | 0.472  |
-| 3DSSG_full_l20_1 | 0.281 | 0.390     | 0.476  |
-| 2DSSG_full_1_2   | 0.510 | 0.603     | 0.754  |
-| 2DSSG_full_1_3   | 0.510 | 0.611     | 0.758  |
+| method                | IoU   | Precision | Recall |
+| --------------------- | ----- | --------- | ------ |
+| SGFN_full_0_2         | 0.316 | 0.426     | 0.506  |
+| SGFN_inseg_0_1        | 0.283 | 0.716     | 0.304  |
+| SGFN_full_0_3         | 0.326 | 0.457     | 0.482  |
+| SGFN_inseg_0_5        | 33.5  | 52.1      | 47.2   |
+| 3DSSG_full_l20_1      | 0.281 | 0.390     | 0.476  |
+| 2DSSG_full_1_2        | 0.510 | 0.603     | 0.754  |
+| 2DSSG_full_1_3        | 0.510 | 0.611     | 0.758  |
+| 2DSSG_ORBSLAM3_l20_0  | 15.7  | 41.6      | 20.0   |
+| 2DSSG_ORBSLAM3_l20_1  | 15.2  | 35.6      | 23.6   |
+| 2DSSG_ORBSLAM3_l20_1* | 22.1  | 33.6      | 39.9   |
 
 #### Predicate
-| method           | IoU   | Precision | Recall |
-| ---------------- | ----- | --------- | ------ |
-| SGFN_full_0_3    | 0.325 | 0.329     | 0.656  |
-| SGFN_inseg_0_5   | 0.321 | 0.389     | 0.484  |
-| 3DSSG_full_l20_1 | 0.194 | 0.304     | 0.283  |
-| 2DSSG_full_1_2   | 0.308 | 0.329     | 0.802  |
-| 2DSSG_full_1_3   | 0.409 | 0.460     | 0.730  |
+| method                | IoU   | Precision | Recall |
+| --------------------- | ----- | --------- | ------ |
+| SGFN_full_0_3         | 0.325 | 0.329     | 0.656  |
+| SGFN_inseg_0_5        | 32.1  | 38.9      | 48.4   |
+| 3DSSG_full_l20_1      | 0.194 | 0.304     | 0.283  |
+| 2DSSG_full_1_2        | 0.308 | 0.329     | 0.802  |
+| 2DSSG_full_1_3        | 0.409 | 0.460     | 0.730  |
+| 2DSSG_ORBSLAM3_l20_0  | 16.2  | 27.6      | 17.3   |
+| 2DSSG_ORBSLAM3_l20_1  | 20.8  | 33.2      | 25.2   |
+| 2DSSG_ORBSLAM3_l20_1* | 24.6  | 35.6      | 41.5   |
 
 Note: remember to recalculate average. (ignore none in recall and iou)
 

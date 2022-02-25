@@ -120,20 +120,20 @@ if __name__ == '__main__':
     pbar = tqdm(scan_ids)
     
     '''process'''
-    invalid_scans=0
-    valid_scans=0
+    invalid_scans=list()
+    valid_scans=list()
     for scan_id in pbar: #['scene0000_00']: #glob.glob('scene*'):
         if DEBUG: scan_id = '095821f7-e2c2-2de1-9568-b9ce59920e29'
         logger_py.info(scan_id)
         pbar.set_description('processing {}'.format(scan_id))
         
         pth_graph = os.path.join(fdata,scan_id,args.target_name)
-        with open(pth_graph, "r") as read_file:
-            data = json.load(read_file)[scan_id]
-        
-        
-        
-        # graph = util_data.load_graph(data,box_filter_size=[int(args.min_size)])
+        if os.path.isfile(pth_graph):
+            with open(pth_graph, "r") as read_file:
+                data = json.load(read_file)[scan_id]
+        else:
+            invalid_scans.append(scan_id)
+            continue
         
         '''check if the scene has been created'''
         if scan_id in h5f: 
@@ -267,10 +267,10 @@ if __name__ == '__main__':
             
         '''check if empty'''
         if len(objects) == 0:
-            # print('skip',scene)
-            invalid_scans+=1
+            invalid_scans.append(scan_id)
             continue
-        valid_scans+=1
+        valid_scans.append(scan_id)
+        # valid_scans+=1
         
         '''save'''
         # Save objects.
@@ -303,8 +303,8 @@ if __name__ == '__main__':
         if DEBUG: break
         # break
     print('')
-    if invalid_scans+valid_scans>0:
-        print('percentage of invalid scans:',invalid_scans/(invalid_scans+valid_scans), '(',invalid_scans,',',(invalid_scans+valid_scans),')')
+    if len(invalid_scans)+len(valid_scans)>0:
+        print('percentage of invalid scans:',len(invalid_scans)/(len(invalid_scans)+len(valid_scans)), '(',len(invalid_scans),',',(len(invalid_scans)+len(valid_scans)),')')
         h5f.attrs['classes'] = util_label.NYU40_Label_Names
         # write args
         tmp = vars(args)
@@ -317,5 +317,6 @@ if __name__ == '__main__':
         #         f.write('{}\n'.format(cls))
     else:
         print('no scan processed')
+    print('invalid scans:',invalid_scans)
     h5f.close()
     

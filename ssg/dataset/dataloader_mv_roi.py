@@ -140,10 +140,9 @@ class MultiViewROIImageLoader(data.Dataset):
             self.w_edge_cls=None
             # self.w_edge_cls = torch.from_numpy(np.array(wrels)).float()
             
-        del self.sg_data
-        if self.mconfig.load_images:
-            del self.roi_imgs
-            del self.mv_data
+        del self.sg_data    
+        del self.roi_imgs
+        del self.mv_data
         
     def __len__(self):
         return self.size
@@ -280,9 +279,8 @@ class MultiViewROIImageLoader(data.Dataset):
         gt_class = torch.from_numpy(np.array(cat))
         
         del self.sg_data
-        if self.mconfig.load_images:
-            del self.roi_imgs
-            del self.mv_data
+        del self.roi_imgs
+        del self.mv_data
         
         output = dict()
         output['scan_id'] = scan_id # str

@@ -105,6 +105,7 @@ class Trainer_SGFN(BaseTrainer):
         return eval_dict, eval_tool
     
     def evaluate_inst(self,dataset_seg,dataset_inst,topk):
+        ignore_missing=self.cfg.eval.ignore_missing
         '''add a none class for missing instances'''
         node_cls_names = copy.copy(self.node_cls_names)
         edge_cls_names = copy.copy(self.edge_cls_names)
@@ -133,7 +134,8 @@ class Trainer_SGFN(BaseTrainer):
         
         '''check'''
         #length
-        print(len(dataset_seg), len(dataset_inst))
+        print('len(dataset_seg), len(dataset_inst):',len(dataset_seg), len(dataset_inst))
+        print('ignore missing',ignore_missing)
         #classes
         
         
@@ -158,6 +160,7 @@ class Trainer_SGFN(BaseTrainer):
         # )
         
         '''start eval'''
+        
         self.model.eval()
         for index in tqdm(range(len(dataset_inst))):
         # for data_inst in seg_dataloader:
@@ -213,29 +216,42 @@ class Trainer_SGFN(BaseTrainer):
                 merged_instance2idx = dict()
                 merged_node_cls = torch.zeros(len(inst_instance2mask),len(node_cls_names))
                 merged_node_cls_gt = torch.zeros(len(inst_instance2mask),dtype=torch.long)
-                for idx, (inst, mask )in enumerate(inst_instance2mask.items()):
-                    merged_instance2idx[inst] = idx
-                    merged_node_cls_gt[idx] = inst_gt_cls[mask]
+                counter=0
+                for idx, (inst, mask )in enumerate(inst_instance2mask.items()):                    
                     # merge predictions
-                    if inst in inst2masks:
-                        '''merge nodes'''
-                        predictions = node_cls[inst2masks[inst]]
-                        
-                        # averaging the probability
-                        node_cls_pred = torch.softmax(predictions, dim=1).mean(dim=0)                        
-                        merged_node_cls[idx][:node_cls_pred.shape[0]] = node_cls_pred
-                        
-                        # node_cls_pred = torch.max(node_cls_pred,1)[1]
-                        
-                        '''merge edge'''
+                    if not ignore_missing:
+                        merged_instance2idx[inst] = idx
+                        merged_node_cls_gt[idx] = inst_gt_cls[mask]
+                        if inst in inst2masks:
+                            '''merge nodes'''
+                            predictions = node_cls[inst2masks[inst]]
+                            
+                            # averaging the probability
+                            node_cls_pred = torch.softmax(predictions, dim=1).mean(dim=0)                        
+                            merged_node_cls[idx][:node_cls_pred.shape[0]] = node_cls_pred
+                            
+                            # node_cls_pred = torch.max(node_cls_pred,1)[1]
+                            
+                            '''merge edge'''
+                        else:
+                            #TODO: handle missing inst
+                            merged_node_cls[idx][noneidx_node_cls] = 1.0
+                            # merged_node_cls_gt[idx]=noneidx_node_cls
+                            
+                            
+                            pass
                     else:
-                        #TODO: handle missing inst
-                        merged_node_cls[idx][noneidx_node_cls] = 1.0
-                        # merged_node_cls_gt[idx]=noneidx_node_cls
-                        
-                        
-                        pass
-                    
+                        if inst not in inst2masks:
+                            continue
+                        merged_instance2idx[inst] = counter
+                        predictions = node_cls[inst2masks[inst]]
+                        node_cls_pred = torch.softmax(predictions, dim=1).mean(dim=0)                        
+                        merged_node_cls[counter][:node_cls_pred.shape[0]] = node_cls_pred
+                        merged_node_cls_gt[counter] = inst_gt_cls[mask]
+                        counter+=1
+                if ignore_missing:
+                    merged_node_cls = merged_node_cls[:counter]
+                    merged_node_cls_gt = merged_node_cls_gt[:counter]
                 '''merge '''
                 idx2seg= merge_batch_seg2idx(instance2mask) 
                 inst_idx2seg=merge_batch_seg2idx(inst_instance2mask)
@@ -277,8 +293,12 @@ class Trainer_SGFN(BaseTrainer):
                 merged_edge_cls = torch.zeros(len(inst_gt_rel),len(edge_cls_names))
                 merged_edge_cls_gt = torch.zeros(len(inst_gt_rel),dtype=torch.long)
                 merged_node_edges = list()
+                counter=0
                 for idx, (pair,inst_edge_cls) in enumerate(inst_gt_rel_dict.items()):
-                    merged_edge_cls_gt[idx] = inst_gt_rel_dict[pair]
+                    merged_edge_cls_gt[counter] = inst_gt_rel_dict[pair]
+                    if ignore_missing:
+                        if pair[0] not in merged_instance2idx: continue
+                        if pair[1] not in merged_instance2idx: continue
                     mask_src = merged_instance2idx[pair[0]]
                     mask_tgt = merged_instance2idx[pair[1]]
                     merged_node_edges.append([mask_src,mask_tgt])
@@ -291,9 +311,12 @@ class Trainer_SGFN(BaseTrainer):
                         #ignore same part
                         
                         edge_pds = torch.softmax(edge_pds,dim=1).mean(0)
-                        merged_edge_cls[idx][:edge_pds.shape[0]] = edge_pds
+                        merged_edge_cls[counter][:edge_pds.shape[0]] = edge_pds
                     else:
-                        merged_edge_cls[idx][noneidx_edge_cls] = 1.0
+                        merged_edge_cls[counter][noneidx_edge_cls] = 1.0
+                    counter+=1
+                if ignore_missing:
+                    merged_edge_cls=merged_edge_cls[:counter]
                 merged_node_edges = torch.tensor(merged_node_edges,dtype=torch.long)
 
             eval_tool.add([scan_id], 
