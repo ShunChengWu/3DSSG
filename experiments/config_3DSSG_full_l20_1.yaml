@@ -1,0 +1,72 @@
+inherit_from: experiments/config_default.yaml
+VERBOSE: true
+name: '3DSSG_full_l20_1'
+GPU: [0]
+training:
+ batch: 1
+ data_workers: 4
+ lr: 1e-4
+ patient: 30
+ optimizer: 'adamw'
+ amsgrad: true
+ lambda_mode: constant # [constant, dynamic]. dynamic will calculate the ratio of the number of node and edge.
+ lambda_node: 0.1 # learning rate ratio
+ lambda_edge: 1.0 # learning rate ratio
+ scheduler:
+  method: reduceluronplateau # [none, multisteplr, reduceluronplateau]
+  milestones: [750, 1000]
+  args: {
+    mode: max, 
+    verbose: true,
+    milestones: [750, 1000],
+    gamma: 0.5,
+    factor: 0.9,
+  }
+ out_dir: experiments/
+ model_selection_metric: iou_node_cls
+ model_selection_mode: maximize # can be maximize or minimize. e.g. if it's "loss", should "minimize", if it's accuracy, should "maximize"
+ max_epoch: 200
+model:
+ method: sgpn
+ multi_rel: false # multiple relationship 
+ use_rgb: false
+ use_normal: false
+ img_feature_dim: 256
+ num_points_union: 2048 # for 3DSSG
+ node_feature_dim: 1024
+ edge_feature_dim: 256
+ edge_descriptor_dim: 8
+ gnn:
+  method: triplet # [none, fan, triplet]
+  hidden_dim: 512
+  num_layers: 5
+  num_heads: 0
+  drop_out: 0
+  node_from_gnn: false
+data:
+ input_type: sgfn #[3RScan, graph, sgfn, sgpn]
+ path: "./data/3RScan_ScanNet20_gt/"
+ path_gt: "./data/3RScan_ScanNet20_gt/"
+ label_file: "labels.instances.align.annotated.v2.ply"
+ sample_in_runtime: true
+ sample_num_nn: 1
+ sample_num_seed: 1
+ load_cache: true
+ rel_data_type: points # [points, descriptor] 
+ load_images: false
+ load_points: true
+ drop_edge: 0 # if is int and >0, select given number. if is float/double, select percentage between [1-x,1]
+ drop_edge_eval: 0 # if is int and >0, select given number. if is float/double, select percentage between [1-x,1]
+ normalize_weight: true 
+ max_num_edge: 80 # maximum number of edges for training (to save memory)
+ full_edge: false # connect all selected nodes
+logging:
+ method: wandb # [tensorboard, wandb, none]
+ log_grad_freq: 1000 
+ log_graph: True
+wandb:
+ dry_run: false
+ entity: 'shunchengwu'
+ project: "ssg"
+ tags: ["ssg", "3dssg"]
+ dir: logs/
