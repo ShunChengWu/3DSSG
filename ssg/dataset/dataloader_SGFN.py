@@ -347,15 +347,18 @@ class SGFNDataset (data.Dataset):
                 cls_label = node.attrs['label']
                 if cls_label == 'unknown':
                     cls_label = self.classNames[cat[idx]]
-                img = np.asarray(roi_imgs[oid])
+                    
+                img_ids=range(len(roi_imgs[oid]))
                 
                 if not self.for_eval:
-                    kf_indices = random_drop(range(img.shape[0]), self.mconfig.drop_img_edge, replace=True)
-                    img = img[kf_indices]
+                    kf_indices = random_drop(img_ids, self.mconfig.drop_img_edge, replace=True)
+                    # img = img[kf_indices]
+                    
+                img = [roi_imgs[oid][x] for x in kf_indices]
                 # else:
                 #     kf_indices = [idx for idx in range(img.shape[0])]
                 
-                img = torch.as_tensor(img).clone()
+                img = torch.as_tensor(np.array(img))#.clone()
                 img = torch.clamp((img*255).byte(),0,255).byte()
                 t_img = torch.stack([self.transform(x) for x in img],dim=0)
                 if DRAW_BBOX_IMAGE:

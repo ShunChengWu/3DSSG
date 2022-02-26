@@ -1,7 +1,7 @@
 import torch
 from torch import nn
 from codeLib.utils.util import pytorch_count_params
-import ssg2d
+import ssg
 import logging
 import torchvision
 logger_py = logging.getLogger(__name__)
@@ -39,12 +39,12 @@ class SVEnc(nn.Module):
         super().__init__()
         self.cfg=cfg
         self._device=device
-        self.method = cfg.model.node_encoder.method
+        self.method = cfg.model.image_encoder.method
         models = dict()
         
         if self.method == 'inceptionv4':
             logger_py.info('use GVCNN original implementation')
-            encoder = ssg2d.models.node_encoder.GVCNN.SVCNN(num_obj_cls)
+            encoder = ssg.models.node_encoder.GVCNN.SVCNN(num_obj_cls)
             # c = ssg2d.models.encoder.inceptionV4.inceptionv4()
             # encoder.last_linear = nn.Linear(1536, num_obj_cls)
             # encoder.last_linear.apply(init_weights)
@@ -56,7 +56,7 @@ class SVEnc(nn.Module):
         elif self.method == 'vgg16':
             logger_py.info('use_vgg16')
             encoder = VGG16Enc(num_obj_cls,True)
-            classifier = ssg2d.models.classifier.classifider_list['vgg16'](25088,num_obj_cls)
+            classifier = ssg.models.classifier.classifider_list['vgg16'](25088,num_obj_cls)
         else:
             raise NotImplementedError()
             
@@ -103,9 +103,9 @@ if __name__ == '__main__':
     import codeLib
     config = codeLib.Config('./configs/default_mv.yaml')
     config.path = '/home/sc/research/PersistentSLAM/python/2DTSG/data/test/'
-    # config.model.node_encoder.method='mvcnn'
-    config.model.node_encoder.method='inceptionv4'
-    # config.model.node_encoder.backend='res18'
+    # config.model.image_encoder.method='mvcnn'
+    config.model.image_encoder.method='inceptionv4'
+    # config.model.image_encoder.backend='res18'
     model = SVEnc(config,num_obj_cls=40,device='cpu')
     print(model)
     # if config.data.use_precompute_img_feature:
