@@ -199,10 +199,10 @@ class GVCNN(NodeEncoderBase):
         # self.img_batch_size = 4
         # self._device = device
         self.node_feature_dim = 1536
-        self.roi_region = cfg.model.node_encoder.roi_region
+        self.roi_region = cfg.model.image_encoder.roi_region
         svcnn = SVCNN(num_class)
         # filter_args_create()
-        load_model(svcnn, cfg.model.node_encoder.backend_ckpt, cfg.model.node_encoder.backend_ckpt_prefix)
+        load_model(svcnn, cfg.model.image_encoder.backend_ckpt, cfg.model.image_encoder.backend_ckpt_prefix)
         
         # fcn_1
         self.nn_enc = nn.Sequential(*list(svcnn.net.features[0:5]))

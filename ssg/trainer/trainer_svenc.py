@@ -10,8 +10,8 @@ from collections import defaultdict
 from tqdm import tqdm
 import numpy as np
 from codeLib.models import BaseTrainer
-import ssg2d
-from ssg2d.utils.util_eva import EvaClassificationSimple
+import ssg
+from ssg.utils.util_eva import EvaClassificationSimple
 import codeLib.utils.moving_average as moving_average 
 import time
 from codeLib.common import check_weights, convert_torch_to_scalar
@@ -30,10 +30,10 @@ class Trainer_SVENC(BaseTrainer):
         self.model = model
         self.node_cls_names = node_cls_names
         self.w_node_cls = kwards.get('w_node_cls',None)
-        self.input_is_roi = cfg.data.input_type == 'sv_roi'
+        self.input_is_roi = 'roi'in cfg.data.input_type# == 'sv_roi' or cfg.data.input_type == 'mv_roi'
         
         trainable_params = filter(lambda p: p.requires_grad, model.parameters())
-        self.optimizer = ssg2d.config.get_optimizer(cfg, trainable_params)
+        self.optimizer = ssg.config.get_optimizer(cfg, trainable_params)
         
         
         if self.w_node_cls is not None: 
@@ -150,7 +150,15 @@ class Trainer_SVENC(BaseTrainer):
         # device = self._device
         
         ''' make forward pass through the network '''
-        outputs = self.model(x = data['images'])
+        if self.input_is_roi:
+            outputs = self.model(images = data['roi_imgs'], 
+                   bboxes = None,
+                   return_meta=True)
+        else: 
+            outputs = self.model(images = data['images'], 
+                   bboxes = data['image_boxes'],
+                   return_meta=True)  
+        # outputs = self.model(x = data['images'])
         # if self.input_is_roi:
             
         # else: 

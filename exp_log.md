@@ -101,6 +101,7 @@ Note: the IoU is extremely high because of the overwhelming true negatives (none
 - 2DSSG_full_1_1: single predicates. fix predicates class. ->abort
 - 2DSSG_full_1_2: single predicates. fix predicates class. fix class weighting.
 - 2DSSG_full_1_3: try to roll back to the previous predicate class weighting.
+- 2DSSG_full_l20_0: Res18. noGCN
 - 3DSSG_full_l20_0: -> not valid. was using the full edge in training.
 - 3DSSG_full_l20_1: don't use full edge
 - 2DSSG_ORBSLAM3_l20_0: with est. entities from ORBSLAM3 (forgot to finetune)
