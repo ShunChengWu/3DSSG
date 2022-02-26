@@ -351,10 +351,10 @@ class SGFNDataset (data.Dataset):
                 img_ids=range(len(roi_imgs[oid]))
                 
                 if not self.for_eval:
-                    kf_indices = random_drop(img_ids, self.mconfig.drop_img_edge, replace=True)
+                    img_ids = random_drop(img_ids, self.mconfig.drop_img_edge, replace=True)
                     # img = img[kf_indices]
                     
-                img = [roi_imgs[oid][x] for x in kf_indices]
+                img = [roi_imgs[oid][x] for x in img_ids]
                 # else:
                 #     kf_indices = [idx for idx in range(img.shape[0])]
                 
