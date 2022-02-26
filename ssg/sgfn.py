@@ -26,15 +26,17 @@ class SGFN(nn.Module):
         if self.with_img_encoder and self.with_pts_encoder:
             raise NotImplementedError("")
         
-        if self.cfg.model.use_spatial:
+        self.use_spatial = use_spatial = self.cfg.model.spatial_encoder.method != 'none'
+        sptial_feature_dim=0
+        if use_spatial:
             if self.with_pts_encoder:
                 # # ignore centroid (11-3=8)
                 sptial_feature_dim = 8
                 node_feature_dim -= sptial_feature_dim
                 cfg.model.node_feature_dim = node_feature_dim
             if self.with_img_encoder:
-                sptial_feature_dim = 5
-                sptial_feature_dim = 0
+                sptial_feature_dim = 6
+                # sptial_feature_dim = 0
                 # node_feature_dim -= sptial_feature_dim
                 # cfg.model.node_feature_dim = node_feature_dim
         
@@ -102,8 +104,16 @@ class SGFN(nn.Module):
         else:
             models['rel_encoder'] = ssg.models.edge_encoder_list[self.cfg.model.edge_encoder.method](cfg,device)
         
-        if self.cfg.model.use_spatial:
+        if use_spatial:
+            if self.cfg.model.spatial_encoder.method == 'fc':
+                models['spatial_encoder'] = torch.nn.Linear(sptial_feature_dim, cfg.model.spatial_encoder.dim)
+                node_feature_dim+=cfg.model.spatial_encoder.dim
+            else:
+                raise NotImplementedError()
+        else:
+            models['spatial_encoder'] = torch.nn.Identity()
             node_feature_dim += sptial_feature_dim
+                            
         cfg.model.node_feature_dim = node_feature_dim
         
         if cfg.model.gnn.method != 'none': 
@@ -174,19 +184,33 @@ class SGFN(nn.Module):
             # logger_py.debug('len(nodes), len(edges): {} {} '.format(len(obj_points), node_edges.shape))
             nodes_pts_feature = self.obj_encoder(obj_points)
             nodes_feature = nodes_pts_feature 
-            if self.cfg.model.use_spatial:
+            if self.use_spatial:
                 descriptor = args['descriptor']
                 tmp = descriptor[:,3:].clone()
                 tmp[:,6:] = tmp[:,6:].log() # only log on volume and length
                 nodes_feature = torch.cat([nodes_pts_feature, tmp],dim=1)
             
         if self.with_img_encoder:
-            # logger_py.debug('len(nodes), len(edges): {} {} '.format(len(args['roi_imgs']), node_edges.shape))
-            
-            descriptor = args['node_descriptor_8']
-            
             nodes_img_feature= self.img_encoder(args['roi_imgs'])
             nodes_feature = nodes_img_feature['nodes_feature']
+            descriptor = args['node_descriptor_8']
+            if self.use_spatial:
+                # in R5            
+                tmp = descriptor[:,3:8].clone()
+                # log on volume and length
+                tmp[:,3:]=tmp[:,3:].log()
+                # x,y ratio in R1
+                xy_ratio = tmp[:,0].log() - tmp[:,1].log() # in log space for stability
+                xy_ratio = xy_ratio.view(-1,1)
+                
+                # [:, 6] -> [:, N]
+                embed_desc = self.spatial_encoder(torch.cat([tmp,xy_ratio],dim=1))
+                # learnable positional encoding
+                nodes_feature = torch.cat([nodes_feature, embed_desc],dim=1)
+            
+            
+            
+            
             
 
         ''' Create edge feature '''

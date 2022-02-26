@@ -101,12 +101,14 @@ Note: the IoU is extremely high because of the overwhelming true negatives (none
 - 2DSSG_full_1_1: single predicates. fix predicates class. ->abort
 - 2DSSG_full_1_2: single predicates. fix predicates class. fix class weighting.
 - 2DSSG_full_1_3: try to roll back to the previous predicate class weighting.
-- 2DSSG_full_l20_0: Res18. noGCN
 - 3DSSG_full_l20_0: -> not valid. was using the full edge in training.
 - 3DSSG_full_l20_1: don't use full edge
 - 2DSSG_ORBSLAM3_l20_0: with est. entities from ORBSLAM3 (forgot to finetune)
 - 2DSSG_ORBSLAM3_l20_1: with improved bboxes
 - 2DSSG_ORBSLAM3_l20_2: with improved bboxes. w/o finetune
+- 2DSSG_ORBSLAM3_l20_3: bbox augmentation 0.3. use acc_node_cls instaed of iou as the stop and schedular.
+- 2DSSG_ORBSLAM3_l20_3: use spatial encoder (fc,dim=128). bbox augmentation 0.3.
+
 
 
 
@@ -121,6 +123,7 @@ Note: the IoU is extremely high because of the overwhelming true negatives (none
 | SGFN_inseg_0_5       | 0.39    | 0.55    | 0.67    | 0.90    | 0.83     | 0.95     |
 | 2DSSG_ORBSLAM3_l20_0 | 22.7    | 32.3    | 53.8    | 80.3    | 82.1     | 91.6     |
 | 2DSSG_ORBSLAM3_l20_1 | 21.5    | 29.3    | 48.2    | 72.7    | 80.5     | 90.6     |
+| 2DSSG_ORBSLAM3_l20_2 | 25.5    | 34.8    | 53.6    | 81.2    | 79.9     | 90.0      |
 
 #### Object
 | method               | IoU  | Precision | Recall |
@@ -129,6 +132,7 @@ Note: the IoU is extremely high because of the overwhelming true negatives (none
 | 2DSSG_full_1_3       | 51.0 | 61.1      | 75.8   |
 | SGFN_inseg_0_5       | 41.7 | 52.1      | 59.3   |
 | 2DSSG_ORBSLAM3_l20_1 | 22.1 | 33.6      | 39.9   |
+| 2DSSG_ORBSLAM3_l20_2 | 29.1 | 40.6      | 54.8   |
 
 
 #### Predicates
@@ -138,6 +142,7 @@ Note: the IoU is extremely high because of the overwhelming true negatives (none
 | 2DSSG_full_1_3       | 40.9 | 46.0      | 73.0   |
 | SGFN_inseg_0_5       | 31.1 | 34.7      | 61.6   |
 | 2DSSG_ORBSLAM3_l20_1 | 24.6 | 35.6      | 41.5   |
+| 2DSSG_ORBSLAM3_l20_2 | 25.4 | 37.6      | 48.5   |
 
 
 ## Instance level
@@ -154,6 +159,9 @@ Note: the IoU is extremely high because of the overwhelming true negatives (none
 | 2DSSG_ORBSLAM3_l20_0  | 3.6     | 7.0     | 19.2    | 37.5    | 95.3     | 97.8     |
 | 2DSSG_ORBSLAM3_l20_1  | 5.6     | 10.0    | 24.2    | 43.4    | 95.0     | 98.0     |
 | 2DSSG_ORBSLAM3_l20_1* | 21.5    | 29.3    | 48.2    | 72.7    | 80.5     | 90.6     |
+| 2DSSG_ORBSLAM3_l20_2* | 27.5    | 48.2    | 55.6    | 82.8    | 89.8     | 99.0     |
+| 2DSSG_ORBSLAM3_l20_2  | 6.4     | 11.8    | 26.4    | 46.8    | 95.0     | 98.1     |
+| SGFN_inseg_0_5*       | 49.4    | 72.7    | 72.8    | 92.1    | 92.0     | 98.3     |
 
 Note: `2DSSG_ORBSLAM3_l20_1*` is ignore missing objects and scans.
 
@@ -167,12 +175,15 @@ objects and predicates are missing due to the missing nodes.
 | SGFN_inseg_0_1        | 0.283 | 0.716     | 0.304  |
 | SGFN_full_0_3         | 0.326 | 0.457     | 0.482  |
 | SGFN_inseg_0_5        | 33.5  | 52.1      | 47.2   |
-| 3DSSG_full_l20_1      | 0.281 | 0.390     | 0.476  |
-| 2DSSG_full_1_2        | 0.510 | 0.603     | 0.754  |
-| 2DSSG_full_1_3        | 0.510 | 0.611     | 0.758  |
+| 3DSSG_full_l20_1      | 28.1  | 39.0      | 47.6   |
+| 2DSSG_full_1_2        | 51.0  | 60.3      | 75.4   |
+| 2DSSG_full_1_3        | 51.0  | 61.1      | 75.8   |
 | 2DSSG_ORBSLAM3_l20_0  | 15.7  | 41.6      | 20.0   |
 | 2DSSG_ORBSLAM3_l20_1  | 15.2  | 35.6      | 23.6   |
 | 2DSSG_ORBSLAM3_l20_1* | 22.1  | 33.6      | 39.9   |
+| 2DSSG_ORBSLAM3_l20_2* | 32.9  | 45.0      | 57.7   |
+| 2DSSG_ORBSLAM3_l20_2  | 19.0  | 42.8      | 30.2   |
+| SGFN_inseg_0_5*       | 46.8  | 57.4      | 62.4   |
 
 #### Predicate
 | method                | IoU   | Precision | Recall |
@@ -185,6 +196,9 @@ objects and predicates are missing due to the missing nodes.
 | 2DSSG_ORBSLAM3_l20_0  | 16.2  | 27.6      | 17.3   |
 | 2DSSG_ORBSLAM3_l20_1  | 20.8  | 33.2      | 25.2   |
 | 2DSSG_ORBSLAM3_l20_1* | 24.6  | 35.6      | 41.5   |
+| 2DSSG_ORBSLAM3_l20_2* | 30.6  | 39.0      | 58.6   |
+| 2DSSG_ORBSLAM3_l20_2  | 21.8  | 38.9      | 28.3   |
+| SGFN_inseg_0_5*       | 36.2  | 38.9      | 68.0   |
 
 Note: remember to recalculate average. (ignore none in recall and iou)
 
@@ -192,3 +206,10 @@ Note: remember to recalculate average. (ignore none in recall and iou)
 ## LR schedular
 - 0: reduceluronplateau, factor=0.1
 - 1: reduceluronplateau, factor=0.9
+
+
+
+
+
+# MVCNN
+- mv_res18_3rscan: trainng.

@@ -4,7 +4,7 @@ GPU: [0]
 name: 'test'
 training:
  batch: 1
- data_workers: 0
+ data_workers: 8
  lr: 1e-4
  patient: 0
  optimizer: 'adamw'
@@ -41,12 +41,14 @@ model:
  multi_rel: true # multiple relationship 
  use_rgb: false
  use_normal: false
- use_spatial: true
  img_feature_dim: 256
  num_points_union: 512 # for 3DSSG
  node_feature_dim: 256
  edge_feature_dim: 256
 # edge_descriptor_dim: 11
+ spatial_encoder:
+  method: none #[none,fc]
+  dim: 128
  node_encoder:
   method: none #[none, basic]
   with_bn: false

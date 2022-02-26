@@ -366,7 +366,8 @@ class SGFNDataset (data.Dataset):
                 t_img= normalize_imagenet(t_img.float()/255.0)
                 bounding_boxes.append( t_img)
                 
-            descriptor_8 = torch.zeros([len(cat), 8])
+            descriptor_generator = util_data.Node_Descriptor_24(with_bbox=False)
+            node_descriptor_for_image = torch.zeros([len(cat), len(descriptor_generator)])
             for i in range(len(filtered_instances)):
                 instance_id = filtered_instances[i]
                 obj = object_data[instance_id]
@@ -391,7 +392,7 @@ class SGFNDataset (data.Dataset):
                 
                 
                 
-                descriptor_8[i] = util_data.gen_descriptor_8(obj)
+                node_descriptor_for_image[i] = descriptor_generator(obj)
             
         
         ''' Build rel class GT '''
@@ -547,7 +548,7 @@ class SGFNDataset (data.Dataset):
                 output['rel_points'] = rel_points
         if self.mconfig.load_images:
             output['roi_imgs'] = bounding_boxes #list
-            output['node_descriptor_8'] = descriptor_8
+            output['node_descriptor_8'] = node_descriptor_for_image
         output['node_edges'] = edge_indices # tensor
         output['instance2mask'] = oid2idx #dict
         output['seg2inst'] = seg2inst
