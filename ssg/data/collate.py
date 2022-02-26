@@ -103,7 +103,8 @@ def graph_collate(batch):
         
         if 'image_boxes' in b:
             x = b['image_boxes']
-            image_boxes += [{ k+n_images_acc: v for k,v in xx.items() } for xx in x]
+            x[:,0] += n_nodes_acc
+            # image_boxes += [{ k+n_images_acc: v for k,v in xx.items() } for xx in x]
         # b['image_boxes'] = [{ k+n_images_acc: v for k,v in xx.items() } for xx in x]
             
         if 'gt_cls' in b:

@@ -107,7 +107,8 @@ Note: the IoU is extremely high because of the overwhelming true negatives (none
 - 2DSSG_ORBSLAM3_l20_1: with improved bboxes
 - 2DSSG_ORBSLAM3_l20_2: with improved bboxes. w/o finetune
 - 2DSSG_ORBSLAM3_l20_3: bbox augmentation 0.3. use acc_node_cls instaed of iou as the stop and schedular.
-- 2DSSG_ORBSLAM3_l20_3: use spatial encoder (fc,dim=128). bbox augmentation 0.3.
+- 2DSSG_ORBSLAM3_l20_4: use spatial encoder (fc,dim=128). bbox augmentation 0.3.
+- 2DSSG_ORBSLAM3_l20_5: try to use different edge descriptor
 
 
 

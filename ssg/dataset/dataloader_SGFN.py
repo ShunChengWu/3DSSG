@@ -37,6 +37,8 @@ class SGFNDataset (data.Dataset):
         self.path_h5 = os.path.join(self.path,'relationships_%s.h5' % (mode))
         self.path_mv = os.path.join(self.path,'proposals.h5')
         self.path_roi_img = self.mconfig.roi_img_path
+        self.pth_node_weights = os.path.join(self.path,'node_weights.txt')
+        self.pth_edge_weights = os.path.join(self.path,'edge_weights.txt')
         try:
             self.root_scannet = define.SCANNET_DATA_PATH
         except:
@@ -73,8 +75,6 @@ class SGFNDataset (data.Dataset):
         
         self.relationNames = sorted(names_relationships)
         self.classNames = sorted(names_classes)
-        
-        
         self.none_idx = self.relationNames.index(define.NAME_NONE) if not multi_rel_outputs else None
         
         '''set transform'''
@@ -89,6 +89,12 @@ class SGFNDataset (data.Dataset):
                 self.transform = transforms.Compose([
                     transforms.Resize(config.data.roi_img_size),
                     ])
+        
+        if not self.for_eval:
+            w_node_cls = np.loadtxt(self.pth_node_weights)
+            w_edge_cls = np.loadtxt(self.pth_edge_weights)
+            self.w_node_cls = torch.from_numpy(w_node_cls).float()
+            self.w_edge_cls = torch.from_numpy(w_edge_cls).float()
         
         ''' load data '''
         if self.mconfig.load_images:
@@ -186,7 +192,7 @@ class SGFNDataset (data.Dataset):
     def open_img(self):
         if not hasattr(self, 'roi_imgs'):
             self.roi_imgs = h5py.File(self.path_roi_img,'r')
-        
+           
     def __getitem__(self, index):
         scan_id = snp.unpack(self.scans,index)# self.scans[idx]
         
@@ -366,7 +372,7 @@ class SGFNDataset (data.Dataset):
                 t_img= normalize_imagenet(t_img.float()/255.0)
                 bounding_boxes.append( t_img)
                 
-            descriptor_generator = util_data.Node_Descriptor_24(with_bbox=False)
+            descriptor_generator = util_data.Node_Descriptor_24(with_bbox=self.mconfig.img_desc_6_pts)
             node_descriptor_for_image = torch.zeros([len(cat), len(descriptor_generator)])
             for i in range(len(filtered_instances)):
                 instance_id = filtered_instances[i]

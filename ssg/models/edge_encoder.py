@@ -21,6 +21,9 @@ class EdgeDescriptor_8(MessagePassing):
         edge_feature = self.message(**msg_kwargs)
         return edge_feature
     
+    def __len__(self): 
+        return 8
+    
     def message(self, x_i, x_j):
         # source_to_target
         # (j, i)
@@ -38,14 +41,120 @@ class EdgeDescriptor_8(MessagePassing):
         edge_feature[:,7] = torch.log( x_i[:,7] / x_j[:,7])
         # edge_feature, *_ = self.ef(edge_feature.unsqueeze(-1))
         return edge_feature.unsqueeze(-1)
+    
 
-       
+class EdgeDescriptor_plane(MessagePassing):
+    """ A sequence of scene graph convolution layers  """
+    def __init__(self, flow="target_to_source"):
+        '''
+        about target_to_source or source_to_target. check https://pytorch-geometric.readthedocs.io/en/latest/notes/create_gnn.html
+        '''
+        super().__init__(flow=flow)
+        self.dim=18
+    def forward(self, descriptor, edges_indices):
+        size = self.__check_input__(edges_indices, None)
+        coll_dict = self.__collect__(self.__user_args__,edges_indices,size, {"x":descriptor})
+        msg_kwargs = self.inspector.distribute('message', coll_dict)
+        edge_feature = self.message(**msg_kwargs)
+        return edge_feature
+    
+    def __len__(self):
+        return self.dim
+    
+    def point_2_plane_dist(self,pts,ori,normal):
+        v = pts-ori
+        d = v @ normal
+        return d
+    
+    def norm(self,x):
+        return x/ x.norm(dim=1).view(-1,1)
+    
+    def message(self, x_i, x_j):
+        # source_to_target
+        # (j, i)
+        # 0-2: centroid, 3-5:dims, 6:volume, 7:length
+        # to
+        # 0-2: offset centroid, 3-5: dim log ratio, 96 volume log ratio, 7: length log ratio
+        
+        # 0-2:center, 3-5:dims,6:volume,7:length, 
+        # 8-10: x_max,11-13:x_min,14-16:y_max,17-19:y_min,20-22:z_max,23-25:z_min
+        batch = x_i.shape[0]
+        
+        #Find gravity aligned plane
+        center_i = x_i[:,:3]
+        center_j = x_j[:,:3]
+        center = (center_i+center_j)*0.5
+        
+        # center_o = center.clone()
+        # center_o[:,2] -= 10
+        # v_oi = center_i - center_o
+        # v_oj = center_j - center_o
+        # normal = self.norm(torch.cross(v_oi,v_oj,dim=1))
+        
+        '''normals'''
+        normal_up = torch.zeros(batch,3).to(x_i.device)
+        normal_up[:,2] = 1
+        
+        v_ij = self.norm(center_j-center_i)
+        normal_right = torch.cross(v_ij,normal_up,dim=1)
+        normal_front = torch.cross(normal_up,normal_right,dim=1) # assume gravity align
+        
+        
+        '''calculate plane distances'''
+        pts_i = x_i[:,8:].view(batch,6,3)
+        pts_j = x_j[:,8:].view(batch,6,3)
+        center = center.view(batch,1,3)
+        d_z_i = self.point_2_plane_dist(pts_i,center,normal_up.view(batch,3,1))
+        d_z_j = self.point_2_plane_dist(pts_j,center,normal_up.view(batch,3,1))
+        d_y_i = self.point_2_plane_dist(pts_i,center,normal_right.view(batch,3,1))
+        d_y_j = self.point_2_plane_dist(pts_j,center,normal_right.view(batch,3,1))
+        d_x_i = self.point_2_plane_dist(pts_i,center,normal_front.view(batch,3,1))
+        d_x_j = self.point_2_plane_dist(pts_j,center,normal_front.view(batch,3,1))
+        
+        ''''''
+        # [batch]
+        def get_max_min(dx,dy,dz):
+            return dx.min(1)[0],dx.max(1)[0],dy.min(1)[0],dy.max(1)[0],dz.min(1)[0],dz.max(1)[0]
+        d_i = torch.cat(get_max_min(d_x_i,d_y_i,d_z_i),dim=1)
+        d_j = torch.cat(get_max_min(d_x_j,d_y_j,d_z_j),dim=1)
+        
+        d_ij = torch.cat([d_i,d_j],dim=1)
+        
+        
+        edge_feature = torch.zeros([batch,self.dim]).to(x_i.device)
+        # centroid offset
+        edge_feature[:,0:3] = x_i[:,0:3]-x_j[:,0:3]
+        # dim log ratio
+        edge_feature[:,3:6] = torch.log(x_i[:,3:6] / x_j[:,3:6])
+        
+        edge_feature[:,6:] = d_ij
+        
+        # # volume log ratio
+        # edge_feature[:,6] = torch.log( x_i[:,6] / x_j[:,6])
+        # # length log ratio
+        # edge_feature[:,7] = torch.log( x_i[:,7] / x_j[:,7])
+        # # edge_feature, *_ = self.ef(edge_feature.unsqueeze(-1))
+        return edge_feature.unsqueeze(-1)
 
 class EdgeEncoder_2DSSG(nn.Module):
     def __init__(self,cfg,device):
         super().__init__()
         self.edge_descriptor = EdgeDescriptor_8()
-        self.encoder = point_encoder_dict['pointnet'](point_size=8,
+        self.encoder = point_encoder_dict['pointnet'](point_size=len(self.edge_descriptor),
+                                                      out_size=cfg.model.edge_feature_dim,
+                                                      batch_norm=cfg.model.edge_encoder.with_bn)
+        
+    def forward(self, descriptors, edges, **args):
+        edges_descriptor = self.edge_descriptor(descriptors, edges)
+        edges_feature = self.encoder(edges_descriptor)
+        return edges_feature
+    
+    
+class EdgeEncoder_2DSSG_1(nn.Module):
+    def __init__(self,cfg,device):
+        super().__init__()
+        self.edge_descriptor = EdgeDescriptor_plane()
+        self.encoder = point_encoder_dict['pointnet'](point_size=len(self.edge_descriptor),
                                                       out_size=cfg.model.edge_feature_dim,
                                                       batch_norm=cfg.model.edge_encoder.with_bn)
         
