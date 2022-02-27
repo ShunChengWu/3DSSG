@@ -65,7 +65,7 @@ class Trainer_MVENC(BaseTrainer):
         '''
         it_dataset = val_loader.__iter__()
         eval_tool = EvaClassificationSimple(self.node_cls_names) 
-        eval_list = defaultdict(moving_average.CMA)
+        eval_list = defaultdict(moving_average.MA)
 
         time.sleep(2)# Prevent possible deadlock during epoch transition
         for data in tqdm(it_dataset,leave=False):
@@ -260,7 +260,7 @@ class Trainer_MVENC(BaseTrainer):
         '''
         it_dataset = val_loader.__iter__()
         # eval_tool = EvaClassificationSimple(self.node_cls_names) 
-        # eval_list = defaultdict(moving_average.CMA)
+        # eval_list = defaultdict(moving_average.MA)
 
         # time.sleep(2)# Prevent possible deadlock during epoch transition
         self.model.eval()

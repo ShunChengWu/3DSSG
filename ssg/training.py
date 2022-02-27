@@ -25,24 +25,20 @@ class Trainer():
         self._device=device if device is not None else 'cpu'
         self.cfg = cfg
         self.model_trainer = model_trainer
-        #self.node_cls_names = node_cls_names#kwargs['node_cls_names']
-        #self.edge_cls_names = edge_cls_names#kwargs['edge_cls_names']
         self.logger = logger        
-        # self.eva_tool = EvalSceneGraph(self.node_cls_names, self.edge_cls_names,multi_rel_prediction=self.cfg.model.multi_rel,k=0) # do not calculate topK in training mode
-        
-        # self.loss_node_cls = torch.nn.CrossEntropyLoss(weight=self.w_node_cls)
-        # if self.cfg.model.multi_rel:
-        #     self.loss_rel_cls = torch.nn.BCEWithLogitsLoss(pos_weight=self.w_edge_cls)
-        # else:
-        #     self.loss_rel_cls = torch.nn.CrossEntropyLoss(weight=self.w_edge_cls)
-        #     pass
+        self.smoother = moving_average.get_smoother(cfg.training.metric_smoothing.method, 
+                                                    **cfg.training.metric_smoothing.args)
         self.scheduler = ssg.config.get_schedular(cfg, self.model_trainer.optimizer, last_epoch=-1)
         
         ''' load model and previous information '''
         out_dir = os.path.join(self.cfg['training']['out_dir'], cfg.name)
         if not os.path.exists(out_dir): os.makedirs(out_dir)
-        ckpt_io = CheckpointIO(out_dir, model=self.model_trainer.model, optimizer=self.model_trainer.optimizer,scheduler=self.scheduler)
-        
+        ckpt_io = CheckpointIO(out_dir, model=self.model_trainer.model, 
+                               optimizer=self.model_trainer.optimizer,
+                               scheduler=self.scheduler,
+                               smoother=self.smoother)
+        # ckpt_io.save('test.pt')
+        # ckpt_io.load('test.pt',device='cpu')
         if cfg['training']['model_selection_mode'] == 'maximize':
             model_selection_sign = 1
         elif cfg['training']['model_selection_mode'] == 'minimize':
@@ -59,7 +55,7 @@ class Trainer():
         '''shortcut'''
         logger_py.setLevel(self.cfg.log_level)
         cfg = self.cfg
-        self.patient = 0
+        
         
         max_epoch = self.cfg['training']['max_epoch']
         max_patient = self.cfg['training']['patient']
@@ -77,9 +73,7 @@ class Trainer():
         epoch_it = load_dict.get('epoch_it', -1)
         it = load_dict.get('it', -1)
         self.metric_val_best = load_dict.get('loss_val_best', -self.metric_sign * np.inf)
-            
-        # self.scheduler = ssg.config.get_schedular(cfg, self.model_trainer.optimizer, last_epoch=epoch_it)
-        
+        self.patient = load_dict.get('patient', 0)            
         
         '''  '''
         if logger:
@@ -117,8 +111,11 @@ class Trainer():
                 
             # Save checkpoint
             # logger_py.info('Saving checkpoint')
-            self.ckpt_io.save('model.pt', epoch_it=epoch, it=it,
-                            loss_val_best=self.metric_val_best)
+            self.ckpt_io.save('model.pt', 
+                              epoch_it=epoch, 
+                              it=it,
+                              loss_val_best=self.metric_val_best,
+                              patient=self.patient)
                         
             # validate
             pbar.set_description('[Epoch %02d] loss=%.4f it=%03d,Run Validation' % (epoch, avg_loss, it))
@@ -142,10 +139,10 @@ class Trainer():
     def train(self, train_loader,val_loader, epoch_it, it_start, **args):
         log_every = self.cfg['training']['log_every']
         logger = args.get('logger', None)
-        scalar_list = defaultdict(moving_average.CMA)
+        scalar_list = defaultdict(moving_average.MA)
         it = it_start
-        avg_time = moving_average.CMA()
-        avg_loss = moving_average.CMA()
+        avg_time = moving_average.MA()
+        avg_loss = moving_average.MA()
         
         epo_time = time.time()
         it_time = time.time()
@@ -179,7 +176,7 @@ class Trainer():
             if logger and log_every > 0 and (it % log_every) == 0:
                 for k, v in scalar_list.items():
                     logger.add_scalar(k, v.avg,it)
-                scalar_list = defaultdict(moving_average.CMA)
+                scalar_list = defaultdict(moving_average.MA)
             # break
         epo_time = time.time() - epo_time
         del it_dataset
@@ -204,16 +201,20 @@ class Trainer():
                 if isinstance(v,dict): continue
                 logger.add_scalar('val/%s' % k, v,it)
         
+        metric_val_smoothed = self.smoother(metric_val)
         if self.metric_sign * (metric_val - self.metric_val_best) > 0:
             self.metric_val_best = metric_val
             self.patient = 0
             logger_py.info('New best model (%s %.4f)' % (self.metric_sign, metric_val))
-            # self.ckpt_io.backup_model_best('model_best.pt')
-            self.ckpt_io.save('model_best.pt', epoch_it=epoch_it, it=it,
-                                loss_val_best=metric_val)
-        else:
+            self.ckpt_io.save('model_best.pt', 
+                              epoch_it=epoch_it, 
+                              it=it,
+                              loss_val_best=metric_val,
+                              patient=self.patient)
+        
+        if self.metric_sign * (metric_val_smoothed - self.metric_val_best) <= 0:
             logger_py.info('new val metric is worse (%.4f %.4f).increase patient to %d (max patient %d)' % \
-                           (metric_val, self.metric_val_best,self.patient, self.cfg['training']['patient']))
+                           (metric_val_smoothed, self.metric_val_best,self.patient, self.cfg['training']['patient']))
             self.patient += 1
             
         return eval_dict

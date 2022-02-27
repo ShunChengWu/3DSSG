@@ -795,7 +795,6 @@ def zero_mean(point, normalize:bool):
 
 if __name__ == '__main__':
     import codeLib
-    
     path = './configs/default_sgfusion.yaml'
     config = codeLib.Config(path)
     

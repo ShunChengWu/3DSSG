@@ -40,8 +40,8 @@ def main():
     # Log
     logging.basicConfig(filename=os.path.join(out_dir,'log'), level=cfg.log_level)
     logger_py.setLevel(cfg.log_level)
-    logger_py.info('info')
-    logger_py.debug('debug')
+    # logger_py.info('info')
+    # logger_py.debug('debug')
     # import sys
     # sys.exit()
     

@@ -2,6 +2,7 @@
 #     from os import sys
 #     sys.path.append('../../')
 import os
+from collections import defaultdict
 from ssg.utils import util_data
 from codeLib.utils.util import read_txt_to_list
 import codeLib.utils.string_numpy as snp
@@ -155,8 +156,7 @@ class Graph_Loader (data.Dataset):
             self.open_mv_graph()
             filtered = dict()
             for scan_id in inter:
-                scan_data_raw = self.sg_data[scan_id]
-                scan_data = raw_to_data(scan_data_raw)
+                scan_data = c_sg_data[scan_id]
                 
                 object_data = scan_data['nodes']
                 # relationships_data = scan_data['relationships']        
@@ -274,7 +274,8 @@ class Graph_Loader (data.Dataset):
         if self.sample_in_runtime:
             kf_indices = random_drop(kf_indices, self.drop_img_edge)    
         
-        instance2mask=dict()
+        # instance2mask=dict()
+        idx2iid=dict()
         bounding_boxes = list() # bounding_boxes[node_id]{kf_id: [boxes]}
         edge_indices=list()
         cat = []
@@ -315,7 +316,9 @@ class Graph_Loader (data.Dataset):
                 bounding_boxes.append(box)
                 cat.append(class_id)
                 
-                instance2mask[oid]=om_id
+                idx2iid[om_id] = oid
+                # if oid in instance2mask: raise RuntimeError('duplicate found')
+                # instance2mask[oid]=om_id
                 
                 per_frame_indices.append(om_id)
             for om_id1 in per_frame_indices:
@@ -329,28 +332,31 @@ class Graph_Loader (data.Dataset):
         else:
             adj_matrix = np.ones([len(cat), len(cat)]) * self.none_idx#set all to none label.
             
+        relatinoships_gt= defaultdict(list)
         for r in relationships_data:
             r_src = int(r[0])
             r_tgt = int(r[1])
             r_lid = int(r[2])
             r_cls = r[3]
-            if r_src not in instance2mask or r_tgt not in instance2mask: continue
-            index1 = instance2mask[r_src]
-            index2 = instance2mask[r_tgt]
-            assert index1>=0
-            assert index2>=0
-            if self.sample_in_runtime:
-                if [index1,index2] not in edge_indices: continue
+            # if r_src not in instance2mask or r_tgt not in instance2mask: continue
+            # index1 = instance2mask[r_src]
+            # index2 = instance2mask[r_tgt]
+            # assert index1>=0
+            # assert index2>=0
+            # if self.sample_in_runtime:
+            #     if [index1,index2] not in edge_indices: continue
             if r_cls not in self.relationNames:
                 continue  
             r_lid = self.relationNames.index(r_cls) # remap the index of relationships in case of custom relationNames
             # assert(r_lid == self.relationNames.index(r_cls))
+            
+            relatinoships_gt[(r_src,r_tgt)].append(r_lid)
 
-            if index1 >= 0 and index2 >= 0:
-                if self.multi_rel_outputs:
-                    adj_matrix_onehot[index1, index2, r_lid] = 1
-                else:
-                    adj_matrix[index1, index2] = r_lid      
+            # if index1 >= 0 and index2 >= 0:
+            #     if self.multi_rel_outputs:
+            #         adj_matrix_onehot[index1, index2, r_lid] = 1
+            #     else:
+            #         adj_matrix[index1, index2] = r_lid      
         '''edge GT to tensor'''
         if self.multi_rel_outputs:
             rel_dtype = np.float32
@@ -362,14 +368,22 @@ class Graph_Loader (data.Dataset):
             gt_rels = torch.zeros(len(edge_indices), len(self.relationNames),dtype = torch.float)
         else:
             gt_rels = torch.zeros(len(edge_indices),dtype = torch.long)
+            
         for e in range(len(edge_indices)):
             edge = edge_indices[e]
             index1 = edge[0]
             index2 = edge[1]
-            if self.multi_rel_outputs:
-                gt_rels[e,:] = adj_matrix_onehot[index1,index2,:]
-            else:
-                gt_rels[e] = adj_matrix[index1,index2]
+            
+            iid1 = idx2iid[index1]
+            iid2 = idx2iid[index2]
+            key = (iid1,iid2)
+            if key in relatinoships_gt:
+                if self.multi_rel_outputs:
+                    for x in relatinoships_gt[key]:
+                        gt_rels[e,x] = adj_matrix_onehot[index1,index2,x]
+                else:
+                    assert len(relatinoships_gt[key])==1
+                    gt_rels[e] = relatinoships_gt[key][0]
                 
                 
         '''to tensor'''
@@ -385,7 +399,7 @@ class Graph_Loader (data.Dataset):
         output['gt_cls'] = gt_class # tensor
         output['images'] = images# tensor
         output['node_edges'] = edge_indices # tensor
-        output['instance2mask'] = instance2mask #dict
+        output['mask2instance'] = idx2iid #dict
         output['image_boxes'] = bounding_boxes #list
         del self.filtered_data
         del self.sg_data

@@ -109,7 +109,7 @@ Note: the IoU is extremely high because of the overwhelming true negatives (none
 - 2DSSG_ORBSLAM3_l20_3: bbox augmentation 0.3. use acc_node_cls instaed of iou as the stop and schedular.
 - 2DSSG_ORBSLAM3_l20_4: use spatial encoder (fc,dim=128). bbox augmentation 0.3.
 - 2DSSG_ORBSLAM3_l20_5: try to use different edge descriptor
-
+- 2DSSG_ORBSLAM3_l20_6: with dyanmic ratio between node and edge
 
 
 
@@ -124,7 +124,10 @@ Note: the IoU is extremely high because of the overwhelming true negatives (none
 | SGFN_inseg_0_5       | 0.39    | 0.55    | 0.67    | 0.90    | 0.83     | 0.95     |
 | 2DSSG_ORBSLAM3_l20_0 | 22.7    | 32.3    | 53.8    | 80.3    | 82.1     | 91.6     |
 | 2DSSG_ORBSLAM3_l20_1 | 21.5    | 29.3    | 48.2    | 72.7    | 80.5     | 90.6     |
-| 2DSSG_ORBSLAM3_l20_2 | 25.5    | 34.8    | 53.6    | 81.2    | 79.9     | 90.0      |
+| 2DSSG_ORBSLAM3_l20_2 | 25.5    | 34.8    | 53.6    | 81.2    | 79.9     | 90.0     |
+| 2DSSG_ORBSLAM3_l20_4 | 31.8    | 40.8    | 60.3    | 83.8    | 78.2     | 90.3     |
+| 2DSSG_ORBSLAM3_l20_3 | 29.4    | 39.5    | 58.0    | 84.1    | 80.8     | 91.1     |
+| 2DSSG_ORBSLAM3_l20_5 | 32.7    | 42.3    | 61.2    | 84.6    | 80.5     | 90.9     |
 
 #### Object
 | method               | IoU  | Precision | Recall |
@@ -134,7 +137,9 @@ Note: the IoU is extremely high because of the overwhelming true negatives (none
 | SGFN_inseg_0_5       | 41.7 | 52.1      | 59.3   |
 | 2DSSG_ORBSLAM3_l20_1 | 22.1 | 33.6      | 39.9   |
 | 2DSSG_ORBSLAM3_l20_2 | 29.1 | 40.6      | 54.8   |
-
+| 2DSSG_ORBSLAM3_l20_4 | 29.5 | 40.5      | 52.3   |
+| 2DSSG_ORBSLAM3_l20_3 | 31.0 | 43.2      | 53.4   |
+| 2DSSG_ORBSLAM3_l20_5 | 30.9 | 40.4      | 50.5   |
 
 #### Predicates
 | method               | IoU  | Precision | Recall |
@@ -144,7 +149,9 @@ Note: the IoU is extremely high because of the overwhelming true negatives (none
 | SGFN_inseg_0_5       | 31.1 | 34.7      | 61.6   |
 | 2DSSG_ORBSLAM3_l20_1 | 24.6 | 35.6      | 41.5   |
 | 2DSSG_ORBSLAM3_l20_2 | 25.4 | 37.6      | 48.5   |
-
+| 2DSSG_ORBSLAM3_l20_4 | 25.8 | 34.3      | 48.6   |
+| 2DSSG_ORBSLAM3_l20_3 | 27.6 | 38.7      | 45.5   |
+| 2DSSG_ORBSLAM3_l20_5 | 27.3 | 36.2      | 49.6   |
 
 ## Instance level
 #### Relationship
@@ -163,6 +170,12 @@ Note: the IoU is extremely high because of the overwhelming true negatives (none
 | 2DSSG_ORBSLAM3_l20_2* | 27.5    | 48.2    | 55.6    | 82.8    | 89.8     | 99.0     |
 | 2DSSG_ORBSLAM3_l20_2  | 6.4     | 11.8    | 26.4    | 46.8    | 95.0     | 98.1     |
 | SGFN_inseg_0_5*       | 49.4    | 72.7    | 72.8    | 92.1    | 92.0     | 98.3     |
+| 2DSSG_ORBSLAM3_l20_4* | 35.6    | 55.5    | 62.4    | 85.7    | 88.5     | 98.9     |
+| 2DSSG_ORBSLAM3_l20_4  | 8.2     | 13.4    | 29.7    | 48.2    | 94.7     | 98.1     |
+| 2DSSG_ORBSLAM3_l20_3  | 7.3     | 13.2    | 28.6    | 48.1    | 95.2     | 95.2     |
+| 2DSSG_ORBSLAM3_l20_3* | 31.9    | 54.5    | 60.1    | 85.4    | 90.7     | 99.2     |
+| 2DSSG_ORBSLAM3_l20_5  | 8.7     | 14.3    | 30.8    | 48.7    | 95.1     | 98.1     |
+| 2DSSG_ORBSLAM3_l20_5* | 38.4    | 59.9    | 64.7    | 86.8    | 90.4     | 99.0     |
 
 Note: `2DSSG_ORBSLAM3_l20_1*` is ignore missing objects and scans.
 
@@ -185,6 +198,13 @@ objects and predicates are missing due to the missing nodes.
 | 2DSSG_ORBSLAM3_l20_2* | 32.9  | 45.0      | 57.7   |
 | 2DSSG_ORBSLAM3_l20_2  | 19.0  | 42.8      | 30.2   |
 | SGFN_inseg_0_5*       | 46.8  | 57.4      | 62.4   |
+| 2DSSG_ORBSLAM3_l20_4* | 33.8  | 45.7      | 53.4   |
+| 2DSSG_ORBSLAM3_l20_4  | 19.0  | 43.5      | 27.6   |
+| 2DSSG_ORBSLAM3_l20_3  | 20.2  | 45.5      | 28.8   |
+| 2DSSG_ORBSLAM3_l20_3* | 34.4  | 47.8      | 55.4   |
+| 2DSSG_ORBSLAM3_l20_5* | 36.8  | 50.0      | 52.1   |
+| 2DSSG_ORBSLAM3_l20_5  | 20.1  | 47.5      | 26.3   |
+
 
 #### Predicate
 | method                | IoU   | Precision | Recall |
@@ -200,6 +220,12 @@ objects and predicates are missing due to the missing nodes.
 | 2DSSG_ORBSLAM3_l20_2* | 30.6  | 39.0      | 58.6   |
 | 2DSSG_ORBSLAM3_l20_2  | 21.8  | 38.9      | 28.3   |
 | SGFN_inseg_0_5*       | 36.2  | 38.9      | 68.0   |
+| 2DSSG_ORBSLAM3_l20_4* | 30.4  | 36.3      | 56.3   |
+| 2DSSG_ORBSLAM3_l20_4  | 22.5  | 36.2      | 27.6   |
+| 2DSSG_ORBSLAM3_l20_3  | 22.2  | 39.0      | 25.6   |
+| 2DSSG_ORBSLAM3_l20_3* | 31.5  | 39.1      | 50.6   |
+| 2DSSG_ORBSLAM3_l20_5* | 31.8  | 37.7      | 56.5   |
+| 2DSSG_ORBSLAM3_l20_5  | 22.8  | 376       | 27.7   |
 
 Note: remember to recalculate average. (ignore none in recall and iou)
 

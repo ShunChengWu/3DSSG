@@ -55,7 +55,7 @@ class Trainer_2DSSG(BaseTrainer):
         '''
         it_dataset = val_loader.__iter__()
         eval_tool = EvalSceneGraph(self.node_cls_names, self.edge_cls_names,multi_rel_prediction=self.cfg.model.multi_rel,k=topk,save_prediction=True) 
-        eval_list = defaultdict(moving_average.CMA)
+        eval_list = defaultdict(moving_average.MA)
 
         time.sleep(2)# Prevent possible deadlock during epoch transition
         for data in tqdm(it_dataset,leave=False):
@@ -215,21 +215,7 @@ class Trainer_2DSSG(BaseTrainer):
             # loss_rel = F.nll_loss(edge_cls_pred, edge_cls_gt, weight = weights)
         logs['loss'] += self.cfg.training.lambda_edge * loss_rel
         logs['loss_rel'] = loss_rel
-    # def convert_metrics_to_log(self, metrics, eval_mode=False):
-    #     tmp = dict()
-    #     mode = 'train_' if eval_mode == False else 'valid_'
-    #     for metric_name, dic in metrics.items():
-    #         for sub, value in dic.items():
-    #             tmp[metric_name+'/'+mode+sub] = value
-    #     return tmp
-    # def calc_node_metric(self, logs, node_cls_pred, node_cls_gt):
-    #     cls_pred = node_cls_pred.detach()
-    #     pred_cls = torch.max(cls_pred,1)[1]
-    #     acc_cls = (node_cls_gt == pred_cls).sum().item() / node_cls_gt.nelement()
-    #     logs['acc_node_cls'] = acc_cls
-        
-    
-        
+
     def visualize(self,eval_tool=None):
         if eval_tool is None: eval_tool = self.eva_tool
         node_confusion_matrix, edge_confusion_matrix = eval_tool.draw(

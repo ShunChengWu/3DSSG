@@ -104,10 +104,10 @@ def evaluate_topk_predicate(gt_edges, rels_pred, threshold=0.5,k=-1):
         top_k += temp_topk
     return top_k
 
-def get_gt(objs_target, rels_target, edges, instance2mask,multiple_prediction:bool):
+def get_gt(objs_target, rels_target, edges, mask2inst,multiple_prediction:bool):
     gt_edges = [] # initialize
     idx2instance = torch.zeros_like(objs_target)
-    for iid, idx in instance2mask.items():
+    for idx, iid in mask2inst.items():
         if idx > 0:
             idx2instance[idx] = iid
 
@@ -322,14 +322,14 @@ def write_result_file(confusion:np.array,
     print ('wrote results to', filename)
     return [mean_iou, mean_pre,mean_rec]
 
-def build_seg2name(pds:torch.tensor, idx2seg, names):
+def build_seg2name(pds:torch.tensor, mask2inst:list, names):
     '''
     pds: [n]
     '''
     s2n = dict()
     for n in range(len(pds)):
         try:
-            s2n[str(idx2seg[n])] = names[pds[n]]  
+            s2n[str(mask2inst[n])] = names[pds[n]]  
         except:
             # print(edge)
             # print(pds[n])
@@ -766,7 +766,7 @@ class EvalSceneGraph():
         self.top_k_rel=list()
         self.predictions=dict()
         
-    def add(self,scan_ids, obj_pds, bobj_gts, rel_pds, brel_gts, seg2idxs:dict, bedge_indices):
+    def add(self,scan_ids, obj_pds, bobj_gts, rel_pds, brel_gts, mask2insts:list, bedge_indices):
         '''
         obj_pds: [n, n_cls]: softmax
         obj_gts: [n, 1]: long tensor
@@ -781,56 +781,44 @@ class EvalSceneGraph():
         r_pds = rel_pds > self.multi_rel_threshold if self.multi_rel_prediction else rel_pds.max(1)[1]
         
         '''build idx mapping'''
-        idx2seg=dict()
-        # idx2seg[0]=[0]
-        for it in range(len(seg2idxs)):
-            seg2idx = seg2idxs[it]
-            for iid, idx in seg2idx.items():
+        mask2insts_flat=dict()
+        
+        for it in range(len(mask2insts)):
+            mask2inst = mask2insts[it]
+            for idx, iid in mask2inst.items():
                 idx = idx.item() if isinstance(idx, torch.Tensor) else idx
                 if iid==0:continue
                 if idx <0: continue
                 # print(idx)
                 # assert idx not in idx2seg
                 
-                if idx in idx2seg:
+                if idx in mask2insts_flat:
                     print('')
                     print(iid)
                     print(idx)
-                    print(seg2idxs)
-                    assert idx not in idx2seg
-                idx2seg[idx] = iid
+                    print(mask2insts)
+                    assert idx not in mask2insts_flat
+                mask2insts_flat[idx] = iid
         
         b_pd=dict()
         b_gt=dict()
-        # if rel_pds is not None and rel_pds.shape[0] > 0:
-        #     if self.multi_rel_prediction:
-        #         assert self.multi_rel_threshold>0
-        #         b_pd['edges'] = build_edge2name(r_pds,    bedge_indices, idx2seg, self.rel_class_names)
-        #         b_gt['edges'] = build_edge2name(brel_gts, bedge_indices, idx2seg, self.rel_class_names)
-        #         '''for multiple rel prediction. every predicate should be treated individually'''
-        #         self.eva_p_cls.update(r_pds, brel_gts)
-        #     else:         
-        #         b_pd['edges'] = build_edge2name(r_pds,    bedge_indices, idx2seg, self.rel_class_names)
-        #         b_gt['edges'] = build_edge2name(brel_gts, bedge_indices, idx2seg, self.rel_class_names)
-        #         self.eva_p_cls.update(b_pd['edges'],b_gt['edges'],False)
-                
-        b_pd['nodes'] = build_seg2name(o_pds,   idx2seg,self.obj_class_names)
-        b_gt['nodes'] = build_seg2name(bobj_gts,idx2seg,self.obj_class_names)
+        b_pd['nodes'] = build_seg2name(o_pds,   mask2insts_flat,self.obj_class_names)
+        b_gt['nodes'] = build_seg2name(bobj_gts,mask2insts_flat,self.obj_class_names)
         self.eva_o_cls.update(b_pd['nodes'], b_gt['nodes'], False)
         
-        for it in range(len(seg2idxs)):
-            seg2idx = seg2idxs[it]
+        for it in range(len(mask2insts)):
+            mask2inst = mask2insts[it]
             scan_id = scan_ids[it]
             
-            indices = torch.tensor(list(seg2idx.values()))
+            indices = torch.tensor(list(mask2inst.keys()))
             indices = indices[indices>=0]
             
-            idx2seg=dict()
-            for iid,idx in seg2idx.items():
-                if isinstance(idx, torch.Tensor):
-                    idx2seg[idx.item()] = iid
-                else:
-                    idx2seg[idx] = iid
+            # idx2seg=dict()
+            # for iid,idx in seg2idx.items():
+            #     if isinstance(idx, torch.Tensor):
+            #         idx2seg[idx.item()] = iid
+            #     else:
+            #         idx2seg[idx] = iid
                     
             pd=dict()
             gt=dict()
@@ -842,7 +830,7 @@ class EvalSceneGraph():
             pd['nodes']=dict()
             gt['nodes']=dict()
             for idx in indices.tolist():
-                seg_id = str(idx2seg[idx])
+                seg_id = str(mask2inst[idx])
                 pd['nodes'][seg_id] = b_pd['nodes'][seg_id]
                 gt['nodes'][seg_id] = b_gt['nodes'][seg_id]
             # pd['nodes'] = {str(idx2seg[idx]): b_pd['nodes'][str(idx2seg[idx])] for idx in indices.tolist()   }#  b_pd['nodes'][indices]
@@ -859,13 +847,13 @@ class EvalSceneGraph():
             if rel_pds is not None and rel_pds.shape[0] > 0:
                 if self.multi_rel_prediction:
                     assert self.multi_rel_threshold>0
-                    pd['edges'] = build_edge2name(r_pd,    edge_indices, idx2seg, self.rel_class_names)
-                    gt['edges'] = build_edge2name(rel_gts, edge_indices, idx2seg, self.rel_class_names)
+                    pd['edges'] = build_edge2name(r_pd,    edge_indices, mask2inst, self.rel_class_names)
+                    gt['edges'] = build_edge2name(rel_gts, edge_indices, mask2inst, self.rel_class_names)
                     '''for multiple rel prediction. every predicate should be treated individually'''
                     self.eva_p_cls.update(r_pd, rel_gts)
                 else:         
-                    pd['edges'] = build_edge2name(r_pd,    edge_indices, idx2seg, self.rel_class_names)
-                    gt['edges'] = build_edge2name(rel_gts, edge_indices, idx2seg, self.rel_class_names)
+                    pd['edges'] = build_edge2name(r_pd,    edge_indices, mask2inst, self.rel_class_names)
+                    gt['edges'] = build_edge2name(rel_gts, edge_indices, mask2inst, self.rel_class_names)
                     self.eva_p_cls.update(pd['edges'],gt['edges'],False)
             
             if self.save_prediction:
@@ -878,7 +866,7 @@ class EvalSceneGraph():
             self.top_k_obj += evaluate_topk_object(bobj_gts, obj_pds)
             
             if rel_pds is not None:
-                gt_edges = get_gt(bobj_gts, rel_gts, edge_indices, seg2idx, self.multi_rel_prediction)
+                gt_edges = get_gt(bobj_gts, rel_gts, edge_indices, mask2inst, self.multi_rel_prediction)
                 self.top_k_rel += evaluate_topk_predicate(gt_edges, rel_pds, 
                                                           threshold=self.multi_rel_threshold, k = self.k)
                 

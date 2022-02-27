@@ -4,7 +4,7 @@ GPU: [0]
 name: '2DSSG_ORBSLAM3_l20_test'
 training:
  batch: 1
- data_workers: 0
+ data_workers: 4
  patient: 30
  optimizer: 'adamw'
  amsgrad: true
@@ -21,13 +21,20 @@ training:
     factor: 0.9,
   }
  out_dir: experiments/
- model_selection_metric: iou_node_cls
+ model_selection_metric: acc_node_cls
  model_selection_mode: maximize # can be maximize or minimize. e.g. if it's "loss", should "minimize", if it's accuracy, should "maximize"
+ metric_smoothing:
+  method: ema #[none,ema,ma]
+  args: {
+   alpha: 0.8,
+   correction: true,
+  }
  max_epoch: 500
 eval: #evaluation
- mode: instance #eval on [segment, instance].  
+ mode: segment #eval on [segment, instance].  
  data_workers: 8
  topK: 10
+ ignore_missing: false
 model:
  method: sgfn
  multi_rel: false # multiple relationship 
@@ -38,6 +45,9 @@ model:
  num_points_union: 512 # for 3DSSG
  node_feature_dim: 256
  edge_feature_dim: 256
+ spatial_encoder:
+  method: fc #[none,fc]
+  dim: 128
  node_encoder:
   method: none #[none, basic]
  image_encoder:
@@ -53,7 +63,7 @@ model:
   drop_out: 0.3
   local_feature_dim: 64
  edge_encoder:
-  method: 2dssg # [basic,sgfn,2dssg]
+  method: 2dssg_1 # [basic,sgfn,2dssg, 2dssg_1]
   with_bn: false
  gnn:
   method: fan # [none, fan, triplet]
@@ -75,6 +85,7 @@ data:
  load_images: true
  load_points: false
  load_cache: false
+ img_desc_6_pts: true # return 6 extreme points 
  sample_num_nn: 1
  sample_num_seed: 2
  drop_img_edge: 4 # if is int and >0, select given number. if is float/double, select percentage between [1-x,1]
@@ -89,6 +100,7 @@ data:
  img_size: -1 # minimum image edge will be resize to this. (-1: keep origianl)
  roi_img_size: [256,256]
  use_precompute_img_feature: false
+ bbox_aug_ratio: 0.3 # [0.,1.]. 0: no aug. 
 logging:
  method: wandb # [tensorboard, wandb, none]
  log_grad_freq: 1000 

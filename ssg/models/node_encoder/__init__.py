@@ -5,6 +5,7 @@ from . import MHBNN
 # from . import CVR
 from . import mean
 from . import mvgmu
+from . import ROIExtractor
 node_encoder_list = {
     'basic': node_encoder.NodeEncoder,
     'sgfn': node_encoder.NodeEncoder_SGFN,
@@ -16,5 +17,6 @@ node_encoder_list = {
     'mhbnn': MHBNN.MHBNN,
     # 'cvr': CVR.CVR,
     'mean': mean.MeanMV,
-    'gmu': mvgmu.MVGMU
+    'gmu': mvgmu.MVGMU,
+    'roi_extractor': ROIExtractor.ROI_EXTRACTOR,
 }

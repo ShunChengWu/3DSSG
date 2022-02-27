@@ -2,6 +2,7 @@ SEED: 2021
 VERBOSE: true
 GPU: [0]
 name: 'test'
+log_level: 'DEBUG'
 training:
  batch: 1
  data_workers: 8
@@ -31,11 +32,18 @@ training:
  out_dir: experiments/
  model_selection_metric: loss
  model_selection_mode: minimize # can be maximize or minimize. e.g. if it's "loss", should "minimize", if it's accuracy, should "maximize"
+ metric_smoothing:
+  method: ema #[none,ema,ma]
+  args: {
+   alpha: 0.8,
+   correction: true,
+  }
  max_epoch: 500
 eval: #evaluation
  mode: segment #eval on [segment, instance].  
  data_workers: 8
  topK: 100
+ ignore_missing: false
 model:
  method: sgfn
  multi_rel: true # multiple relationship 

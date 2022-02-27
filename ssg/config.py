@@ -1,6 +1,6 @@
 import os
 import ssg
-from ssg import SSG3D, SGFN, SGPN, MVEnc, SVEnc#, DestCmp
+from ssg import SSG3D, SGFN, SGPN, MVEnc, SVEnc, IMP#, DestCmp
 import logging
 from torch.utils.tensorboard import SummaryWriter
 from codeLib.loggers import WandbLogger
@@ -19,6 +19,7 @@ method_dict = {
     # 'dcmp': DestCmp,
     'mv': MVEnc,
     'sv': SVEnc,
+    'imp': IMP,
 }
 
 optimizer_dict = {
@@ -85,6 +86,12 @@ def get_model(cfg, num_obj_cls,num_rel_cls):
         return method_dict[cfg.model.method](
             cfg=cfg,
             num_obj_cls=num_obj_cls,
+            device=cfg.DEVICE).to(cfg.DEVICE)
+    elif cfg.model.method == 'imp':
+        return method_dict[cfg.model.method](
+            cfg=cfg,
+            num_obj_cls=num_obj_cls,
+            num_rel_cls=num_rel_cls,
             device=cfg.DEVICE).to(cfg.DEVICE)
     
     node_encoder = get_node_encoder(cfg, cfg.DEVICE)

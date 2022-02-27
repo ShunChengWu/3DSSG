@@ -39,7 +39,7 @@ class Trainer_DCMP(BaseTrainer):
     def evaluate(self, val_loader, topk):
         it_dataset = val_loader.__iter__()
         # eval_tool = EvalSceneGraph(self.node_cls_names, self.edge_cls_names,multi_rel_prediction=self.cfg.model.multi_rel,k=topk,save_prediction=True) 
-        eval_list = defaultdict(moving_average.CMA)
+        eval_list = defaultdict(moving_average.MA)
 
         time.sleep(2)# Prevent possible deadlock during epoch transition
         for data in tqdm(it_dataset,leave=False):

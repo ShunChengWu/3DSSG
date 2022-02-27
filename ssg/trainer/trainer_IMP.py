@@ -40,14 +40,13 @@ from ssg import define
 from ssg.data.collate import graph_collate#, batch_graph_collate
 logger_py = logging.getLogger(__name__)
 
-class Trainer_SGFN(BaseTrainer):
+class Trainer_IMP(BaseTrainer):
     def __init__(self, cfg, model, node_cls_names:list, edge_cls_names:list,
                  device=None,  **kwargs):
         super().__init__(device)
         logger_py.setLevel(cfg.log_level)
         self.cfg = cfg
         self.model = model#.to(self._device)
-        # self.optimizer = optimizer
         self.w_node_cls = kwargs.get('w_node_cls',None)
         self.w_edge_cls = kwargs.get('w_edge_cls',None)
         self.node_cls_names = node_cls_names#kwargs['node_cls_names']
@@ -62,8 +61,7 @@ class Trainer_SGFN(BaseTrainer):
         if self.w_edge_cls is not None: 
             logger_py.info('train with weighted node class.')
             self.w_edge_cls= self.w_edge_cls.to(self._device)
-        
-        
+                
         self.eva_tool = EvalSceneGraph(self.node_cls_names, self.edge_cls_names,multi_rel_prediction=self.cfg.model.multi_rel,k=0,none_name=define.NAME_NONE) # do not calculate topK in training mode        
         self.loss_node_cls = torch.nn.CrossEntropyLoss(weight=self.w_node_cls)
         if self.cfg.model.multi_rel:
@@ -379,21 +377,6 @@ class Trainer_SGFN(BaseTrainer):
         '''
         data =  dict(zip(data.keys(), self.toDevice(*data.values()) ))
         return data
-        # scan_id = data.get('scan_id')
-        # gt_rel = data.get('gt_rel')
-        # gt_cls = data.get('gt_cls')
-        # obj_points = data.get('obj_points')
-        # descriptor = data.get('descriptor')
-        # node_edges = data.get('node_edges')
-        # instance2mask = data.get('instance2mask')
-        
-        # # print(gt_rel.shape)
-        # # self.toDevice(*(gt_rel))
-        
-        # flatten = (scan_id, gt_cls, gt_rel, obj_points, descriptor, node_edges, instance2mask)
-        # flatten = self.toDevice(*flatten)
-        # # check_valid(*flatten)
-        # return flatten
     
     def compute_loss(self,data,eval_mode=False,it=None, eval_tool=None):
         ''' Compute the loss.
@@ -413,7 +396,7 @@ class Trainer_SGFN(BaseTrainer):
         scan_id = data['scan_id']
         gt_cls = data['gt_cls']
         gt_rel = data['gt_rel']
-        instance2mask = data['instance2mask']
+        mask2instance = data['mask2instance']
         node_edges_ori = data['node_edges']
         data['node_edges'] = data['node_edges'].t().contiguous()
         
@@ -426,7 +409,6 @@ class Trainer_SGFN(BaseTrainer):
         
         ''' make forward pass through the network '''
         node_cls, edge_cls = self.model(**data)
-        
         
         ''' calculate loss '''
         logs['loss'] = 0
@@ -463,7 +445,7 @@ class Trainer_SGFN(BaseTrainer):
             eval_tool.add(scan_id, 
                           node_cls,gt_cls, 
                           edge_cls,gt_rel,
-                          instance2mask,node_edges_ori)
+                          mask2instance,node_edges_ori)
         return logs
         # return loss if eval_mode else loss['loss']
 

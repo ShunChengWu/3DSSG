@@ -11,6 +11,7 @@ import os
 from codeLib.utils import onnx
 from torch_geometric.nn.conv import MessagePassing
 from torch import Tensor
+import torch.nn as nn
 from typing import Optional
 from copy import deepcopy
 from torch_scatter import scatter
@@ -321,7 +322,65 @@ class TripletGCNModel(torch.nn.Module):
                 node_feature = torch.nn.functional.relu(node_feature)
                 edge_feature = torch.nn.functional.relu(edge_feature)
         return node_feature, edge_feature
+
+
+class TripletIMP(MessagePassing):
+    def __init__(self, dim_node, num_layers, aggr= 'mean', **kwargs):
+        super().__init__(aggr=aggr)
+        # print('============================')
+        # print('aggr:',aggr)
+        # print('============================')
+        self.num_layers = num_layers
+        self.dim_node = dim_node
+        # self.dim_node = dim_node
+        # self.dim_edge = dim_edge
+        # self.dim_hidden = dim_hidden
+        # self.nn1 = build_mlp([dim_node*2+dim_edge, dim_hidden, dim_hidden*2+dim_edge],
+        #               do_bn= use_bn, on_last=True)
+        # self.nn2 = build_mlp([dim_hidden,dim_hidden,dim_node],do_bn= use_bn)
         
+        
+        self.subj_node_gate = nn.Sequential(nn.Linear(self.dim_node * 2, 1), nn.Sigmoid())
+        self.obj_node_gate = nn.Sequential(nn.Linear(self.dim_node * 2, 1), nn.Sigmoid())
+
+        self.subj_edge_gate = nn.Sequential(nn.Linear(self.dim_node * 2, 1), nn.Sigmoid())
+        self.obj_edge_gate = nn.Sequential(nn.Linear(self.dim_node * 2, 1), nn.Sigmoid())
+        
+        self.reset_parameter()
+        
+    def reset_parameter(self):
+        pass
+        # reset_parameters_with_activation(self.nn1[0], 'relu')
+        # reset_parameters_with_activation(self.nn1[3], 'relu')
+        # reset_parameters_with_activation(self.nn2[0], 'relu')
+        
+    def forward(self, x, edge_feature, edge_index):
+        for i in range(self.num_layers):
+            x, edge_feature = self.propagate(edge_index, x=x, edge_feature=edge_feature)
+        return x, edge_feature
+
+    def message(self, x_i, x_j,edge_feature):
+        message_pred_to_subj = self.subj_node_gate(torch.cat([x_i,edge_feature],dim=1)) * edge_feature #n_rel x d
+        message_pred_to_obj  = self.obj_node_gate(torch.cat([x_j,edge_feature],dim=1)) * edge_feature#n_rel x d
+        node_message = (message_pred_to_subj+message_pred_to_obj)*0.5
+        
+        message_subj_to_pred = self.subj_edge_gate(torch.cat([x_i, edge_feature], 1)) * x_i  # nrel x d
+        message_obj_to_pred  = self.obj_edge_gate(torch.cat([x_j, edge_feature], 1)) * x_j# nrel x d
+        edge_message = (message_subj_to_pred+message_obj_to_pred)*0.5
+        
+        # x = torch.cat([x_i,edge_feature,x_j],dim=1)
+        # x = self.nn1(x)#.view(b,-1)
+        # new_x_i = x[:,:self.dim_hidden]
+        # new_e   = x[:,self.dim_hidden:(self.dim_hidden+self.dim_edge)]
+        # new_x_j = x[:,(self.dim_hidden+self.dim_edge):]
+        # x = new_x_i+new_x_j
+        return [node_message, edge_message]
+    
+    def aggregate(self, x: Tensor, index: Tensor,
+                  ptr: Optional[Tensor] = None,
+                  dim_size: Optional[int] = None) -> Tensor:
+        x[0] = scatter(x[0], index, dim=self.node_dim, dim_size=dim_size, reduce=self.aggr)
+        return x        
 
 if __name__ == '__main__':
     TEST_FORWARD=True

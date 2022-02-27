@@ -83,7 +83,8 @@ def graph_collate(batch):
     n_nodes_acc=0
     n_images_acc=0
     instance2mask=list()
-    image_boxes=list()
+    mask2instance=list()
+    # image_boxes=list()
     roi_imgs = list()
     for b in batch:
         if 'node_edges' in b:
@@ -99,11 +100,18 @@ def graph_collate(batch):
         if 'instance2mask' in b:
             x = b['instance2mask']
             instance2mask.append( { inst: v+n_nodes_acc for inst, v in x.items() } )
+        
+        if 'mask2instance' in b:
+            x = b['mask2instance']
+            mask2instance.append( { mask+n_nodes_acc: inst for mask,inst in x.items() } )
+            # mask2instance.append( { mask+n_nodes_acc: inst for mask, inst in x.items()} )
+            
         # b['instance2mask'] = x
         
         if 'image_boxes' in b:
             x = b['image_boxes']
             x[:,0] += n_nodes_acc
+            # image_boxes.append(x)
             # image_boxes += [{ k+n_images_acc: v for k,v in xx.items() } for xx in x]
         # b['image_boxes'] = [{ k+n_images_acc: v for k,v in xx.items() } for xx in x]
             
@@ -117,10 +125,12 @@ def graph_collate(batch):
         if 'roi_imgs' in b:
             roi_imgs += b['roi_imgs']
     
-    if len(image_boxes)>0:
-        out['image_boxes'] = image_boxes
+    # if len(image_boxes)>0:
+    #     out['image_boxes'] = image_boxes
     if len(instance2mask)>0:
         out['instance2mask'] = instance2mask
+    if len(mask2instance)>0:
+        out['mask2instance'] = mask2instance
     if len(roi_imgs)>0:
         out['roi_imgs'] = roi_imgs
         
@@ -129,7 +139,7 @@ def graph_collate(batch):
             out[x] = torch.cat([d[x] for d in batch])
         
     
-    for x in ['scan_id','gt_rel','gt_cls','images','descriptor','node_descriptor_8', 'obj_points', 'rel_points']:
+    for x in ['scan_id','gt_rel','gt_cls','images','descriptor','node_descriptor_8', 'obj_points', 'rel_points','image_boxes']:
         if x in elem:
             # print('===')
             # print(x)
