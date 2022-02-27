@@ -339,6 +339,8 @@ class TripletIMP(MessagePassing):
         #               do_bn= use_bn, on_last=True)
         # self.nn2 = build_mlp([dim_hidden,dim_hidden,dim_node],do_bn= use_bn)
         
+        self.edge_gru = nn.GRUCell(input_size=self.dim_node, hidden_size=self.dim_node)
+        self.node_gru = nn.GRUCell(input_size=self.dim_node, hidden_size=self.dim_node)
         
         self.subj_node_gate = nn.Sequential(nn.Linear(self.dim_node * 2, 1), nn.Sigmoid())
         self.obj_node_gate = nn.Sequential(nn.Linear(self.dim_node * 2, 1), nn.Sigmoid())
@@ -356,7 +358,9 @@ class TripletIMP(MessagePassing):
         
     def forward(self, x, edge_feature, edge_index):
         for i in range(self.num_layers):
-            x, edge_feature = self.propagate(edge_index, x=x, edge_feature=edge_feature)
+            node_msg, edge_msg = self.propagate(edge_index, x=x, edge_feature=edge_feature)
+            x = self.node_gru(node_msg,x)
+            edge_feature = self.edge_gru(edge_msg,edge_feature)
         return x, edge_feature
 
     def message(self, x_i, x_j,edge_feature):

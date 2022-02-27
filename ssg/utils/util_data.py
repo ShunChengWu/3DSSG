@@ -7,13 +7,51 @@ from ssg.objects import Node
 from collections import defaultdict
 import ast
 
-def merge_batch_seg2idx(seg2idxs):
+# def merge_batch_seg2idx(seg2idxs):
+#     idx2seg=dict()
+#     # idx2seg[0]=[0]
+#     if isinstance(seg2idxs,list):
+#         for it in range(len(seg2idxs)):
+#             seg2idx = seg2idxs[it]
+#             for iid, idx in seg2idx.items():
+#                 idx = idx.item() if isinstance(idx, torch.Tensor) else idx
+#                 if iid==0:continue
+#                 if idx <0: continue
+#                 # print(idx)
+#                 # assert idx not in idx2seg
+                
+#                 if idx in idx2seg:
+#                     print('')
+#                     print(iid)
+#                     print(idx)
+#                     print(seg2idxs)
+#                     assert idx not in idx2seg
+#                 idx2seg[idx] = iid
+#     else:
+#         seg2idx = seg2idxs
+#         for iid, idx in seg2idx.items():
+#             idx = idx.item() if isinstance(idx, torch.Tensor) else idx
+#             if iid==0:continue
+#             if idx <0: continue
+#             # print(idx)
+#             # assert idx not in idx2seg
+            
+#             if idx in idx2seg:
+#                 print('')
+#                 print(iid)
+#                 print(idx)
+#                 print(seg2idxs)
+#                 assert idx not in idx2seg
+#             idx2seg[idx] = iid
+#     return idx2seg
+
+def merge_batch_mask2inst(mask2insts):
     idx2seg=dict()
     # idx2seg[0]=[0]
-    if isinstance(seg2idxs,list):
-        for it in range(len(seg2idxs)):
-            seg2idx = seg2idxs[it]
-            for iid, idx in seg2idx.items():
+    if isinstance(mask2insts,list):
+        for it in range(len(mask2insts)):
+            mask2inst= mask2insts[it]
+            for idx,iid in mask2inst.items():
                 idx = idx.item() if isinstance(idx, torch.Tensor) else idx
                 if iid==0:continue
                 if idx <0: continue
@@ -24,12 +62,12 @@ def merge_batch_seg2idx(seg2idxs):
                     print('')
                     print(iid)
                     print(idx)
-                    print(seg2idxs)
+                    print(mask2insts)
                     assert idx not in idx2seg
                 idx2seg[idx] = iid
     else:
-        seg2idx = seg2idxs
-        for iid, idx in seg2idx.items():
+        mask2inst = mask2insts
+        for idx,iid in mask2inst.items():
             idx = idx.item() if isinstance(idx, torch.Tensor) else idx
             if iid==0:continue
             if idx <0: continue
@@ -40,7 +78,7 @@ def merge_batch_seg2idx(seg2idxs):
                 print('')
                 print(iid)
                 print(idx)
-                print(seg2idxs)
+                print(mask2insts)
                 assert idx not in idx2seg
             idx2seg[idx] = iid
     return idx2seg

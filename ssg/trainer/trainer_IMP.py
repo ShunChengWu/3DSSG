@@ -1,43 +1,16 @@
-import os,copy
-import numpy as np
-from tqdm import tqdm, tnrange
-from collections import defaultdict
-from codeLib.models import BaseTrainer
-from codeLib.common import check_weights, check_valid, convert_torch_to_scalar
-import torch
-import torch.nn.functional as F
-from ssg.utils.util_eva import EvalSceneGraph, plot_confusion_matrix
-import time
-import logging
-from ssg.checkpoints import CheckpointIO
-import torch.optim as optim
-import codeLib.utils.moving_average as moving_average 
-from codeLib.models import BaseTrainer
-from codeLib.common import check_weights, check_valid, convert_torch_to_scalar
-import torch
-import torchvision
-import torch, os
-from collections import defaultdict
+import copy
 from tqdm import tqdm
-import numpy as np
+from collections import defaultdict
 from codeLib.models import BaseTrainer
-import ssg
-# from ssg.utils.util_eva import EvaClassificationSimple
-import codeLib.utils.moving_average as moving_average 
-import time
 from codeLib.common import check_weights, convert_torch_to_scalar
-# from models.otk.utils import normalize
-from codeLib.torch.visualization import show_tensor_images, save_tensor_images
-# import torchvision
-import matplotlib.pyplot as plt
-import numpy as np
-from codeLib.common import denormalize_imagenet, create_folder
-from codeLib.torch.visualization import  show_tensor_images, save_tensor_images
-import codeLib.utils.string_numpy as snp
+import torch
+from ssg.utils.util_eva import EvalSceneGraph
+import time
 import logging
-from ssg.utils.util_data import merge_batch_seg2idx
+import codeLib.utils.moving_average as moving_average 
+import ssg
+import codeLib.utils.string_numpy as snp
 from ssg import define
-from ssg.data.collate import graph_collate#, batch_graph_collate
 logger_py = logging.getLogger(__name__)
 
 class Trainer_IMP(BaseTrainer):

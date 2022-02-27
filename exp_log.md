@@ -110,7 +110,10 @@ Note: the IoU is extremely high because of the overwhelming true negatives (none
 - 2DSSG_ORBSLAM3_l20_4: use spatial encoder (fc,dim=128). bbox augmentation 0.3.
 - 2DSSG_ORBSLAM3_l20_5: try to use different edge descriptor
 - 2DSSG_ORBSLAM3_l20_6: with dyanmic ratio between node and edge
-
+- IMP_full_l20_0: iterative message passing  -> doesn't train
+- IMP_full_l20_1: use dyanmic ratio. fix rel GT.
+- IMG_full_l20_1_1: fix image loader
+- IMP_full_l20_2: _1 + use global feature
 
 
 ## Segment level

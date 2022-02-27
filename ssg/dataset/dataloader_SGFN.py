@@ -556,7 +556,8 @@ class SGFNDataset (data.Dataset):
             output['roi_imgs'] = bounding_boxes #list
             output['node_descriptor_8'] = node_descriptor_for_image
         output['node_edges'] = edge_indices # tensor
-        output['instance2mask'] = oid2idx #dict
+        # output['instance2mask'] = oid2idx #dict
+        output['mask2instance'] = idx2oid
         output['seg2inst'] = seg2inst
         return output
         

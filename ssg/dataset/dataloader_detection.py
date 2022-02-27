@@ -22,6 +22,10 @@ from ssg.utils.util_data import raw_to_data, cvt_all_to_dict_from_h5
 import codeLib.torchvision.transforms as cltransform
 from torchvision.ops import roi_align
 import h5py,ast
+from codeLib.torch.visualization import show_tensor_images
+
+DRAW_BBOX_IMAGE=True
+DRAW_BBOX_IMAGE=False
 
 class Graph_Loader (data.Dataset):
     def __init__(self, config, mode):
@@ -60,17 +64,29 @@ class Graph_Loader (data.Dataset):
         self.pth_edge_weights = os.path.join(self.path,'edge_weights.txt')
         
         if config.data.img_size > 0:
-            self.transform = transforms.Compose([
-                transforms.Resize(config.data.img_size),
-                transforms.ToTensor(),
-                cltransform.TrivialAugmentWide(),
-                # transforms.Normalize([0.485, 0.456, 0.406], [0.229, 0.224, 0.225])
-            ])
+            if not self.for_eval:
+                self.transform = transforms.Compose([
+                    transforms.Resize(config.data.img_size),
+                    cltransform.TrivialAugmentWide(),
+                    # transforms.Normalize([0.485, 0.456, 0.406], [0.229, 0.224, 0.225])
+                ])
+            else:
+                self.transform = transforms.Compose([
+                    transforms.Resize(config.data.img_size),
+                    # transforms.Normalize([0.485, 0.456, 0.406], [0.229, 0.224, 0.225])
+                ])
         else:
-            self.transform = transforms.Compose([
-                transforms.ToTensor(),
-                # transforms.Normalize([0.485, 0.456, 0.406], [0.229, 0.224, 0.225])
-            ])
+            if not self.for_eval:
+                self.transform = transforms.Compose([
+                    cltransform.TrivialAugmentWide(),
+                    # transforms.ToTensor(),
+                    # transforms.Normalize([0.485, 0.456, 0.406], [0.229, 0.224, 0.225])
+                ])
+            else:
+                self.transform = transforms.Compose([
+                    # transforms.ToTensor(),
+                    # transforms.Normalize([0.485, 0.456, 0.406], [0.229, 0.224, 0.225])
+                ])
         
         ''' read classes '''
         pth_classes = os.path.join(path,'classes.txt')
@@ -286,7 +302,10 @@ class Graph_Loader (data.Dataset):
             pth_rgb = os.path.join(fdata,scan_id,'sequence', rgb_filepattern.format(int(fid)))
             img_data = Image.open(pth_rgb)
             img_data = np.rot90(img_data,3)# Rotate image
-            img_data = self.transform(img_data.copy())
+            img_data = torch.as_tensor(img_data.copy()).permute(2,0,1)
+            img_data = self.transform(img_data)
+            img_data= normalize_imagenet(img_data.float()/255.0)
+            
             images.append(img_data)
             width,height = img_data.shape[-1],img_data.shape[-2]
             
@@ -325,6 +344,9 @@ class Graph_Loader (data.Dataset):
                 for om_id2 in per_frame_indices:
                     if om_id1 != om_id2:
                         edge_indices.append([om_id1,om_id2])
+        if DRAW_BBOX_IMAGE:
+            t_img = torch.stack(images,dim=0)
+            show_tensor_images(t_img.float()/255, '-')
         
         '''build predicate GT'''
         if self.multi_rel_outputs:
@@ -366,8 +388,9 @@ class Graph_Loader (data.Dataset):
             adj_matrix = torch.from_numpy(np.array(adj_matrix, dtype=rel_dtype))
         if self.multi_rel_outputs:
             gt_rels = torch.zeros(len(edge_indices), len(self.relationNames),dtype = torch.float)
+            gt_rels[:,self.none_idx] = 1
         else:
-            gt_rels = torch.zeros(len(edge_indices),dtype = torch.long)
+            gt_rels = torch.ones(len(edge_indices),dtype = torch.long) * self.none_idx
             
         for e in range(len(edge_indices)):
             edge = edge_indices[e]
