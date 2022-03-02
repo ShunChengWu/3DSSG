@@ -90,11 +90,11 @@ class SGFNDataset (data.Dataset):
                     transforms.Resize(config.data.roi_img_size),
                     ])
         
-        if not self.for_eval:
-            w_node_cls = np.loadtxt(self.pth_node_weights)
-            w_edge_cls = np.loadtxt(self.pth_edge_weights)
-            self.w_node_cls = torch.from_numpy(w_node_cls).float()
-            self.w_edge_cls = torch.from_numpy(w_edge_cls).float()
+        # if not self.for_eval:
+        #     w_node_cls = np.loadtxt(self.pth_node_weights)
+        #     w_edge_cls = np.loadtxt(self.pth_edge_weights)
+        #     self.w_node_cls = torch.from_numpy(w_node_cls).float()
+        #     self.w_edge_cls = torch.from_numpy(w_edge_cls).float()
         
         ''' load data '''
         if self.mconfig.load_images:
@@ -346,31 +346,42 @@ class SGFNDataset (data.Dataset):
             
         if self.mconfig.load_images:
             '''load images'''
-            bounding_boxes = list()
-            for idx in range(len(cat)):
-                oid = str(idx2oid[idx])
-                node = mv_nodes[oid]
-                cls_label = node.attrs['label']
-                if cls_label == 'unknown':
-                    cls_label = self.classNames[cat[idx]]
+            if self.mconfig.is_roi_img:
+                bounding_boxes = list()
+                for idx in range(len(cat)):
+                    oid = str(idx2oid[idx])
+                    node = mv_nodes[oid]
+                    cls_label = node.attrs['label']
+                    if cls_label == 'unknown':
+                        cls_label = self.classNames[cat[idx]]
+                        
+                    img_ids=range(len(roi_imgs[oid]))
                     
-                img_ids=range(len(roi_imgs[oid]))
-                
-                if not self.for_eval:
-                    img_ids = random_drop(img_ids, self.mconfig.drop_img_edge, replace=True)
-                    # img = img[kf_indices]
+                    if not self.for_eval:
+                        img_ids = random_drop(img_ids, self.mconfig.drop_img_edge, replace=True)
+                        # img = img[kf_indices]
+                        
+                    img = [roi_imgs[oid][x] for x in img_ids]
+                    # else:
+                    #     kf_indices = [idx for idx in range(img.shape[0])]
                     
-                img = [roi_imgs[oid][x] for x in img_ids]
-                # else:
-                #     kf_indices = [idx for idx in range(img.shape[0])]
-                
-                img = torch.as_tensor(np.array(img))#.clone()
-                img = torch.clamp((img*255).byte(),0,255).byte()
-                t_img = torch.stack([self.transform(x) for x in img],dim=0)
-                if DRAW_BBOX_IMAGE:
-                    show_tensor_images(t_img.float()/255, cls_label)
-                t_img= normalize_imagenet(t_img.float()/255.0)
-                bounding_boxes.append( t_img)
+                    img = torch.as_tensor(np.array(img))#.clone()
+                    img = torch.clamp((img*255).byte(),0,255).byte()
+                    t_img = torch.stack([self.transform(x) for x in img],dim=0)
+                    if DRAW_BBOX_IMAGE:
+                        show_tensor_images(t_img.float()/255, cls_label)
+                    t_img= normalize_imagenet(t_img.float()/255.0)
+                    bounding_boxes.append( t_img)
+            else:
+                raise NotImplementedError()
+                for idx in range(len(cat)):
+                    oid = str(idx2oid[idx])
+                    node = mv_nodes[oid]
+                    cls_label = node.attrs['label']
+                    if cls_label == 'unknown':
+                        cls_label = self.classNames[cat[idx]]
+                        
+                        
                 
             descriptor_generator = util_data.Node_Descriptor_24(with_bbox=self.mconfig.img_desc_6_pts)
             node_descriptor_for_image = torch.zeros([len(cat), len(descriptor_generator)])

@@ -110,11 +110,12 @@ Note: the IoU is extremely high because of the overwhelming true negatives (none
 - 2DSSG_ORBSLAM3_l20_4: use spatial encoder (fc,dim=128). bbox augmentation 0.3.
 - 2DSSG_ORBSLAM3_l20_5: try to use different edge descriptor
 - 2DSSG_ORBSLAM3_l20_6: with dyanmic ratio between node and edge
+- 2DSSG_ORBSLAM3_l20_7: old edge description+ dynamic
 - IMP_full_l20_0: iterative message passing  -> doesn't train
 - IMP_full_l20_1: use dyanmic ratio. fix rel GT.
-- IMG_full_l20_1_1: fix image loader
+  - IMG_full_l20_1_1: fix image loader
 - IMP_full_l20_2: _1 + use global feature
-
+  - IMP_full_l20_2_1: fix loader loader
 
 ## Segment level
 #### Relationship
@@ -128,8 +129,8 @@ Note: the IoU is extremely high because of the overwhelming true negatives (none
 | 2DSSG_ORBSLAM3_l20_0 | 22.7    | 32.3    | 53.8    | 80.3    | 82.1     | 91.6     |
 | 2DSSG_ORBSLAM3_l20_1 | 21.5    | 29.3    | 48.2    | 72.7    | 80.5     | 90.6     |
 | 2DSSG_ORBSLAM3_l20_2 | 25.5    | 34.8    | 53.6    | 81.2    | 79.9     | 90.0     |
-| 2DSSG_ORBSLAM3_l20_4 | 31.8    | 40.8    | 60.3    | 83.8    | 78.2     | 90.3     |
 | 2DSSG_ORBSLAM3_l20_3 | 29.4    | 39.5    | 58.0    | 84.1    | 80.8     | 91.1     |
+| 2DSSG_ORBSLAM3_l20_4 | 31.8    | 40.8    | 60.3    | 83.8    | 78.2     | 90.3     |
 | 2DSSG_ORBSLAM3_l20_5 | 32.7    | 42.3    | 61.2    | 84.6    | 80.5     | 90.9     |
 
 #### Object
@@ -140,8 +141,8 @@ Note: the IoU is extremely high because of the overwhelming true negatives (none
 | SGFN_inseg_0_5       | 41.7 | 52.1      | 59.3   |
 | 2DSSG_ORBSLAM3_l20_1 | 22.1 | 33.6      | 39.9   |
 | 2DSSG_ORBSLAM3_l20_2 | 29.1 | 40.6      | 54.8   |
-| 2DSSG_ORBSLAM3_l20_4 | 29.5 | 40.5      | 52.3   |
 | 2DSSG_ORBSLAM3_l20_3 | 31.0 | 43.2      | 53.4   |
+| 2DSSG_ORBSLAM3_l20_4 | 29.5 | 40.5      | 52.3   |
 | 2DSSG_ORBSLAM3_l20_5 | 30.9 | 40.4      | 50.5   |
 
 #### Predicates

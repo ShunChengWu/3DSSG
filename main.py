@@ -170,6 +170,7 @@ def main():
             tmp_cfg = copy.deepcopy(cfg)
             tmp_cfg.model.use_rgb = False
             tmp_cfg.model.use_normal = False
+            tmp_cfg.data.input_type = 'sgfn'
             tmp_cfg.data.load_images=False
             tmp_cfg.data.load_points=False
             tmp_cfg.data.path = cfg.data.path_gt
