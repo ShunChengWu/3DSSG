@@ -839,39 +839,41 @@ class EvalSceneGraph():
     
             '''update edge'''
             # get relavent edges
-            edge_indices_ = torch.where((bedge_indices[:,0]<=max(indices)) & (bedge_indices[:,0]>=min(indices)) )[0]
-            edge_indices = bedge_indices[edge_indices_]
-            r_pd = r_pds[edge_indices_]
-            rel_gts = brel_gts[edge_indices_]
+            # print('')
+            # print('bedge_indices.shape',bedge_indices.shape)
+            if bedge_indices.ndim>1:
+                edge_indices_ = torch.where((bedge_indices[:,0]<=max(indices)) & (bedge_indices[:,0]>=min(indices)) )[0]
+                edge_indices = bedge_indices[edge_indices_]
+                r_pd = r_pds[edge_indices_]
+                rel_gts = brel_gts[edge_indices_]
+                
+                if rel_pds is not None and rel_pds.shape[0] > 0:
+                    if self.multi_rel_prediction:
+                        assert self.multi_rel_threshold>0
+                        pd['edges'] = build_edge2name(r_pd,    edge_indices, mask2inst, self.rel_class_names)
+                        gt['edges'] = build_edge2name(rel_gts, edge_indices, mask2inst, self.rel_class_names)
+                        '''for multiple rel prediction. every predicate should be treated individually'''
+                        self.eva_p_cls.update(r_pd, rel_gts)
+                    else:         
+                        pd['edges'] = build_edge2name(r_pd,    edge_indices, mask2inst, self.rel_class_names)
+                        gt['edges'] = build_edge2name(rel_gts, edge_indices, mask2inst, self.rel_class_names)
+                        self.eva_p_cls.update(pd['edges'],gt['edges'],False)
             
-            if rel_pds is not None and rel_pds.shape[0] > 0:
-                if self.multi_rel_prediction:
-                    assert self.multi_rel_threshold>0
-                    pd['edges'] = build_edge2name(r_pd,    edge_indices, mask2inst, self.rel_class_names)
-                    gt['edges'] = build_edge2name(rel_gts, edge_indices, mask2inst, self.rel_class_names)
-                    '''for multiple rel prediction. every predicate should be treated individually'''
-                    self.eva_p_cls.update(r_pd, rel_gts)
-                else:         
-                    pd['edges'] = build_edge2name(r_pd,    edge_indices, mask2inst, self.rel_class_names)
-                    gt['edges'] = build_edge2name(rel_gts, edge_indices, mask2inst, self.rel_class_names)
-                    self.eva_p_cls.update(pd['edges'],gt['edges'],False)
-            
+                if self.k>0:
+                    # top_k_predicate, top_k_obj = [], []
+                    self.top_k_obj += evaluate_topk_object(bobj_gts, obj_pds)
+                    
+                    if rel_pds is not None:
+                        gt_edges = get_gt(bobj_gts, rel_gts, edge_indices, mask2inst, self.multi_rel_prediction)
+                        self.top_k_rel += evaluate_topk_predicate(gt_edges, rel_pds, 
+                                                                  threshold=self.multi_rel_threshold, k = self.k)
+                        
+                        self.top_k_triplet += evaluate_topk(gt_edges, obj_pds, rel_pds, edge_indices, 
+                                              threshold=self.multi_rel_threshold, k=self.k) # class_labels, relationships_dict)
             if self.save_prediction:
                 self.predictions[scan_id]=dict()
                 self.predictions[scan_id]['pd']=pd
                 self.predictions[scan_id]['gt']=gt
-        
-        if self.k>0:
-            # top_k_predicate, top_k_obj = [], []
-            self.top_k_obj += evaluate_topk_object(bobj_gts, obj_pds)
-            
-            if rel_pds is not None:
-                gt_edges = get_gt(bobj_gts, rel_gts, edge_indices, mask2inst, self.multi_rel_prediction)
-                self.top_k_rel += evaluate_topk_predicate(gt_edges, rel_pds, 
-                                                          threshold=self.multi_rel_threshold, k = self.k)
-                
-                self.top_k_triplet += evaluate_topk(gt_edges, obj_pds, rel_pds, edge_indices, 
-                                      threshold=self.multi_rel_threshold, k=self.k) # class_labels, relationships_dict)
     def get_recall(self):
         return self.eva_o_cls.get_recall(), self.eva_p_cls.get_recall()
     

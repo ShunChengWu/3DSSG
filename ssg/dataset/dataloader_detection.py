@@ -405,7 +405,14 @@ class Graph_Loader (data.Dataset):
                     for x in relatinoships_gt[key]:
                         gt_rels[e,x] = adj_matrix_onehot[index1,index2,x]
                 else:
-                    assert len(relatinoships_gt[key])==1
+                    if len(relatinoships_gt[key])!=1:
+                        print('scan_id',scan_id)
+                        print('iid1,iid2',iid1,iid2)
+                        print('index1,index2',index1,index2)
+                        print('key, relatinoships_gt[key]',key,relatinoships_gt[key])
+                        print(instance2labelName[key[0]],instance2labelName[key[1]])
+                        [print(self.relationNames[x])for x in relatinoships_gt[key]]
+                        assert len(relatinoships_gt[key])==1
                     gt_rels[e] = relatinoships_gt[key][0]
                 
         '''build temporal node graph'''

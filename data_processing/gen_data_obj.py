@@ -204,6 +204,9 @@ def gen_relationship(scan_id:str,split:int, map_segment_pd_2_gt:dict,instance2la
             assert(num==idx_in_txt)
             if name not in target_relationships: 
                 continue
+            if id_src == id_tar:
+                if debug:print('ignore relationship (',name,') between',id_src,'and',id_tar,'that has the same source and target')
+                continue
             idx_in_txt_new = target_relationships.index(name)
             
             if id_src in gt_segments_2_pd_segments and id_tar in gt_segments_2_pd_segments:
@@ -221,10 +224,10 @@ def gen_relationship(scan_id:str,split:int, map_segment_pd_2_gt:dict,instance2la
                             ''' skip if they not in the target_segments'''
                             if segment_src not in target_segments: continue
                             if segment_tar not in target_segments: continue
-                        
+                        # if segment_tar == segments_src:continue
                         ''' check if they are neighbors '''
                         split_relationships.append([ int(segment_src), int(segment_tar), idx_in_txt_new, name ])
-                        if debug:print('inherit', instance2labelName[id_src],name, instance2labelName[id_tar])
+                        if debug:print('inherit', instance2labelName[id_src],'(',id_src,')',name, instance2labelName[id_tar],'(',id_tar,')')
             # else:
             #     if debug:
             #         if id_src in gt_segments_2_pd_segments:
@@ -311,7 +314,7 @@ if __name__ == '__main__':
                 if scan_id not in target_scan: continue
             
             filtered_data.append(s)
-        
+
         for s in tqdm(filtered_data):
             scan_id = s["scan"]
             gt_relationships = s["relationships"]

@@ -315,7 +315,7 @@ class Trainer_IMP(BaseTrainer):
                     merged_edge_cls=merged_edge_cls[:counter]
                     merged_edge_cls_gt = merged_edge_cls_gt[:counter]
                 merged_node_edges = torch.tensor(merged_node_edges,dtype=torch.long)
-
+            
             eval_tool.add([scan_id], 
                           merged_node_cls,
                           merged_node_cls_gt, 
