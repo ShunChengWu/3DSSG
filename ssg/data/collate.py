@@ -90,6 +90,12 @@ def graph_collate(batch):
         if 'node_edges' in b:
             x = b['node_edges']
             x += n_nodes_acc
+        if 'temporal_node_graph' in b:
+            x = b['temporal_node_graph']
+            x += n_nodes_acc
+        if 'temporal_edge_graph' in b:
+            x = b['temporal_edge_graph']
+            x += n_nodes_acc
         
         if 'image_edges' in b:
             x = b['image_edges']
@@ -134,7 +140,7 @@ def graph_collate(batch):
     if len(roi_imgs)>0:
         out['roi_imgs'] = roi_imgs
         
-    for x in ['node_edges','image_edges']:
+    for x in ['node_edges','image_edges','temporal_node_graph','temporal_edge_graph']:
         if x in elem:
             out[x] = torch.cat([d[x] for d in batch])
         

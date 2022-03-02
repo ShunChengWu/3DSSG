@@ -408,6 +408,31 @@ class Graph_Loader (data.Dataset):
                     assert len(relatinoships_gt[key])==1
                     gt_rels[e] = relatinoships_gt[key][0]
                 
+        '''build temporal node graph'''
+        temporal_node_graph=list()
+        # collect predictions belong to the same node
+        iid2idxes = defaultdict(list)
+        for idx,iid in idx2iid.items():iid2idxes[iid].append(idx)
+        for iid, indices in iid2idxes.items():
+            for i, idx1 in enumerate(indices):
+                for j, idx2 in enumerate(indices):
+                    if i == j:continue
+                    temporal_node_graph.append([idx1,idx2])
+                    
+        temporal_edge_graph=list()
+        edgeIid_2_edgeIndices=defaultdict(list)
+        for idx, edge in enumerate(edge_indices):
+            index1 = edge[0]
+            index2 = edge[1]
+            iid1 = idx2iid[index1]
+            iid2 = idx2iid[index2]
+            key = (iid1,iid2)
+            edgeIid_2_edgeIndices[key].append(idx)
+        for key, indices in edgeIid_2_edgeIndices.items():
+            for i, idx1 in enumerate(indices):
+                for j, idx2 in enumerate(indices):
+                    if i == j:continue
+                    temporal_edge_graph.append([idx1,idx2])
                 
         '''to tensor'''
         images = torch.stack(images,dim=0)
@@ -415,6 +440,8 @@ class Graph_Loader (data.Dataset):
         bounding_boxes = torch.from_numpy(np.array(bounding_boxes)).float()
         gt_class = torch.from_numpy(np.array(cat))
         edge_indices = torch.tensor(edge_indices,dtype=torch.long)
+        temporal_node_graph = torch.tensor(temporal_node_graph,dtype=torch.long)
+        temporal_edge_graph = torch.tensor(temporal_edge_graph,dtype=torch.long)
         
         output = dict()
         output['scan_id'] = scan_id # str
@@ -424,6 +451,8 @@ class Graph_Loader (data.Dataset):
         output['node_edges'] = edge_indices # tensor
         output['mask2instance'] = idx2iid #dict
         output['image_boxes'] = bounding_boxes #list
+        output['temporal_node_graph'] = temporal_node_graph
+        output['temporal_edge_graph'] = temporal_edge_graph
         del self.filtered_data
         del self.sg_data
         del self.mv_data   

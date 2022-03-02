@@ -17,3 +17,4 @@ files/*.txt
 files/
 *.zip
 out/
+*.txt

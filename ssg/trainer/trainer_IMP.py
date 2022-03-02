@@ -397,6 +397,8 @@ class Trainer_IMP(BaseTrainer):
         mask2instance = data['mask2instance']
         node_edges_ori = data['node_edges']
         data['node_edges'] = data['node_edges'].t().contiguous()
+        if 'temporal_node_graph' in data: data['temporal_node_graph']=data['temporal_node_graph'].t().contiguous()
+        if 'temporal_edge_graph' in data: data['temporal_edge_graph']=data['temporal_edge_graph'].t().contiguous()
         
         # check input valid
         if node_edges_ori.ndim==1:

@@ -94,7 +94,7 @@ class IMP(nn.Module):
         edge_features = self.pred_embedding(edge_features)
         
         if hasattr(self, 'gnn') and self.gnn is not None:
-            node_features,edge_features = self.gnn(node_features,edge_features,node_edges)
+            node_features,edge_features = self.gnn(node_features,edge_features,node_edges,**args)
         
         obj_class_logits = self.obj_predictor(node_features)
         rel_class_logits = self.rel_predictor(edge_features)
