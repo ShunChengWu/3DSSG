@@ -323,70 +323,6 @@ class TripletGCNModel(torch.nn.Module):
                 edge_feature = torch.nn.functional.relu(edge_feature)
         return node_feature, edge_feature
 
-
-class TripletIMP(MessagePassing):
-    def __init__(self, dim_node, num_layers, aggr= 'mean', **kwargs):
-        super().__init__(aggr=aggr)
-        # print('============================')
-        # print('aggr:',aggr)
-        # print('============================')
-        self.num_layers = num_layers
-        self.dim_node = dim_node
-        # self.dim_node = dim_node
-        # self.dim_edge = dim_edge
-        # self.dim_hidden = dim_hidden
-        # self.nn1 = build_mlp([dim_node*2+dim_edge, dim_hidden, dim_hidden*2+dim_edge],
-        #               do_bn= use_bn, on_last=True)
-        # self.nn2 = build_mlp([dim_hidden,dim_hidden,dim_node],do_bn= use_bn)
-        
-        self.edge_gru = nn.GRUCell(input_size=self.dim_node, hidden_size=self.dim_node)
-        self.node_gru = nn.GRUCell(input_size=self.dim_node, hidden_size=self.dim_node)
-        
-        self.subj_node_gate = nn.Sequential(nn.Linear(self.dim_node * 2, 1), nn.Sigmoid())
-        self.obj_node_gate = nn.Sequential(nn.Linear(self.dim_node * 2, 1), nn.Sigmoid())
-
-        self.subj_edge_gate = nn.Sequential(nn.Linear(self.dim_node * 2, 1), nn.Sigmoid())
-        self.obj_edge_gate = nn.Sequential(nn.Linear(self.dim_node * 2, 1), nn.Sigmoid())
-        
-        self.reset_parameter()
-        
-    def reset_parameter(self):
-        pass
-        # reset_parameters_with_activation(self.nn1[0], 'relu')
-        # reset_parameters_with_activation(self.nn1[3], 'relu')
-        # reset_parameters_with_activation(self.nn2[0], 'relu')
-        
-    def forward(self, x, edge_feature, edge_index):
-        for i in range(self.num_layers):
-            node_msg, edge_msg = self.propagate(edge_index, x=x, edge_feature=edge_feature)
-            x = self.node_gru(node_msg,x)
-            edge_feature = self.edge_gru(edge_msg,edge_feature)
-        return x, edge_feature
-
-    def message(self, x_i, x_j,edge_feature):
-        message_pred_to_subj = self.subj_node_gate(torch.cat([x_i,edge_feature],dim=1)) * edge_feature #n_rel x d
-        message_pred_to_obj  = self.obj_node_gate(torch.cat([x_j,edge_feature],dim=1)) * edge_feature#n_rel x d
-        node_message = (message_pred_to_subj+message_pred_to_obj)*0.5
-        
-        message_subj_to_pred = self.subj_edge_gate(torch.cat([x_i, edge_feature], 1)) * x_i  # nrel x d
-        message_obj_to_pred  = self.obj_edge_gate(torch.cat([x_j, edge_feature], 1)) * x_j# nrel x d
-        edge_message = (message_subj_to_pred+message_obj_to_pred)*0.5
-        
-        # x = torch.cat([x_i,edge_feature,x_j],dim=1)
-        # x = self.nn1(x)#.view(b,-1)
-        # new_x_i = x[:,:self.dim_hidden]
-        # new_e   = x[:,self.dim_hidden:(self.dim_hidden+self.dim_edge)]
-        # new_x_j = x[:,(self.dim_hidden+self.dim_edge):]
-        # x = new_x_i+new_x_j
-        return [node_message, edge_message]
-    
-    def aggregate(self, x: Tensor, index: Tensor,
-                  ptr: Optional[Tensor] = None,
-                  dim_size: Optional[int] = None) -> Tensor:
-        x[0] = scatter(x[0], index, dim=self.node_dim, dim_size=dim_size, reduce=self.aggr)
-        return x        
-
-
 class MessagePassing_IMP(MessagePassing):
     def __init__(self, dim_node, aggr= 'mean', **kwargs):
         super().__init__(aggr=aggr)
@@ -434,6 +370,27 @@ class MessagePassing_Gate(MessagePassing):
         x_i = self.temporal_gate(torch.cat([x_i,x_j],dim=1)) * x_i
         return x_i
     
+    
+class TripletIMP(torch.nn.Module):
+    def __init__(self, dim_node, num_layers, aggr= 'mean', **kwargs):
+        super().__init__()
+        self.num_layers = num_layers
+        self.dim_node = dim_node        
+        self.edge_gru = nn.GRUCell(input_size=self.dim_node, hidden_size=self.dim_node)
+        self.node_gru = nn.GRUCell(input_size=self.dim_node, hidden_size=self.dim_node)
+        self.msp_IMP = MessagePassing_IMP(dim_node=dim_node,aggr=aggr)        
+        self.reset_parameter()
+        
+    def reset_parameter(self):
+        pass
+    
+    def forward(self, x, edge_feature, edge_index, **kwargs):
+        for i in range(self.num_layers):
+            node_msg, edge_msg = self.msp_IMP(x=x, edge_feature=edge_feature,edge_index=edge_index)
+            x = self.node_gru(node_msg,x)
+            edge_feature = self.edge_gru(edge_msg,edge_feature)
+        return x, edge_feature
+    
 class TripletVGfM(torch.nn.Module):
     def __init__(self, dim_node, num_layers, aggr= 'mean', **kwargs):
         super().__init__()
@@ -460,7 +417,7 @@ class TripletVGfM(torch.nn.Module):
             if temporal_node_graph.shape[0] == 2:
                 node_msg = self.msg_t_node(x=node_msg,edge_index=temporal_node_graph)
             if temporal_edge_graph.shape[0] == 2:
-                edge_msg = self.msg_t_node(x=edge_msg,edge_index=temporal_edge_graph)            
+                edge_msg = self.msg_t_edge(x=edge_msg,edge_index=temporal_edge_graph)            
             x = self.node_gru(node_msg,x)
             edge_feature = self.edge_gru(edge_msg,edge_feature)
         return x, edge_feature
