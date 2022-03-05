@@ -76,12 +76,13 @@ model:
   method: 2dssg # [basic,sgfn,2dssg]
   with_bn: false
  gnn:
-  method: none                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                # [none, fan, triplet]
+  method: none # [none, fan, triplet]
   hidden_dim: 256
   num_layers: 5
   num_heads: 0
   drop_out: 0
   node_from_gnn: true
+  with_bn: false
  node_classifier:
   with_bn: false
   dropout: 0.3

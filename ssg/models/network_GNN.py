@@ -264,7 +264,7 @@ class GraphEdgeAttenNetworkLayers(torch.nn.Module):
     
     
 class TripletGCN(MessagePassing):
-    def __init__(self, dim_node, dim_edge, dim_hidden, aggr= 'mean', use_bn=True):
+    def __init__(self, dim_node, dim_edge, dim_hidden, aggr= 'mean', with_bn=True):
         super().__init__(aggr=aggr)
         # print('============================')
         # print('aggr:',aggr)
@@ -273,15 +273,16 @@ class TripletGCN(MessagePassing):
         self.dim_edge = dim_edge
         self.dim_hidden = dim_hidden
         self.nn1 = build_mlp([dim_node*2+dim_edge, dim_hidden, dim_hidden*2+dim_edge],
-                      do_bn= use_bn, on_last=True)
-        self.nn2 = build_mlp([dim_hidden,dim_hidden,dim_node],do_bn= use_bn)
+                      do_bn= with_bn, on_last=True)
+        self.nn2 = build_mlp([dim_hidden,dim_hidden,dim_node],do_bn= with_bn)
         
         self.reset_parameter()
         
     def reset_parameter(self):
-        reset_parameters_with_activation(self.nn1[0], 'relu')
-        reset_parameters_with_activation(self.nn1[3], 'relu')
-        reset_parameters_with_activation(self.nn2[0], 'relu')
+        pass
+        # reset_parameters_with_activation(self.nn1[0], 'relu')
+        # reset_parameters_with_activation(self.nn1[3], 'relu')
+        # reset_parameters_with_activation(self.nn2[0], 'relu')
         
     def forward(self, x, edge_feature, edge_index):
         gcn_x, gcn_e = self.propagate(edge_index, x=x, edge_feature=edge_feature)
@@ -311,7 +312,7 @@ class TripletGCNModel(torch.nn.Module):
         self.gconvs = torch.nn.ModuleList()
         
         for _ in range(self.num_layers):
-            self.gconvs.append(TripletGCN(**kwargs))
+            self.gconvs.append(  TripletGCN(**kwargs))
 
     def forward(self, node_feature, edge_feature, edges_indices):
         for i in range(self.num_layers):

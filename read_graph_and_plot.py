@@ -53,11 +53,11 @@ def create_box(dimensions, width = 0.01):
 # # scan_i d= 'a644cb93-0ee5-2f66-9efb-b16adfb14eff'
 # pth_json = '/media/sc/SSD1TB/dataset/3RScan/data/3RScan/'+scan_id+'/graph.json'
 
-# scan_id = '4acaebcc-6c10-2a2a-858b-29c7e4fb410d'
-pth_json = '/home/sc/research/SceneGraphFusion/bin/test/graph.json'
-pth_json = '/home/sc/research/ORB_SLAM3/bin/test/graph_2dssg.json'
-pth_json='/media/sc/SSD1TB/dataset/3RScan/data/3RScan/095821f7-e2c2-2de1-9568-b9ce59920e29/graph_2dssg_orbslam3.json'
-pth_json='/media/sc/SSD1TB/dataset/3RScan/data/3RScan/c7895f78-339c-2d13-82bb-cc990cbbc90f/graph_2dssg_orbslam3.json'
+scan_id = '4acaebcc-6c10-2a2a-858b-29c7e4fb410d'
+# pth_json = '/home/sc/research/SceneGraphFusion/bin/test/graph.json'
+# pth_json = '/home/sc/research/ORB_SLAM3/bin/test/graph_2dssg.json'
+# pth_json='/media/sc/SSD1TB/dataset/3RScan/data/3RScan/095821f7-e2c2-2de1-9568-b9ce59920e29/graph_2dssg_orbslam3.json'
+pth_json='/media/sc/SSD1TB/dataset/3RScan/data/3RScan/'+scan_id+'/graph_2dssg_orbslam3.json'
 with open(pth_json ) as f: 
     data = json.load(f)
 

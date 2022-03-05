@@ -66,23 +66,25 @@ number is R@1.
 | 3DSSG_test_14     | 70.2          | 31.1    | 74.2      |
 | 2DSSS_exp2_3      | 84.4          | 50.5    | 87.5      |
 | SGFN_full_l160_1  | 84.2          | 34.6    | 87.5      |
-| 2DSSG_full_l160_0 |               |         |           |
+| 2DSSG_full_l160_0 | 84.2          | 52.3    | 86.9      |
 
 Note: why ours looks much better in relationships? Our topK relationship includes true positive. maybe this is not the case for johanna? But the "none" relationships should also be correct. otherwise the network can always predicate something.
 
 #### objects
-| method           | IoU  | Precision | Recall |
-| ---------------- | ---- | --------- | ------ |
-| 3DSSG_test_14    | 8.0  | 13.3      | 16.2   |
-| SGFN_full_l160_1 | 7.7  | 15.3      | 13.9   |
-| 2DSSS_exp2_3     | 15.9 | 29.1      | 26.9   |
+| method            | IoU  | Precision | Recall |
+| ----------------- | ---- | --------- | ------ |
+| 3DSSG_test_14     | 8.0  | 13.3      | 16.2   |
+| SGFN_full_l160_1  | 7.7  | 15.3      | 13.9   |
+| 2DSSS_exp2_3      | 15.9 | 29.1      | 26.9   |
+| 2DSSG_full_l160_0 | 19.1 | 30.9      | 31.9   |
 
 #### predicates
-| method           | IoU  | Precision | Recall |
-| ---------------- | ---- | --------- | ------ |
-| 3DSSG_test_14    | 98.6 | 34.3      | 11.6   |
-| SGFN_full_l160_1 | 99.3 | 32.4      | 11.4   |
-| 2DSSS_exp2_3     | 99.3 | 42.1      | 24.2   |
+| method            | IoU  | Precision | Recall |
+| ----------------- | ---- | --------- | ------ |
+| 3DSSG_test_14     | 98.6 | 34.3      | 11.6   |
+| SGFN_full_l160_1  | 99.3 | 32.4      | 11.4   |
+| 2DSSS_exp2_3      | 99.3 | 42.1      | 24.2   |
+| 2DSSG_full_l160_0 | 99.3 | 38.3      | 26.3   |
 \
 Note: the IoU is extremely high because of the overwhelming true negatives (none relationship).
 
@@ -96,17 +98,47 @@ Note: the IoU is extremely high because of the overwhelming true negatives (none
 - SGFN_inseg_0_4: same as 0_3. adjust schedular.
 - SGFN_inseg_0_5: with the correct predicate labels
 - SGFN_inseg_1: with img (should be renamed to 2DSSG_inseg_1 but this will break wandb)
+
 - SGFN_full_0: use GT segments. wrong obj&rel classes.
 - SGFN_full_0_1: with LRrule:0. failed. drop too fast
 - SGFN_full_0_2: with LRrule:1
 - SGFN_full_0_3: with LRrule:1. fix predicates class.
+
+
+- 3DSSG_full_l20_0: -> not valid. was using the full edge in training.
+- 3DSSG_full_l20_1: don't use full edge
+
+
+- [x] IMP_full_l20_0: iterative message passing  -> doesn't train
+- [x] IMP_full_l20_1: use dyanmic ratio. fix rel GT.
+  - [x] IMG_full_l20_1_1: fix image loader -> doesn't work.
+- [x] IMP_full_l20_2: _1 + use global feature
+  - [x] IMP_full_l20_2_1: fix loader loader
+  - [x] IMP_full_l20_2_2: fix loader loader. turn off full_edge
+- [x] IMP_ORBSLAM3_l20_0: train IMP on ORBSLAM3 entities
+- [x] IMP_ORBSLAM3_l20_1: train IMP on ORBSLAM3 entities. turn off full_edge
+- [ ] IMP_INSEG_l20_0
+
+- VGfM_full_l20_0: there was a bug. using `msg_t_node` for both node and edge
+- VGfM_full_l20_1: with the bug.
+- [x] VGfM_full_l20_2: fix bug and turn off full_edge
+- [ ] VGfM_INSEG_l20_0:
+
+- VGfM_ORBSLAM3_l20_0:there was a bug. using `msg_t_node` for both node and edge
+- VGfM_ORBSLAM3_l20_1: fix the bug
+- [ ] VGfM_ORBSLAM3_l20_2: turn off full_edge
+
 - 2DSSG_full_0: try to use image, multi-predicates.
 - 2DSSG_full_1: single predicates
 - 2DSSG_full_1_1: single predicates. fix predicates class. ->abort
 - 2DSSG_full_1_2: single predicates. fix predicates class. fix class weighting.
 - 2DSSG_full_1_3: try to roll back to the previous predicate class weighting.
-- 3DSSG_full_l20_0: -> not valid. was using the full edge in training.
-- 3DSSG_full_l20_1: don't use full edge
+- 2DSSG_full_l20_1: train with the best setup.
+- [ ] 2DSSG_full_l20_2: train with the best setup. turn off full_edge
+
+- 2DSSG_INSEG_l20_0: train on InSeg segmentation
+- [ ] 2DSSG_INSEG_l20_1: train on InSeg segmentation. without full_edge
+
 - 2DSSG_ORBSLAM3_l20_0: with est. entities from ORBSLAM3 (forgot to finetune)
 - 2DSSG_ORBSLAM3_l20_1: with improved bboxes
 - 2DSSG_ORBSLAM3_l20_2: with improved bboxes. w/o finetune
@@ -115,111 +147,129 @@ Note: the IoU is extremely high because of the overwhelming true negatives (none
 - 2DSSG_ORBSLAM3_l20_5: try to use different edge descriptor
 - 2DSSG_ORBSLAM3_l20_6: with dyanmic ratio between node and edge
 - 2DSSG_ORBSLAM3_l20_7: old edge description+ dynamic
-- IMP_full_l20_0: iterative message passing  -> doesn't train
-- IMP_full_l20_1: use dyanmic ratio. fix rel GT.
-  - IMG_full_l20_1_1: fix image loader -> doesn't work.
-- IMP_full_l20_2: _1 + use global feature
-  - IMP_full_l20_2_1: fix loader loader
-- IMP_ORBSLAM3_l20_0: train IMP on ORBSLAM3 entities
-- 2DSSG_full_l20_1: train with the best setup.
-- 2DSSG_INSEG_l20_0: train on InSeg segmentation
-- VGfM_full_l20_0: there was a bug. using `msg_t_node` for both node and edge
-- VGfM_full_l20_1: with the bug.
-- VGfM_ORBSLAM3_l20_0:there was a bug. using `msg_t_node` for both node and edge
-- VGfM_ORBSLAM3_l20_1: fix the bug
+- [x] 2DSSG_ORBSLAM3_l20_6_1: turn off full_edge
+- [x] 2DSSG_ORBSLAM3_l20_7_1: turn off full_edge
 
 
 ## Segment level
 #### Relationship
-| method               | rel.R@1 | rel.R@3 | obj.R@1 | obj.R@3 | pred.R@1 | pred.R@2 |
-| -------------------- | ------- | ------- | ------- | ------- | -------- | -------- |
-| SGFN(cvpr)(f)        | 0.55    | 0.78    | 0.75    | 0.93    | 0.86     | 0.98     |
-| inseg_0              | 0.27    | 0.41    | 0.55    | 0.84    | 0.88     | 0.96     |
-| inseg_0_1            | 0.43    | 0.61    | 0.69    | 0.91    | 0.89     | 0.97     |
-| inseg_0_4            | 0.46    | 0.63    | 0.72    | 0.91    | 0.9      | 0.97     |
-| SGFN_inseg_0_5       | 0.39    | 0.55    | 0.67    | 0.90    | 0.83     | 0.95     |
-| 2DSSG_ORBSLAM3_l20_0 | 22.7    | 32.3    | 53.8    | 80.3    | 82.1     | 91.6     |
-| 2DSSG_ORBSLAM3_l20_1 | 21.5    | 29.3    | 48.2    | 72.7    | 80.5     | 90.6     |
-| 2DSSG_ORBSLAM3_l20_2 | 25.5    | 34.8    | 53.6    | 81.2    | 79.9     | 90.0     |
-| 2DSSG_ORBSLAM3_l20_3 | 29.4    | 39.5    | 58.0    | 84.1    | 80.8     | 91.1     |
-| 2DSSG_ORBSLAM3_l20_4 | 31.8    | 40.8    | 60.3    | 83.8    | 78.2     | 90.3     |
-| 2DSSG_ORBSLAM3_l20_5 | 32.7    | 42.3    | 61.2    | 84.6    | 80.5     | 90.9     |
-| 2DSSG_ORBSLAM3_l20_6 | 32.7    | 40.9    | 60.6    | 84.9    | 81.5     | 91.3     |
-| 2DSSG_ORBSLAM3_l20_7 | 31.3    | 35.8    | 60.3    | 86.5    | 81.3     | 91.3     |
-| 2DSSG_INSEG_l20_0    | 42.9    | 52.8    | 69.1    | 89.8    | 89.5     | 96.5     |
-| IMP_full_l20_2_1     | 31.0    | 40.9    | 58.4    | 82.2    | 83.9     | 90.9     |
-| VGfM_full_l20_0      | 28.6    | 38.7    | 57.5    | 80.9    | 83.7     | 90.3     |
+| method                 | rel.R@1 | rel.R@3 | obj.R@1 | obj.R@3 | pred.R@1 | pred.R@2 |
+| ---------------------- | ------- | ------- | ------- | ------- | -------- | -------- |
+| SGFN(cvpr)(f)          | 0.55    | 0.78    | 0.75    | 0.93    | 0.86     | 0.98     |
+| inseg_0                | 0.27    | 0.41    | 0.55    | 0.84    | 0.88     | 0.96     |
+| inseg_0_1              | 0.43    | 0.61    | 0.69    | 0.91    | 0.89     | 0.97     |
+| inseg_0_4              | 0.46    | 0.63    | 0.72    | 0.91    | 0.9      | 0.97     |
+| SGFN_inseg_0_5         | 39.3    | 54.9    | 67.3    | 89.6    | 82.8     | 94.7     |
+| 2DSSG_ORBSLAM3_l20_0   | 22.7    | 32.3    | 53.8    | 80.3    | 82.1     | 91.6     |
+| 2DSSG_ORBSLAM3_l20_1   | 21.5    | 29.3    | 48.2    | 72.7    | 80.5     | 90.6     |
+| 2DSSG_ORBSLAM3_l20_2   | 25.5    | 34.8    | 53.6    | 81.2    | 79.9     | 90.0     |
+| 2DSSG_ORBSLAM3_l20_3   | 29.4    | 39.5    | 58.0    | 84.1    | 80.8     | 91.1     |
+| 2DSSG_ORBSLAM3_l20_4   | 31.8    | 40.8    | 60.3    | 83.8    | 78.2     | 90.3     |
+| 2DSSG_ORBSLAM3_l20_5   | 32.7    | 42.3    | 61.2    | 84.6    | 80.5     | 90.9     |
+| 2DSSG_ORBSLAM3_l20_6   | 32.7    | 40.9    | 60.6    | 84.9    | 81.5     | 91.3     |
+| 2DSSG_ORBSLAM3_l20_7   | 31.3    | 35.8    | 60.3    | 86.5    | 81.3     | 91.3     |
+| 2DSSG_INSEG_l20_0      | 42.9    | 52.8    | 69.1    | 89.8    | 89.5     | 96.5     |
+| IMP_full_l20_2_1       | 31.0    | 40.9    | 58.4    | 82.2    | 83.9     | 90.9     |
+| VGfM_full_l20_0        | 28.6    | 38.7    | 57.5    | 80.9    | 83.7     | 90.3     |
+| 2DSSG_full_l20_2       |         |         |         |         |          |          |
+| VGfM_full_l20_2        | 29.8    | 40.2    | 59.2    | 82.7    | 83.5     | 89.9     |
+| 2DSSG_ORBSLAM3_l20_6_1 | 29.5    | 38.7    | 58.0    | 86.8    | 80.4     | 91.2     |
+| 2DSSG_ORBSLAM3_l20_7_1 | 31.6    | 40.2    | 59.9    | 85.1    | 80.6     | 91.1     |
+| IMP_ORBSLAM3_l20_1     | 26.8    | 32.7    | 52.9    | 79.1    | 72.2     | 85.5     |
+
 
 #### Object
-| method               | IoU  | Precision | Recall |
-| -------------------- | ---- | --------- | ------ |
-| 2DSSG_ORBSLAM3_l20_0 | 28.9 | 41.8      | 47.4   |
-| 2DSSG_full_1_3       | 51.0 | 61.1      | 75.8   |
-| SGFN_inseg_0_5       | 41.7 | 52.1      | 59.3   |
-| 2DSSG_ORBSLAM3_l20_1 | 22.1 | 33.6      | 39.9   |
-| 2DSSG_ORBSLAM3_l20_2 | 29.1 | 40.6      | 54.8   |
-| 2DSSG_ORBSLAM3_l20_3 | 31.0 | 43.2      | 53.4   |
-| 2DSSG_ORBSLAM3_l20_4 | 29.5 | 40.5      | 52.3   |
-| 2DSSG_ORBSLAM3_l20_5 | 30.9 | 40.4      | 50.5   |
-| 2DSSG_ORBSLAM3_l20_6 | 31.1 | 42.1      | 54.9   |
-| 2DSSG_ORBSLAM3_l20_7 | 31.5 | 43.5      | 52.4   |
-| 2DSSG_INSEG_l20_0    | 42.4 | 54.0      | 60.6   |
-| VGfM_full_l20_0      | 27.3 | 38.2      | 52.0   |
-| IMP_full_l20_2_1     | 29.2 | 41.8      | 50.0   |
+| method                 | IoU  | Precision | Recall |
+| ---------------------- | ---- | --------- | ------ |
+| 2DSSG_ORBSLAM3_l20_0   | 28.9 | 41.8      | 47.4   |
+| 2DSSG_full_1_3         | 51.0 | 61.1      | 75.8   |
+| SGFN_inseg_0_5         | 41.7 | 52.1      | 59.3   |
+| 2DSSG_ORBSLAM3_l20_1   | 22.1 | 33.6      | 39.9   |
+| 2DSSG_ORBSLAM3_l20_2   | 29.1 | 40.6      | 54.8   |
+| 2DSSG_ORBSLAM3_l20_3   | 31.0 | 43.2      | 53.4   |
+| 2DSSG_ORBSLAM3_l20_4   | 29.5 | 40.5      | 52.3   |
+| 2DSSG_ORBSLAM3_l20_5   | 30.9 | 40.4      | 50.5   |
+| 2DSSG_ORBSLAM3_l20_6   | 31.1 | 42.1      | 54.9   |
+| 2DSSG_ORBSLAM3_l20_7   | 31.5 | 43.5      | 52.4   |
+| 2DSSG_INSEG_l20_0      | 42.4 | 54.0      | 60.6   |
+| VGfM_full_l20_0        | 27.3 | 38.2      | 52.0   |
+| IMP_full_l20_2_1       | 29.2 | 41.8      | 50.0   |
+| 2DSSG_full_l20_2       |      |           |        |
+| VGfM_full_l20_2        | 26.4 | 36.0      | 50.7   |
+| 2DSSG_ORBSLAM3_l20_6_1 | 30.4 | 40.1      | 52.9   |
+| 2DSSG_ORBSLAM3_l20_7_1 | 29.7 | 39.5      | 51.4   |
+| IMP_ORBSLAM3_l20_1     | 23.1 | 33.3      | 45.0   |
 
 #### Predicates
-| method               | IoU  | Precision | Recall |
-| -------------------- | ---- | --------- | ------ |
-| 2DSSG_ORBSLAM3_l20_0 | 21.2 | 28.9      | 32.0   |
-| 2DSSG_full_1_3       | 40.9 | 46.0      | 73.0   |
-| SGFN_inseg_0_5       | 31.1 | 34.7      | 61.6   |
-| 2DSSG_ORBSLAM3_l20_1 | 24.6 | 35.6      | 41.5   |
-| 2DSSG_ORBSLAM3_l20_2 | 25.4 | 37.6      | 48.5   |
-| 2DSSG_ORBSLAM3_l20_4 | 25.8 | 34.3      | 48.6   |
-| 2DSSG_ORBSLAM3_l20_3 | 27.6 | 38.7      | 45.5   |
-| 2DSSG_ORBSLAM3_l20_5 | 27.3 | 36.2      | 49.6   |
-| 2DSSG_ORBSLAM3_l20_6 | 27.0 | 36.8      | 47.9   |
-| 2DSSG_ORBSLAM3_l20_7 | 26.6 | 36.9      | 46.4   |
-| 2DSSG_INSEG_l20_0    | 37.5 | 44.4      | 56.3   |
-| VGfM_full_l20_0      | 23.1 | 36.1      | 35.3   |
-| IMP_full_l20_2_1     | 32.3 | 44.1      | 49.2   |
+| method                 | IoU  | Precision | Recall |
+| ---------------------- | ---- | --------- | ------ |
+| 2DSSG_ORBSLAM3_l20_0   | 21.2 | 28.9      | 32.0   |
+| 2DSSG_full_1_3         | 40.9 | 46.0      | 73.0   |
+| SGFN_inseg_0_5         | 31.1 | 34.7      | 61.6   |
+| 2DSSG_ORBSLAM3_l20_1   | 24.6 | 35.6      | 41.5   |
+| 2DSSG_ORBSLAM3_l20_2   | 25.4 | 37.6      | 48.5   |
+| 2DSSG_ORBSLAM3_l20_4   | 25.8 | 34.3      | 48.6   |
+| 2DSSG_ORBSLAM3_l20_3   | 27.6 | 38.7      | 45.5   |
+| 2DSSG_ORBSLAM3_l20_5   | 27.3 | 36.2      | 49.6   |
+| 2DSSG_ORBSLAM3_l20_6   | 27.0 | 36.8      | 47.9   |
+| 2DSSG_ORBSLAM3_l20_7   | 26.6 | 36.9      | 46.4   |
+| 2DSSG_INSEG_l20_0      | 37.5 | 44.4      | 56.3   |
+| VGfM_full_l20_0        | 23.1 | 36.1      | 35.3   |
+| IMP_full_l20_2_1       | 32.3 | 44.1      | 49.2   |
+| 2DSSG_full_l20_2       |      |           |        |
+| VGfM_full_l20_2        | 23.4 | 36.5      | 39.1   |
+| 2DSSG_ORBSLAM3_l20_6_1 | 27.0 | 38.7      | 51.3   |
+| 2DSSG_ORBSLAM3_l20_7_1 | 26.3 | 35.2      | 47.9   |
+| IMP_ORBSLAM3_l20_1     | 18.2 | 26.9      | 31.4   |
 
 ## Instance level
 #### Relationship
-| method                | rel.R@1 | rel.R@3 | obj.R@1 | obj.R@3 | pred.R@1 | pred.R@2 |
-| --------------------- | ------- | ------- | ------- | ------- | -------- | -------- |
-| SGFN_full_0_2         | 0.32    | 0.56    | 0.56    | 0.85    | 0.96     | 1.00     |
-| SGFN_inseg_0_1        | 0.31    | 0.45    | 0.56    | 0.74    | 0.54     | 0.57     |
-| SGFN_full_0_3         | 31.4    | 55.3    | 58.4    | 84.8    | 92.0     | 98.6     |
-| SGFN_inseg_0_5        | 28.0    | 41.5    | 54.6    | 72.8    | 94.2     | 98.2     |
-| 3DSSG_full_l20_1      | 26.5    | 39.6    | 52.3    | 81.8    | 91.3     | 95.7     |
-| 2DSSG_full_1_2        | 45.5    | 58.9    | 72.5    | 91.9    | 87.2     | 95.8     |
-| 2DSSG_full_1_3        | 49.9    | 58.3    | 73.0    | 92.4    | 95.2     | 97.4     |
-| 2DSSG_ORBSLAM3_l20_0  | 3.6     | 7.0     | 19.2    | 37.5    | 95.3     | 97.8     |
-| 2DSSG_ORBSLAM3_l20_1  | 5.6     | 10.0    | 24.2    | 43.4    | 95.0     | 98.0     |
-| 2DSSG_ORBSLAM3_l20_1* | 21.5    | 29.3    | 48.2    | 72.7    | 80.5     | 90.6     |
-| 2DSSG_ORBSLAM3_l20_2* | 27.5    | 48.2    | 55.6    | 82.8    | 89.8     | 99.0     |
-| 2DSSG_ORBSLAM3_l20_2  | 6.4     | 11.8    | 26.4    | 46.8    | 95.0     | 98.1     |
-| SGFN_inseg_0_5*       | 49.4    | 72.7    | 72.8    | 92.1    | 92.0     | 98.3     |
-| 2DSSG_ORBSLAM3_l20_4* | 35.6    | 55.5    | 62.4    | 85.7    | 88.5     | 98.9     |
-| 2DSSG_ORBSLAM3_l20_4  | 8.2     | 13.4    | 29.7    | 48.2    | 94.7     | 98.1     |
-| 2DSSG_ORBSLAM3_l20_3  | 7.3     | 13.2    | 28.6    | 48.1    | 95.2     | 95.2     |
-| 2DSSG_ORBSLAM3_l20_3* | 31.9    | 54.5    | 60.1    | 85.4    | 90.7     | 99.2     |
-| 2DSSG_ORBSLAM3_l20_5  | 8.7     | 14.3    | 30.8    | 48.7    | 95.1     | 98.1     |
-| 2DSSG_ORBSLAM3_l20_5* | 38.4    | 59.9    | 64.7    | 86.8    | 90.4     | 99.0     |
-| 2DSSG_ORBSLAM3_l20_6  | 8.7     | 14.3    | 30.4    | 48.6    | 95.3     | 98.2     |
-| 2DSSG_ORBSLAM3_l20_6* | 38.5    | 59.6    | 63.9    | 86.5    | 91.1     | 99.2     |
-| 2DSSG_ORBSLAM3_l20_7  | 8.1     | 14.3    | 29.5    | 49.4    | 95.2     | 98.1     |
-| 2DSSG_ORBSLAM3_l20_7* | 35.8    | 59.8    | 62.0    | 88.2    | 90.9     | 99.1     |
-| IMG_full_l20_2_1      | 8.1     | 14.3    | 31.7    | 51.5    | 95.4     | 98.1     |
-| IMG_full_l20_2_1*     | 30.4    | 51.3    | 57.5    | 82.5    | 91.4     | 98.1     |
-| IMG_full_l20_1_1      | 2.3     | 3.3     | 9.6     | 29.3    | 95.3     | 98.1     |
-| IMP_ORBSLAM3_l20_0    |         |         |         |         |          |          |
-| 2DSSG_full_l20_1      | 53.3    | 77.7    | 75.0    | 92.7    | 95.7     | 99.6     |
-| 2DSSG_INSEG_l20_0     | 26.9    | 41.0    | 53.8    | 72.5    | 95.7     | 98.7     |
-| 2DSSG_INSEG_l20_0*    | 48.3    | 72.9    | 71.8    | 91.7    | 94.6     | 99.2     |
-| VGfM_full_l20_0       | 4.2     | 9.2     | 22.6    | 47.5    | 93.9     | 97.8     |
-| VGfM_full_l20_0*      | 15.5    | 31.7    | 41.0    | 75.4    | 85.6     | 97.0     |
+| method                  | rel.R@1 | rel.R@3 | obj.R@1 | obj.R@3 | pred.R@1 | pred.R@2 |
+| ----------------------- | ------- | ------- | ------- | ------- | -------- | -------- |
+| SGFN_full_0_2           | 0.32    | 0.56    | 0.56    | 0.85    | 0.96     | 1.00     |
+| SGFN_inseg_0_1          | 0.31    | 0.45    | 0.56    | 0.74    | 0.54     | 0.57     |
+| SGFN_full_0_3           | 31.4    | 55.3    | 58.4    | 84.8    | 92.0     | 98.6     |
+| SGFN_inseg_0_5          | 28.0    | 41.5    | 54.6    | 72.8    | 94.2     | 98.2     |
+| 3DSSG_full_l20_1        | 26.5    | 39.6    | 52.3    | 81.8    | 91.3     | 95.7     |
+| 2DSSG_full_1_2          | 45.5    | 58.9    | 72.5    | 91.9    | 87.2     | 95.8     |
+| 2DSSG_full_1_3          | 49.9    | 58.3    | 73.0    | 92.4    | 95.2     | 97.4     |
+| 2DSSG_ORBSLAM3_l20_0    | 3.6     | 7.0     | 19.2    | 37.5    | 95.3     | 97.8     |
+| 2DSSG_ORBSLAM3_l20_1    | 5.6     | 10.0    | 24.2    | 43.4    | 95.0     | 98.0     |
+| 2DSSG_ORBSLAM3_l20_1*   | 21.5    | 29.3    | 48.2    | 72.7    | 80.5     | 90.6     |
+| 2DSSG_ORBSLAM3_l20_2*   | 27.5    | 48.2    | 55.6    | 82.8    | 89.8     | 99.0     |
+| 2DSSG_ORBSLAM3_l20_2    | 6.4     | 11.8    | 26.4    | 46.8    | 95.0     | 98.1     |
+| SGFN_inseg_0_5*         | 49.4    | 72.7    | 72.8    | 92.1    | 92.0     | 98.3     |
+| 2DSSG_ORBSLAM3_l20_4*   | 35.6    | 55.5    | 62.4    | 85.7    | 88.5     | 98.9     |
+| 2DSSG_ORBSLAM3_l20_4    | 8.2     | 13.4    | 29.7    | 48.2    | 94.7     | 98.1     |
+| 2DSSG_ORBSLAM3_l20_3    | 7.3     | 13.2    | 28.6    | 48.1    | 95.2     | 95.2     |
+| 2DSSG_ORBSLAM3_l20_3*   | 31.9    | 54.5    | 60.1    | 85.4    | 90.7     | 99.2     |
+| 2DSSG_ORBSLAM3_l20_5    | 8.7     | 14.3    | 30.8    | 48.7    | 95.1     | 98.1     |
+| 2DSSG_ORBSLAM3_l20_5*   | 38.4    | 59.9    | 64.7    | 86.8    | 90.4     | 99.0     |
+| 2DSSG_ORBSLAM3_l20_6    | 8.7     | 14.3    | 30.4    | 48.6    | 95.3     | 98.2     |
+| 2DSSG_ORBSLAM3_l20_6*   | 38.5    | 59.6    | 63.9    | 86.5    | 91.1     | 99.2     |
+| 2DSSG_ORBSLAM3_l20_7    | 8.1     | 14.3    | 29.5    | 49.4    | 95.2     | 98.1     |
+| 2DSSG_ORBSLAM3_l20_7*   | 35.8    | 59.8    | 62.0    | 88.2    | 90.9     | 99.1     |
+| IMG_full_l20_2_1        | 8.1     | 14.3    | 31.7    | 51.5    | 95.4     | 98.1     |
+| IMG_full_l20_2_1*       | 30.4    | 51.3    | 57.5    | 82.5    | 91.4     | 98.1     |
+| IMG_full_l20_1_1        | 2.3     | 3.3     | 9.6     | 29.3    | 95.3     | 98.1     |
+| IMP_ORBSLAM3_l20_0      |         |         |         |         |          |          |
+| 2DSSG_full_l20_1        | 53.3    | 77.7    | 75.0    | 92.7    | 95.7     | 99.6     |
+| 2DSSG_INSEG_l20_0       | 26.9    | 41.0    | 53.8    | 72.5    | 95.7     | 98.7     |
+| 2DSSG_INSEG_l20_0*      | 48.3    | 72.9    | 71.8    | 91.7    | 94.6     | 99.2     |
+| VGfM_full_l20_0         | 4.2     | 9.2     | 22.6    | 47.5    | 93.9     | 97.8     |
+| VGfM_full_l20_0*        | 15.5    | 31.7    | 41.0    | 75.4    | 85.6     | 97.0     |
+| 2DSSG_full_l20_2        | 54.5    | 77.0    | 75.8    | 92.5    | 95.9     | 99.5     |
+| IMP_full_l20_2_2        | 8.1     | 14.3    | 31.6    | 51.5    | 95.6     | 98.1     |
+| IMP_full_l20_2_2*       | 30.4    | 51.1    | 57.3    | 82.6    | 92.1     | 98.1     |
+| VGfM_full_l20_2*        | 19.0    | 36.4    | 46.8    | 77.4    | 83.2     | 96.4     |
+| VGfM_full_l20_2         | 5.1     | 10.4    | 25.8    | 48.6    | 93.3     | 97.6     |
+| 2DSSG_ORBSLAM3_l20_6_1  | 7.7     | 14.0    | 28.9    | 49.6    | 94.9     | 98.2     |
+| 2DSSG_ORBSLAM3_l20_6_1* | 33.6    | 58.5    | 60.7    | 88.6    | 89.5     | 99.3     |
+| 2DSSG_ORBSLAM3_l20_7_1  | 8.3     | 14.3    | 29.8    | 48.9    | 95.0     | 98.1     |
+| 2DSSG_ORBSLAM3_l20_7_1* | 36.8    | 59.6    | 62.7    | 87.1    | 90.1     | 99.0     |
+| IMP_ORBSLAM3_l20_1      | 0.1     | 18.5    | 0.6     | 13.3    | 95.4     | 97.2     |
+| IMP_ORBSLAM3_l20_1*     | 12.5    | 20.8    | 22.2    | 50.0    | 75.0     | 91.7     |
+
 
 Note: `2DSSG_ORBSLAM3_l20_1*` is ignore missing objects and scans.
 
@@ -227,73 +277,95 @@ for the instance case, maybe it is better to show precision, since a lot of
 objects and predicates are missing due to the missing nodes.
 
 #### Object
-| method                | IoU   | Precision | Recall |
-| --------------------- | ----- | --------- | ------ |
-| SGFN_full_0_2         | 0.316 | 0.426     | 0.506  |
-| SGFN_inseg_0_1        | 0.283 | 0.716     | 0.304  |
-| SGFN_full_0_3         | 0.326 | 0.457     | 0.482  |
-| SGFN_inseg_0_5        | 33.5  | 52.1      | 47.2   |
-| 3DSSG_full_l20_1      | 28.1  | 39.0      | 47.6   |
-| 2DSSG_full_1_2        | 51.0  | 60.3      | 75.4   |
-| 2DSSG_full_1_3        | 51.0  | 61.1      | 75.8   |
-| 2DSSG_ORBSLAM3_l20_0  | 15.7  | 41.6      | 20.0   |
-| 2DSSG_ORBSLAM3_l20_1  | 15.2  | 35.6      | 23.6   |
-| 2DSSG_ORBSLAM3_l20_1* | 22.1  | 33.6      | 39.9   |
-| 2DSSG_ORBSLAM3_l20_2* | 32.9  | 45.0      | 57.7   |
-| 2DSSG_ORBSLAM3_l20_2  | 19.0  | 42.8      | 30.2   |
-| SGFN_inseg_0_5*       | 46.8  | 57.4      | 62.4   |
-| 2DSSG_ORBSLAM3_l20_4* | 33.8  | 45.7      | 53.4   |
-| 2DSSG_ORBSLAM3_l20_4  | 19.0  | 43.5      | 27.6   |
-| 2DSSG_ORBSLAM3_l20_3  | 20.2  | 45.5      | 28.8   |
-| 2DSSG_ORBSLAM3_l20_3* | 34.4  | 47.8      | 55.4   |
-| 2DSSG_ORBSLAM3_l20_5* | 36.8  | 50.0      | 52.1   |
-| 2DSSG_ORBSLAM3_l20_5  | 20.1  | 47.5      | 26.3   |
-| 2DSSG_ORBSLAM3_l20_6  | 21.6  | 49.2      | 29.8   |
-| 2DSSG_ORBSLAM3_l20_6* | 37.5  | 51.6      | 58.2   |
-| 2DSSG_ORBSLAM3_l20_7  | 20.7  | 46.3      | 27.6   |
-| 2DSSG_ORBSLAM3_l20_7* | 35.9  | 48.6      | 54.8   |
-| IMG_full_l20_2_1*     | 32.1  | 44.5      | 53.3   |
-| IMG_full_l20_2_1      | 20.6  | 42.4      | 30.8   |
-| IMG_full_l20_1_1      | 1.5   | -         | 6      |
-| 2DSSG_INSEG_l20_0     | 32.9  | 53.5      | 47.2   |
-| 2DSSG_INSEG_l20_0*    | 43.6  | 56.1      | 61.1   |
-| 2DSSG_full_l20_1      | 52.2  | 64.4      | 75.9   |
-| VGfM_full_l20_0*      | 21.4  | 36.5      | 34.7   |
-| VGfM_full_l20_0       | 12.7  | 34.8      | 20.7   |
+| method                  | IoU   | Precision | Recall |
+| ----------------------- | ----- | --------- | ------ |
+| SGFN_full_0_2           | 0.316 | 0.426     | 0.506  |
+| SGFN_inseg_0_1          | 0.283 | 0.716     | 0.304  |
+| SGFN_full_0_3           | 0.326 | 0.457     | 0.482  |
+| SGFN_inseg_0_5          | 33.5  | 52.1      | 47.2   |
+| 3DSSG_full_l20_1        | 28.1  | 39.0      | 47.6   |
+| 2DSSG_full_1_2          | 51.0  | 60.3      | 75.4   |
+| 2DSSG_full_1_3          | 51.0  | 61.1      | 75.8   |
+| 2DSSG_ORBSLAM3_l20_0    | 15.7  | 41.6      | 20.0   |
+| 2DSSG_ORBSLAM3_l20_1    | 15.2  | 35.6      | 23.6   |
+| 2DSSG_ORBSLAM3_l20_1*   | 22.1  | 33.6      | 39.9   |
+| 2DSSG_ORBSLAM3_l20_2*   | 32.9  | 45.0      | 57.7   |
+| 2DSSG_ORBSLAM3_l20_2    | 19.0  | 42.8      | 30.2   |
+| SGFN_inseg_0_5*         | 46.8  | 57.4      | 62.4   |
+| 2DSSG_ORBSLAM3_l20_4*   | 33.8  | 45.7      | 53.4   |
+| 2DSSG_ORBSLAM3_l20_4    | 19.0  | 43.5      | 27.6   |
+| 2DSSG_ORBSLAM3_l20_3    | 20.2  | 45.5      | 28.8   |
+| 2DSSG_ORBSLAM3_l20_3*   | 34.4  | 47.8      | 55.4   |
+| 2DSSG_ORBSLAM3_l20_5*   | 36.8  | 50.0      | 52.1   |
+| 2DSSG_ORBSLAM3_l20_5    | 20.1  | 47.5      | 26.3   |
+| 2DSSG_ORBSLAM3_l20_6    | 21.6  | 49.2      | 29.8   |
+| 2DSSG_ORBSLAM3_l20_6*   | 37.5  | 51.6      | 58.2   |
+| 2DSSG_ORBSLAM3_l20_7    | 20.7  | 46.3      | 27.6   |
+| 2DSSG_ORBSLAM3_l20_7*   | 35.9  | 48.6      | 54.8   |
+| IMG_full_l20_2_1*       | 32.1  | 44.5      | 53.3   |
+| IMG_full_l20_2_1        | 20.6  | 42.4      | 30.8   |
+| IMG_full_l20_1_1        | 1.5   | -         | 6      |
+| 2DSSG_INSEG_l20_0       | 32.9  | 53.5      | 47.2   |
+| 2DSSG_INSEG_l20_0*      | 43.6  | 56.1      | 61.1   |
+| 2DSSG_full_l20_1        | 52.2  | 64.4      | 75.9   |
+| VGfM_full_l20_0*        | 21.4  | 36.5      | 34.7   |
+| VGfM_full_l20_0         | 12.7  | 34.8      | 20.7   |
+| 2DSSG_full_l20_2        | 55.1  | 66.6      | 79.4   |
+| IMP_full_l20_2_2        | 19.7  | 42.8      | 30.6   |
+| IMP_full_l20_2_2*       | 30.7  | 45.1      | 52.5   |
+| VGfM_full_l20_2*        | 21.7  | 41.4      | 36.6   |
+| VGfM_full_l20_2         | 12.9  | 39.3      | 21.8   |
+| 2DSSG_ORBSLAM3_l20_6_1  | 20.7  | 44.0      | 27.9   |
+| 2DSSG_ORBSLAM3_l20_6_1* | 35.2  | 46.2      | 55.8   |
+| 2DSSG_ORBSLAM3_l20_7_1  | 18.9  | 41.9      | 26.1   |
+| 2DSSG_ORBSLAM3_l20_7_1* | 33.5  | 44.0      | 52.4   |
+| IMP_ORBSLAM3_l20_1      | 0.3   | 6.7       | 0.4    |
+| IMP_ORBSLAM3_l20_1*     | 31.3  | 43.7      | 38.2   |
 
 
 #### Predicate
-| method                | IoU   | Precision | Recall |
-| --------------------- | ----- | --------- | ------ |
-| SGFN_full_0_3         | 0.325 | 0.329     | 0.656  |
-| SGFN_inseg_0_5        | 32.1  | 38.9      | 48.4   |
-| 3DSSG_full_l20_1      | 0.194 | 0.304     | 0.283  |
-| 2DSSG_full_1_2        | 0.308 | 0.329     | 0.802  |
-| 2DSSG_full_1_3        | 0.409 | 0.460     | 0.730  |
-| 2DSSG_ORBSLAM3_l20_0  | 16.2  | 27.6      | 17.3   |
-| 2DSSG_ORBSLAM3_l20_1  | 20.8  | 33.2      | 25.2   |
-| 2DSSG_ORBSLAM3_l20_1* | 24.6  | 35.6      | 41.5   |
-| 2DSSG_ORBSLAM3_l20_2* | 30.6  | 39.0      | 58.6   |
-| 2DSSG_ORBSLAM3_l20_2  | 21.8  | 38.9      | 28.3   |
-| SGFN_inseg_0_5*       | 36.2  | 38.9      | 68.0   |
-| 2DSSG_ORBSLAM3_l20_4* | 30.4  | 36.3      | 56.3   |
-| 2DSSG_ORBSLAM3_l20_4  | 22.5  | 36.2      | 27.6   |
-| 2DSSG_ORBSLAM3_l20_3  | 22.2  | 39.0      | 25.6   |
-| 2DSSG_ORBSLAM3_l20_3* | 31.5  | 39.1      | 50.6   |
-| 2DSSG_ORBSLAM3_l20_5* | 31.8  | 37.7      | 56.5   |
-| 2DSSG_ORBSLAM3_l20_5  | 22.8  | 376       | 27.7   |
-| 2DSSG_ORBSLAM3_l20_6  | 22.7  | 39.0      | 27.4   |
-| 2DSSG_ORBSLAM3_l20_6* | 32.4  | 39.1      | 55.8   |
-| 2DSSG_ORBSLAM3_l20_7  | 21.6  | 37.7      | 25.1   |
-| 2DSSG_ORBSLAM3_l20_7* | 30.2  | 37.4      | 49.8   |
-| IMG_full_l20_2_1*     | 30.7  | 43.7      | 45.3   |
-| IMG_full_l20_2_1      | 23.4  | 43.8      | 27.5   |
-| IMG_full_l20_1_1      | 11.9  | -         | 12.5   |
-| 2DSSG_INSEG_l20_0     | 34.8  | 50.2      | 42.3   |
-| 2DSSG_INSEG_l20_0*    | 43.1  | 50.3      | 57.7   |
-| 2DSSG_full_l20_1      | 44.7  | 50.4      | 71.2   |
-| VGfM_full_l20_0*      | 21.6  | 28.2      | 34.0   |
-| VGfM_full_l20_0       | 18.7  | 28.2      | 23.4   |
+| method                  | IoU   | Precision | Recall |
+| ----------------------- | ----- | --------- | ------ |
+| SGFN_full_0_3           | 0.325 | 0.329     | 0.656  |
+| SGFN_inseg_0_5          | 32.1  | 38.9      | 48.4   |
+| 3DSSG_full_l20_1        | 0.194 | 0.304     | 0.283  |
+| 2DSSG_full_1_2          | 0.308 | 0.329     | 0.802  |
+| 2DSSG_full_1_3          | 0.409 | 0.460     | 0.730  |
+| 2DSSG_ORBSLAM3_l20_0    | 16.2  | 27.6      | 17.3   |
+| 2DSSG_ORBSLAM3_l20_1    | 20.8  | 33.2      | 25.2   |
+| 2DSSG_ORBSLAM3_l20_1*   | 24.6  | 35.6      | 41.5   |
+| 2DSSG_ORBSLAM3_l20_2*   | 30.6  | 39.0      | 58.6   |
+| 2DSSG_ORBSLAM3_l20_2    | 21.8  | 38.9      | 28.3   |
+| SGFN_inseg_0_5*         | 36.2  | 38.9      | 68.0   |
+| 2DSSG_ORBSLAM3_l20_4*   | 30.4  | 36.3      | 56.3   |
+| 2DSSG_ORBSLAM3_l20_4    | 22.5  | 36.2      | 27.6   |
+| 2DSSG_ORBSLAM3_l20_3    | 22.2  | 39.0      | 25.6   |
+| 2DSSG_ORBSLAM3_l20_3*   | 31.5  | 39.1      | 50.6   |
+| 2DSSG_ORBSLAM3_l20_5*   | 31.8  | 37.7      | 56.5   |
+| 2DSSG_ORBSLAM3_l20_5    | 22.8  | 376       | 27.7   |
+| 2DSSG_ORBSLAM3_l20_6    | 22.7  | 39.0      | 27.4   |
+| 2DSSG_ORBSLAM3_l20_6*   | 32.4  | 39.1      | 55.8   |
+| 2DSSG_ORBSLAM3_l20_7    | 21.6  | 37.7      | 25.1   |
+| 2DSSG_ORBSLAM3_l20_7*   | 30.2  | 37.4      | 49.8   |
+| IMG_full_l20_2_1*       | 30.7  | 43.7      | 45.3   |
+| IMG_full_l20_2_1        | 23.4  | 43.8      | 27.5   |
+| IMG_full_l20_1_1        | 11.9  | -         | 12.5   |
+| 2DSSG_INSEG_l20_0       | 34.8  | 50.2      | 42.3   |
+| 2DSSG_INSEG_l20_0*      | 43.1  | 50.3      | 57.7   |
+| 2DSSG_full_l20_1        | 44.7  | 50.4      | 71.2   |
+| VGfM_full_l20_0*        | 21.6  | 28.2      | 34.0   |
+| VGfM_full_l20_0         | 18.7  | 28.2      | 23.4   |
+| 2DSSG_full_l20_2        | 45.2  | 51.4      | 70.3   |
+| IMP_full_l20_2_2        | 24.3  | 43.8      | 28.2   |
+| IMP_full_l20_2_2*       | 31.6  | 43.6      | 45.4   |
+| VGfM_full_l20_2*        | 21.1  | 26.9      | 41.8   |
+| VGfM_full_l20_2         | 19.0  | 26.9      | 27.7   |
+| 2DSSG_ORBSLAM3_l20_6_1  | 22.5  | 38.7      | 27.8   |
+| 2DSSG_ORBSLAM3_l20_6_1* | 31.8  | 38.8      | 59.2   |
+| 2DSSG_ORBSLAM3_l20_7_1  | 23.0  | 35.9      | 29.2   |
+| 2DSSG_ORBSLAM3_l20_7_1* | 31.4  | 36.0      | 58.6   |
+| IMP_ORBSLAM3_l20_1      | 11.9  | 48.5      | 12.5   |
+| IMP_ORBSLAM3_l20_1*     | 31.3  | 43.7      | 38.2   |
 
 
 Note: remember to recalculate average. (ignore none in recall and iou)

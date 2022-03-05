@@ -34,7 +34,7 @@ eval: #evaluation
  mode: instance #eval on [segment, instance].  
  data_workers: 8
  topK: 10
- ignore_missing: false
+ ignore_missing: true
 model:
  method: sgfn
  multi_rel: false # multiple relationship 

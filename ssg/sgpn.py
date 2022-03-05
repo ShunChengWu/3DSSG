@@ -39,7 +39,8 @@ class SGPN(nn.Module):
             num_layers = cfg.model.gnn.num_layers,
             dim_node = cfg.model.node_feature_dim,
             dim_edge = cfg.model.edge_feature_dim,
-            dim_hidden = cfg.model.gnn.hidden_dim
+            dim_hidden = cfg.model.gnn.hidden_dim,
+            with_bn=cfg.model.gnn.with_bn
             )
 
         with_bn =cfg.model.node_classifier.with_bn

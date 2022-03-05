@@ -31,10 +31,10 @@ training:
   }
  max_epoch: 500
 eval: #evaluation
- mode: instance #eval on [segment, instance].  
+ mode: segment #eval on [segment, instance].  
  data_workers: 8
  topK: 10
- ignore_missing: false
+ ignore_missing: true
 model:
  method: sgfn
  multi_rel: false # multiple relationship 
