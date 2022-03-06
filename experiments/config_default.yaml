@@ -55,7 +55,7 @@ model:
  edge_feature_dim: 256
 # edge_descriptor_dim: 11
  spatial_encoder:
-  method: none #[none,fc]
+  method: identity #[none,identity,fc]
   dim: 128
  node_encoder:
   method: none #[none, basic]

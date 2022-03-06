@@ -298,6 +298,8 @@ class Graph_Loader (data.Dataset):
         fdata = define.DATA_PATH
         rgb_filepattern = 'frame-{0:06d}.color.jpg'
         images=list()
+        descriptor_generator = util_data.Node_Descriptor_24(with_bbox=self.cfg.data.img_desc_6_pts)
+        node_descriptor_for_image = list()
         for mid, fid in enumerate(kf_indices):
             pth_rgb = os.path.join(fdata,scan_id,'sequence', rgb_filepattern.format(int(fid)))
             img_data = Image.open(pth_rgb)
@@ -336,10 +338,12 @@ class Graph_Loader (data.Dataset):
                 cat.append(class_id)
                 
                 idx2iid[om_id] = oid
-                # if oid in instance2mask: raise RuntimeError('duplicate found')
-                # instance2mask[oid]=om_id
-                
                 per_frame_indices.append(om_id)
+                
+                ''' '''
+                obj = object_data[oid]
+                node_descriptor_for_image.append( descriptor_generator(obj) )
+                    
             for om_id1 in per_frame_indices:
                 for om_id2 in per_frame_indices:
                     if om_id1 != om_id2:
@@ -388,7 +392,7 @@ class Graph_Loader (data.Dataset):
             adj_matrix = torch.from_numpy(np.array(adj_matrix, dtype=rel_dtype))
         if self.multi_rel_outputs:
             gt_rels = torch.zeros(len(edge_indices), len(self.relationNames),dtype = torch.float)
-            gt_rels[:,self.none_idx] = 1
+            # gt_rels[:,self.none_idx] = 1
         else:
             gt_rels = torch.ones(len(edge_indices),dtype = torch.long) * self.none_idx
             
@@ -403,7 +407,7 @@ class Graph_Loader (data.Dataset):
             if key in relatinoships_gt:
                 if self.multi_rel_outputs:
                     for x in relatinoships_gt[key]:
-                        gt_rels[e,x] = adj_matrix_onehot[index1,index2,x]
+                        gt_rels[e,x] = 1# adj_matrix_onehot[index1,index2,x]
                 else:
                     if len(relatinoships_gt[key])!=1:
                         print('scan_id',scan_id)
@@ -421,9 +425,9 @@ class Graph_Loader (data.Dataset):
         iid2idxes = defaultdict(list)
         for idx,iid in idx2iid.items():iid2idxes[iid].append(idx)
         for iid, indices in iid2idxes.items():
-            for i, idx1 in enumerate(indices):
-                for j, idx2 in enumerate(indices):
-                    if i == j:continue
+            for idx1 in indices:
+                for idx2 in indices:
+                    if idx1 == idx2:continue
                     temporal_node_graph.append([idx1,idx2])
                     
         temporal_edge_graph=list()
@@ -436,9 +440,9 @@ class Graph_Loader (data.Dataset):
             key = (iid1,iid2)
             edgeIid_2_edgeIndices[key].append(idx)
         for key, indices in edgeIid_2_edgeIndices.items():
-            for i, idx1 in enumerate(indices):
-                for j, idx2 in enumerate(indices):
-                    if i == j:continue
+            for idx1 in indices:
+                for idx2 in indices:
+                    if idx1 == idx2:continue
                     temporal_edge_graph.append([idx1,idx2])
                 
         '''to tensor'''
@@ -449,6 +453,7 @@ class Graph_Loader (data.Dataset):
         edge_indices = torch.tensor(edge_indices,dtype=torch.long)
         temporal_node_graph = torch.tensor(temporal_node_graph,dtype=torch.long)
         temporal_edge_graph = torch.tensor(temporal_edge_graph,dtype=torch.long)
+        node_descriptor_for_image = torch.stack(node_descriptor_for_image)
         
         output = dict()
         output['scan_id'] = scan_id # str
@@ -460,6 +465,7 @@ class Graph_Loader (data.Dataset):
         output['image_boxes'] = bounding_boxes #list
         output['temporal_node_graph'] = temporal_node_graph
         output['temporal_edge_graph'] = temporal_edge_graph
+        output['node_descriptor_8'] = node_descriptor_for_image
         del self.filtered_data
         del self.sg_data
         del self.mv_data   

@@ -11,6 +11,7 @@ edge_encoder_list = {
     'sgpn': edge_encoder.EdgeEncoder_SGPN,
     '2dssg': edge_encoder.EdgeEncoder_2DSSG,
     '2dssg_1':edge_encoder.EdgeEncoder_2DSSG_1,
+    'vgfm':edge_encoder.EdgeEncoder_VGfM,
 }
 gnn_list = {
     'fan': GraphEdgeAttenNetworkLayers,

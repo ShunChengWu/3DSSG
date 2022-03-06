@@ -108,6 +108,9 @@ class SGFN(nn.Module):
             if self.cfg.model.spatial_encoder.method == 'fc':
                 models['spatial_encoder'] = torch.nn.Linear(sptial_feature_dim, cfg.model.spatial_encoder.dim)
                 node_feature_dim+=cfg.model.spatial_encoder.dim
+            elif self.cfg.model.spatial_encoder.method == 'identity':
+                models['spatial_encoder'] = torch.nn.Identity()
+                node_feature_dim+=sptial_feature_dim
             else:
                 raise NotImplementedError()
         else:
@@ -184,10 +187,12 @@ class SGFN(nn.Module):
             # logger_py.debug('len(nodes), len(edges): {} {} '.format(len(obj_points), node_edges.shape))
             nodes_pts_feature = self.obj_encoder(obj_points)
             nodes_feature = nodes_pts_feature 
+            descriptor = args['descriptor']
             if self.use_spatial:
-                descriptor = args['descriptor']
                 tmp = descriptor[:,3:].clone()
                 tmp[:,6:] = tmp[:,6:].log() # only log on volume and length
+                
+                tmp = self.spatial_encoder(tmp)
                 nodes_feature = torch.cat([nodes_pts_feature, tmp],dim=1)
             
         if self.with_img_encoder:

@@ -135,6 +135,55 @@ class EdgeDescriptor_plane(MessagePassing):
         # edge_feature[:,7] = torch.log( x_i[:,7] / x_j[:,7])
         # # edge_feature, *_ = self.ef(edge_feature.unsqueeze(-1))
         return edge_feature.unsqueeze(-1)
+    
+class EdgeDescriptor_VGfM(MessagePassing):
+    def __init__(self, flow="target_to_source"):
+        '''
+        https://github.com/paulgay/VGfM/blob/52c6bdbb14623c355af353c244752a6bed16f540/lib/networks/models.py#L555
+        '''
+        super().__init__(flow=flow)
+        self.dim=16
+    def forward(self, descriptor, edges_indices):
+        size = self.__check_input__(edges_indices, None)
+        coll_dict = self.__collect__(self.__user_args__,edges_indices,size, {"x":descriptor})
+        msg_kwargs = self.inspector.distribute('message', coll_dict)
+        edge_feature = self.message(**msg_kwargs)
+        return edge_feature
+    
+    def __len__(self):
+        return self.dim
+    
+    def message(self, x_i, x_j):
+        # source_to_target
+        # (j, i)
+        # 0-2: centroid, 3-5:dims, 6:volume, 7:length
+        # to
+        # 0-2: offset centroid, 3-5: dim log ratio, 96 volume log ratio, 7: length log ratio
+        
+        # 0-2:center, 3-5:dims,6:volume,7:length, 
+        # 8-10: x_max,11-13:x_min,14-16:y_max,17-19:y_min,20-22:z_max,23-25:z_min
+        batch = x_i.shape[0]
+        
+        #Find gravity aligned plane
+        center_i = x_i[:,:3]
+        center_j = x_j[:,:3]
+        
+        # CENTER
+        center = (center_i+center_j)*0.5
+        # DISTANCE
+        distance = (center_i-center_j).norm()
+        # AXIS LENGTH
+        t1 = center_i-center
+        t2 = center_j-center
+        
+        edge_feature = torch.zeros([batch,self.dim]).to(x_i.device)
+        edge_feature[:,:3] = center
+        edge_feature[:,3:6] = t1
+        edge_feature[:,6:9] = t2
+        edge_feature[:,9:12] = x_i[:,3:6]
+        edge_feature[:,12:15] = x_j[:,3:6]
+        edge_feature[:,15] = distance
+        return edge_feature
 
 class EdgeEncoder_2DSSG(nn.Module):
     def __init__(self,cfg,device):
@@ -163,6 +212,22 @@ class EdgeEncoder_2DSSG_1(nn.Module):
         edges_feature = self.encoder(edges_descriptor)
         return edges_feature
         
+class EdgeEncoder_VGfM(nn.Module):
+    def __init__(self,**args):
+        super().__init__()
+        self.edge_descriptor = EdgeDescriptor_VGfM()
+        self.encoder = torch.nn.Sequential(
+            nn.Linear(len(self.edge_descriptor), 100),
+            nn.Dropout(0.5),
+            nn.Sigmoid(),
+            nn.Linear(100, 512),
+            nn.Dropout(0.5),
+            nn.Sigmoid()
+            )
+    def forward(self, descriptors, edges, **args):
+        edges_descriptor = self.edge_descriptor(descriptors, edges)
+        edges_feature = self.encoder(edges_descriptor)
+        return edges_feature
     
 class EdgeDescriptor_SGFN(MessagePassing):#TODO: move to model
     """ A sequence of scene graph convolution layers  """
