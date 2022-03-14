@@ -116,6 +116,7 @@ def main():
                 pin_memory=True,
                 collate_fn=graph_collate,
             )
+            dataset_test.__getitem__(0)
             
             # Get logger
             # logger=None

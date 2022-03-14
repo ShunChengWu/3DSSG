@@ -202,7 +202,7 @@ class Graph_Loader (data.Dataset):
                         if oid in instance2labelName:
                             if instance2labelName[oid] in self.classNames:
                                 obj_count+=1
-                    if obj_count>1:
+                    if obj_count>0:
                         kf_indices.append(int(k))
                         
                 if len(kf_indices) == 0:
@@ -287,8 +287,13 @@ class Graph_Loader (data.Dataset):
         kf_indices = self.filtered_data[scan_id]
         
         '''build graph base on detections'''
-        if self.sample_in_runtime:
-            kf_indices = random_drop(kf_indices, self.drop_img_edge)    
+        # if self.sample_in_runtime:
+        #     kf_indices = random_drop(kf_indices, self.drop_img_edge) 
+        if not self.for_eval:
+            kf_indices = random_drop(kf_indices, self.drop_img_edge, replace=True)
+        if self.for_eval :
+            kf_indices = random_drop(kf_indices, self.drop_img_edge_eval)
+        
         
         # instance2mask=dict()
         idx2iid=dict()

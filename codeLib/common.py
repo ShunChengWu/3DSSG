@@ -254,3 +254,12 @@ def color_rgb(num=rand_24_bit()):
     hx = color_hex(num)
     barr = bytearray.fromhex(hx)
     return (barr[0], barr[1], barr[2])
+def rgb_2_hex(rgb):
+    if isinstance(rgb,list):
+        assert len(rgb) == 3
+        rgb = (rgb[0],rgb[1],rgb[2])
+    return '#%02x%02x%02x' % rgb
+def color_hex_rgb(num=rand_24_bit()):
+    rgb = color_rgb(num)
+    """Returns a 24-bit int in hex"""
+    return rgb_2_hex(rgb)

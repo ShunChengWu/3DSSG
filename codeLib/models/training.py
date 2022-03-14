@@ -64,6 +64,30 @@ class BaseTrainer(object):
                 output.append(item)
         return output
     
+    def process_data_dict(self, data):
+        ''' Processes the data dictionary and returns respective tensors
+
+        Args:
+            data (dictionary): data dictionary
+        '''
+        try:
+            data =  dict(zip(data.keys(), self.toDevice(*data.values()) ))
+        except:
+            '''if failed, so more info'''
+            print('')
+            # print('type(data)',type(data))
+            if not isinstance(data,dict):
+                raise RuntimeError('expect input data with type dict but got {}'.format(type(data)))
+            '''convert individually until error happen'''
+            for k, v in data.items():
+                try:
+                    self.toDevice(v)
+                except:
+                    raise RuntimeError('unable to convert the object of {} with type {} to device {}'.format(k,type(v),self._device))
+                
+            
+        return data
+    
     def zero_metrics(self):
         '''reset metric accumulators'''
         raise NotImplementedError

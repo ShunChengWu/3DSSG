@@ -101,6 +101,7 @@ data:
  load_images: true
  load_points: false
  load_cache: false
+ load_incremental: false
  img_desc_6_pts: false # return 6 extreme points 
  sample_num_nn: 1
  sample_num_seed: 1

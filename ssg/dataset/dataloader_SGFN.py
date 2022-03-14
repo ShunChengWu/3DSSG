@@ -359,7 +359,8 @@ class SGFNDataset (data.Dataset):
                     
                     if not self.for_eval:
                         img_ids = random_drop(img_ids, self.mconfig.drop_img_edge, replace=True)
-                        # img = img[kf_indices]
+                    if self.for_eval :
+                        img_ids = random_drop(img_ids, self.mconfig.drop_img_edge_eval)
                         
                     img = [roi_imgs[oid][x] for x in img_ids]
                     # else:
@@ -431,6 +432,18 @@ class SGFNDataset (data.Dataset):
                     for m in range(len(cat)):
                         if n == m:continue
                         edge_indices.append([n,m])
+                        
+                # edge_indices = set()
+                # for k,v in nns.items():
+                #     k=int(k)
+                #     if k not in oid2idx:continue
+                #     mask_k = oid2idx[k]
+                #     for vv in v:
+                #         vv = int(vv)
+                #         if vv not in oid2idx:continue
+                #         mask_vv = oid2idx[vv]
+                #         edge_indices.add((mask_k,mask_vv))
+                # edge_indices = [[l[0],l[1]] for l in edge_indices]
                         
             if len(edge_indices)>0:
                 if not self.for_eval:

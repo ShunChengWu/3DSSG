@@ -55,6 +55,8 @@ number is R@1.
 | 2DSSG_exp2_1       | 0.91 | 0.93  | 0.78 | 0.87 | 0.93 | 1.00 |
 | 2DSSS_exp2_3       | 0.92 | 0.93  | 0.78 | 0.87 | 0.94 | 1.00 |
 | SGFN_full_l160_1   | 88.7 | 90.0  | 65.1 | 76.0 | 93.0 | 99.5 |
+| VGfM_FULL_l160_0   |      |       |      |      |      |      |
+| IMP_FULL_l160_0    |      |       |      |      |      |      |
 
 #### Relationships (R@1)
 | method            | Relationships | Objects | Predicate |
@@ -67,6 +69,9 @@ number is R@1.
 | 2DSSS_exp2_3      | 84.4          | 50.5    | 87.5      |
 | SGFN_full_l160_1  | 84.2          | 34.6    | 87.5      |
 | 2DSSG_full_l160_0 | 84.2          | 52.3    | 86.9      |
+| VGfM_FULL_l160_0  | 65.0          | 32.9    | 66.4      |
+| IMP_FULL_l160_0   | 63.2          | 37.0    | 66.6      |
+| VGfM_FULL_l160_1  | 63.1          | 54.0    | 65.3      |
 
 Note: why ours looks much better in relationships? Our topK relationship includes true positive. maybe this is not the case for johanna? But the "none" relationships should also be correct. otherwise the network can always predicate something.
 
@@ -77,6 +82,8 @@ Note: why ours looks much better in relationships? Our topK relationship include
 | SGFN_full_l160_1  | 7.7  | 15.3      | 13.9   |
 | 2DSSS_exp2_3      | 15.9 | 29.1      | 26.9   |
 | 2DSSG_full_l160_0 | 19.1 | 30.9      | 31.9   |
+| VGfM_FULL_l160_0  | 6.6  | 13.9      | 15.3   |
+| IMP_FULL_l160_0   | 9.5  | 16.4      | 22.6   |
 
 #### predicates
 | method            | IoU  | Precision | Recall |
@@ -85,7 +92,10 @@ Note: why ours looks much better in relationships? Our topK relationship include
 | SGFN_full_l160_1  | 99.3 | 32.4      | 11.4   |
 | 2DSSS_exp2_3      | 99.3 | 42.1      | 24.2   |
 | 2DSSG_full_l160_0 | 99.3 | 38.3      | 26.3   |
-\
+| VGfM_FULL_l160_0  | 98.3 | 13.0      | 3.9    |
+| IMP_FULL_l160_0   | 98.3 | 17.5      | 6.1    |
+| VGfM_FULL_l160_1  | 98.2 | 16.2      | 8.9    |
+
 Note: the IoU is extremely high because of the overwhelming true negatives (none relationship).
 
 
@@ -103,11 +113,13 @@ Note: the IoU is extremely high because of the overwhelming true negatives (none
 - SGFN_full_0_1: with LRrule:0. failed. drop too fast
 - SGFN_full_0_2: with LRrule:1
 - SGFN_full_0_3: with LRrule:1. fix predicates class.
+- [x] SGFN_ORBSLAM3_l20_0:
 
 
 - 3DSSG_full_l20_0: -> not valid. was using the full edge in training.
 - 3DSSG_full_l20_1: don't use full edge
-
+- [x] 3DSSG_INSEG_0:
+- [x] 3DSSG_ORBSLAM3_l20_0:
 
 - [x] IMP_full_l20_0: iterative message passing  -> doesn't train
 - [x] IMP_full_l20_1: use dyanmic ratio. fix rel GT.
@@ -117,16 +129,23 @@ Note: the IoU is extremely high because of the overwhelming true negatives (none
   - [x] IMP_full_l20_2_2: fix loader loader. turn off full_edge
 - [x] IMP_ORBSLAM3_l20_0: train IMP on ORBSLAM3 entities
 - [x] IMP_ORBSLAM3_l20_1: train IMP on ORBSLAM3 entities. turn off full_edge
-- [ ] IMP_INSEG_l20_0
+- [x] IMP_INSEG_l20_0:
+- [x] IMP_FULL_l160_0:
 
 - VGfM_full_l20_0: there was a bug. using `msg_t_node` for both node and edge
 - VGfM_full_l20_1: with the bug.
 - [x] VGfM_full_l20_2: fix bug and turn off full_edge
-- [ ] VGfM_INSEG_l20_0:
+- [x] VGfM_full_l20_3: fix temporal summ
+- [x] VGfM_full_l20_4: add geometric feature
+- [x] VGfM_INSEG_l20_0:
+- [x] VGfM_INSEG_l20_1: add geometric feature
+- [x] VGfM_FULL_l160_0:
+- [x] VGfM_FULL_l160_1: add geometric feature
 
 - VGfM_ORBSLAM3_l20_0:there was a bug. using `msg_t_node` for both node and edge
 - VGfM_ORBSLAM3_l20_1: fix the bug
-- [ ] VGfM_ORBSLAM3_l20_2: turn off full_edge
+- [x] VGfM_ORBSLAM3_l20_2: turn off full_edge
+- [x] VGfM_ORBSLAM3_l20_3: add geometric feature
 
 - 2DSSG_full_0: try to use image, multi-predicates.
 - 2DSSG_full_1: single predicates
@@ -134,10 +153,10 @@ Note: the IoU is extremely high because of the overwhelming true negatives (none
 - 2DSSG_full_1_2: single predicates. fix predicates class. fix class weighting.
 - 2DSSG_full_1_3: try to roll back to the previous predicate class weighting.
 - 2DSSG_full_l20_1: train with the best setup.
-- [ ] 2DSSG_full_l20_2: train with the best setup. turn off full_edge
+- [x] 2DSSG_full_l20_2: train with the best setup. turn off full_edge
 
 - 2DSSG_INSEG_l20_0: train on InSeg segmentation
-- [ ] 2DSSG_INSEG_l20_1: train on InSeg segmentation. without full_edge
+- [x] 2DSSG_INSEG_l20_1: train on InSeg segmentation. without full_edge
 
 - 2DSSG_ORBSLAM3_l20_0: with est. entities from ORBSLAM3 (forgot to finetune)
 - 2DSSG_ORBSLAM3_l20_1: with improved bboxes
@@ -171,11 +190,21 @@ Note: the IoU is extremely high because of the overwhelming true negatives (none
 | 2DSSG_INSEG_l20_0      | 42.9    | 52.8    | 69.1    | 89.8    | 89.5     | 96.5     |
 | IMP_full_l20_2_1       | 31.0    | 40.9    | 58.4    | 82.2    | 83.9     | 90.9     |
 | VGfM_full_l20_0        | 28.6    | 38.7    | 57.5    | 80.9    | 83.7     | 90.3     |
-| 2DSSG_full_l20_2       |         |         |         |         |          |          |
+| 2DSSG_full_l20_2       | 54.5    | 77.0    | 75.8    | 92.5    | 95.9     | 99.5     |
 | VGfM_full_l20_2        | 29.8    | 40.2    | 59.2    | 82.7    | 83.5     | 89.9     |
 | 2DSSG_ORBSLAM3_l20_6_1 | 29.5    | 38.7    | 58.0    | 86.8    | 80.4     | 91.2     |
 | 2DSSG_ORBSLAM3_l20_7_1 | 31.6    | 40.2    | 59.9    | 85.1    | 80.6     | 91.1     |
 | IMP_ORBSLAM3_l20_1     | 26.8    | 32.7    | 52.9    | 79.1    | 72.2     | 85.5     |
+| VGfM_ORBSLAM3_l20_2    | 26.4    | 35.7    | 55.0    | 80.4    | 71.7     | 83.2     |
+| VGfM_INSEG_l20_0       | 26.1    | 37.9    | 57.7    | 81.4    | 67.1     | 82.6     |
+| IMP_INSEG_l20_0        | 28.7    | 37.4    | 58.8    | 82.4    | 69.4     | 86.6     |
+| 2DSSG_INSEG_l20_1      | 42.2    | 49.8    | 67.9    | 89.0    | 89.6     | 96.4     |
+| SGFN_ORBSLAM3_l20_0    | 13.6    | 22.8    | 35.9    | 57.1    | 81.5     | 87.4     |
+| 3DSSG_ORBSLAM3_l20_0   | 12.3    | 18.4    | 31.0    | 62.4    | 81.6     | 89.7     |
+| VGfM_full_l20_4        | 46.7    | 57.7    | 74.7    | 92.4    | 84.8     | 91.6     |
+| 3DSSG_INSEG_0          | 18.2    | 32.3    | 42.2    | 68.1    | 93.4     | 97.4     |
+| VGfM_INSEG_l20_1       | 39.9    | 49.7    | 68.6    | 88.2    | 73.4     | 89.0     |
+| VGfM_ORBSLAM3_l20_3    | 29.9    | 37.3    | 57.6    | 82.0    | 74.3     | 86.0     |
 
 
 #### Object
@@ -194,11 +223,21 @@ Note: the IoU is extremely high because of the overwhelming true negatives (none
 | 2DSSG_INSEG_l20_0      | 42.4 | 54.0      | 60.6   |
 | VGfM_full_l20_0        | 27.3 | 38.2      | 52.0   |
 | IMP_full_l20_2_1       | 29.2 | 41.8      | 50.0   |
-| 2DSSG_full_l20_2       |      |           |        |
+| 2DSSG_full_l20_2       | 55.1 | 66.6      | 79.4   |
 | VGfM_full_l20_2        | 26.4 | 36.0      | 50.7   |
 | 2DSSG_ORBSLAM3_l20_6_1 | 30.4 | 40.1      | 52.9   |
 | 2DSSG_ORBSLAM3_l20_7_1 | 29.7 | 39.5      | 51.4   |
 | IMP_ORBSLAM3_l20_1     | 23.1 | 33.3      | 45.0   |
+| VGfM_ORBSLAM3_l20_2    | 27.2 | 42.4      | 42.8   |
+| VGfM_INSEG_l20_0       | 23.6 | 36.2      | 39.0   |
+| IMP_INSEG_l20_0        | 23.9 | 33.0      | 39.7   |
+| 2DSSG_INSEG_l20_1      | 41.3 | 52.9      | 59.1   |
+| SGFN_ORBSLAM3_l20_0    | 6.3  | 26.8      | 10.8   |
+| 3DSSG_ORBSLAM3_l20_0   | 9.1  | 21.7      | 16.8   |
+| VGfM_full_l20_4        | 40.5 | 52.7      | 65.5   |
+| 3DSSG_INSEG_0          | 19.4 | 35.6      | 33.0   |
+| VGfM_INSEG_l20_1       | 37.5 | 48.5      | 57.2   |
+| VGfM_ORBSLAM3_l20_3    | 26.6 | 39.1      | 41.9   |
 
 #### Predicates
 | method                 | IoU  | Precision | Recall |
@@ -216,11 +255,21 @@ Note: the IoU is extremely high because of the overwhelming true negatives (none
 | 2DSSG_INSEG_l20_0      | 37.5 | 44.4      | 56.3   |
 | VGfM_full_l20_0        | 23.1 | 36.1      | 35.3   |
 | IMP_full_l20_2_1       | 32.3 | 44.1      | 49.2   |
-| 2DSSG_full_l20_2       |      |           |        |
+| 2DSSG_full_l20_2       | 45.2 | 51.4      | 70.3   |
 | VGfM_full_l20_2        | 23.4 | 36.5      | 39.1   |
 | 2DSSG_ORBSLAM3_l20_6_1 | 27.0 | 38.7      | 51.3   |
 | 2DSSG_ORBSLAM3_l20_7_1 | 26.3 | 35.2      | 47.9   |
 | IMP_ORBSLAM3_l20_1     | 18.2 | 26.9      | 31.4   |
+| VGfM_ORBSLAM3_l20_2    | 14.0 | 22.1      | 22.4   |
+| VGfM_INSEG_l20_0       | 16.2 | 33.5      | 25.0   |
+| IMP_INSEG_l20_0        | 27.7 | 36.5      | 46.0   |
+| 2DSSG_INSEG_l20_1      | 37.1 | 43.9      | 56.7   |
+| SGFN_ORBSLAM3_l20_0    | 12.9 | 69.1      | 15.2   |
+| 3DSSG_ORBSLAM3_l20_0   | 21.4 | 35.9      | 34.9   |
+| VGfM_full_l20_4        | 36.4 | 43.0      | 58.8   |
+| 3DSSG_INSEG_0          | 23.9 | 37.7      | 28.3   |
+| VGfM_INSEG_l20_1       | 31.9 | 41.8      | 49.6   |
+| VGfM_ORBSLAM3_l20_3    | 24.0 | 31.5      | 46.7   |
 
 ## Instance level
 #### Relationship
@@ -269,7 +318,9 @@ Note: the IoU is extremely high because of the overwhelming true negatives (none
 | 2DSSG_ORBSLAM3_l20_7_1* | 36.8    | 59.6    | 62.7    | 87.1    | 90.1     | 99.0     |
 | IMP_ORBSLAM3_l20_1      | 0.1     | 18.5    | 0.6     | 13.3    | 95.4     | 97.2     |
 | IMP_ORBSLAM3_l20_1*     | 12.5    | 20.8    | 22.2    | 50.0    | 75.0     | 91.7     |
-
+| VGfM_ORBSLAM3_l20_2     | 0.1     | 1.8     | 0.9     | 13.5    | 95.4     | 97.2     |
+| VGfM_ORBSLAM3_l20_2*    | 8.3     | 8.3     | 33.3    | 55.5    | 62.5     | 83.3     |
+| VGfM_full_l20_4         | 11.1    | 18.7    | 38.1    | 55.1    | 95.4     | 98.2     |
 
 Note: `2DSSG_ORBSLAM3_l20_1*` is ignore missing objects and scans.
 
@@ -321,6 +372,9 @@ objects and predicates are missing due to the missing nodes.
 | 2DSSG_ORBSLAM3_l20_7_1* | 33.5  | 44.0      | 52.4   |
 | IMP_ORBSLAM3_l20_1      | 0.3   | 6.7       | 0.4    |
 | IMP_ORBSLAM3_l20_1*     | 31.3  | 43.7      | 38.2   |
+| VGfM_ORBSLAM3_l20_2     | 0.5   | 11.4      | 0.6    |
+| VGfM_ORBSLAM3_l20_2*    | 4.6   | 13.3      | 8      |
+| VGfM_full_l20_4        | 25.6  | 47.2      | 39.1   |
 
 
 #### Predicate
@@ -366,6 +420,9 @@ objects and predicates are missing due to the missing nodes.
 | 2DSSG_ORBSLAM3_l20_7_1* | 31.4  | 36.0      | 58.6   |
 | IMP_ORBSLAM3_l20_1      | 11.9  | 48.5      | 12.5   |
 | IMP_ORBSLAM3_l20_1*     | 31.3  | 43.7      | 38.2   |
+| VGfM_ORBSLAM3_l20_2     | 12.0  | 33.8      | 12.5   |
+| VGfM_ORBSLAM3_l20_2*    | 22.6  | 31.7      | 39.5   |
+| VGfM_full_l20_4        | 26.9  | 43.8      | 33.6   |
 
 
 Note: remember to recalculate average. (ignore none in recall and iou)

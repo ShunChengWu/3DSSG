@@ -150,6 +150,27 @@ def graph_collate(batch):
             # print('===')
             # print(x)
             out[x] = collate([d[x] for d in batch])
+            
+    ''''''
+    for x in ['seg2inst']:
+        if x in elem:
+            merged = dict()
+            for d in batch:
+                x_ = d[x]
+                assert isinstance(x_,dict)
+                #check key,value
+                for k, v in x_.items():
+                    if k not in merged:
+                        merged[k]=v
+                    else:
+                        assert merged[k] == v
+            out[x] = merged
+            
+    '''collect the rest of keys'''
+    # for x in elem:
+    #     if x not in out:
+    #         print(x)
+    #         out[x] = collate([d[x] for d in batch])
         
     return out
     # {key: graph_collate([d[key] for d in batch]) for key in elem}

@@ -373,6 +373,7 @@ def build_edge2name(pds:torch.tensor,edges:torch.tensor,
                 s2n[edge] = names[pds[n]]
             except:
                 print(edge)
+                print(names)
                 print(pds[n])
                 raise RuntimeError('')
             

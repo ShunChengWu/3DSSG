@@ -89,13 +89,14 @@ PYTHONPATH=./ python ssg/utils/extract_mv_box_image_3rscan.py -o /media/sc/SSD1T
 PYTHONPATH=./ python script/RUN_Gen2DSSG.py --thread 4 --dataset 3RScan --type train --overwrite 0;
 PYTHONPATH=./ python script/RUN_Gen2DSSG.py --thread 4 --dataset 3RScan --type validation --overwrite 0;
 
+# generate test data with checkpoitns
+PYTHONPATH=./ python script//RUN_Gen2DSSG_incre.py --thread 4
+
 # geneate object-image graph
 PYTHONPATH=./ python ssg/utils/make_obj_graph_incremental.py -o ./data/3RScan_ScanNet20_2DSSG_ORBSLAM3/ --target_name graph_2dssg_orbslam3.json
 
 # extract mv images
 PYTHONPATH=./ python ssg/utils/extract_mv_box_image_3rscan.py -o /media/sc/SSD4TB/roi_2dssg_orbslam3 -f ./data/3RScan_ScanNet20_2DSSG_ORBSLAM3/proposals.h5 --thread 4
-
-
 ```
 
 

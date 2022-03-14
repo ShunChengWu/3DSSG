@@ -91,7 +91,7 @@ def process(pth_3RScan, scan_id,label_type, target_relationships:list,
             print('warning. each node should have at least 1 kf')
         
         if node.size() <= args.min_3D_bbox_size :
-            name = instance2labelName.get(seg_id,'unknown')
+            # name = instance2labelName.get(seg_id,'unknown')
             if debug: print('node',seg_id,'too small (', node.size(),'<',args.min_3D_bbox_size,')')
             continue
         
