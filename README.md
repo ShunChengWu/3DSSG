@@ -45,6 +45,13 @@ pip install torch-geometric
 # open3d
 pip install open3d
 ```
+# Preparation
+Download data
+```
+cd files
+bash preparation.sh
+```
+
 
 # Run
 Run a toy example:
