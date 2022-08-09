@@ -1,7 +1,7 @@
-wget http://www.campar.in.tum.de/public_datasets/3RScan/rescans.txt
-wget http://www.campar.in.tum.de/public_datasets/3RScan/train_ref.txt
-wget http://www.campar.in.tum.de/public_datasets/3RScan/val_ref.txt
-wget http://www.campar.in.tum.de/public_datasets/3RScan/3RScan.json
+wget https://www.campar.in.tum.de/public_datasets/3RScan/rescans.txt
+wget https://www.campar.in.tum.de/public_datasets/3RScan/train_ref.txt
+wget https://www.campar.in.tum.de/public_datasets/3RScan/val_ref.txt
+wget https://www.campar.in.tum.de/public_datasets/3RScan/3RScan.json
 wget https://www.campar.in.tum.de/public_datasets/3DSSG/3DSSG_subset/relationships.json
 wget https://www.campar.in.tum.de/public_datasets/3DSSG/3DSSG_subset/relationships.txt
 wget https://www.campar.in.tum.de/public_datasets/3DSSG/3DSSG_subset/classes.txt -O classes160.txt
