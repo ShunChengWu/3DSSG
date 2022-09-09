@@ -118,21 +118,21 @@ class Trainer():
                               patient=self.patient)
                         
             # validate
-            pbar.set_description('[Epoch %02d] loss=%.4f it=%03d,Run Validation' % (epoch, avg_loss, it))
-            eval_dict = self.run_validation(val_loader, logger, epoch,it)
+            if cfg.training.validate_every>0 and (epoch+1) % cfg.training.validate_every==0:
+                pbar.set_description('[Epoch %02d] loss=%.4f it=%03d,Run Validation' % (epoch, avg_loss, it))
+                eval_dict = self.run_validation(val_loader, logger, epoch,it)
+                
+                if cfg.training.scheduler.method.lower() == 'reduceluronplateau':
+                    metric_val = eval_dict[self.selected_metric]
+                    self.scheduler.step(metric_val) # maybe make a EMA otherwise it's too sensitive to outliers.
+                else:
+                    self.scheduler.step()
             
             # check patient
             if max_patient > 0 and self.patient > max_patient:
                 logger_py.info('reach maximum patient! {} > {}. Stop training'.\
                                format(self.patient, max_patient))
                 break
-            
-            if cfg.training.scheduler.method.lower() == 'reduceluronplateau':
-                metric_val = eval_dict[self.selected_metric]
-                self.scheduler.step(metric_val) # maybe make a EMA otherwise it's too sensitive to outliers.
-            else:
-                self.scheduler.step()
-            
             
         logger_py.info('Training finished.')
 

@@ -1,9 +1,10 @@
 # -*- coding: utf-8 -*-
 import math
+import numpy as np
+import subprocess
 import torch
 import torch.nn as nn
 import logging
-import numpy as np
 import pickle
 from inspect import signature
 from pathlib import Path
@@ -263,3 +264,22 @@ def color_hex_rgb(num=rand_24_bit()):
     rgb = color_rgb(num)
     """Returns a 24-bit int in hex"""
     return rgb_2_hex(rgb)
+
+
+
+def execute(cmd,cwd):
+    popen = subprocess.Popen(cmd,cwd=cwd, stdout=subprocess.PIPE, universal_newlines=True)
+    for stdout_line in iter(popen.stdout.readline, ""):
+        yield stdout_line 
+    popen.stdout.close()
+    return_code = popen.wait()
+    if return_code:
+        print(cmd)
+        raise subprocess.CalledProcessError(return_code, cmd)
+
+def run(bashCommand,cwd='./',verbose:bool=False):
+    for path in execute(bashCommand,cwd):
+        if verbose:
+            print(path, end="")
+        else:
+            pass

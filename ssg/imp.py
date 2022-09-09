@@ -49,6 +49,7 @@ class IMP(nn.Module):
         '''build models'''
         models = dict()
         
+        cfg.data.use_precompute_img_feature = False
         models['roi_extrator'] = ssg.models.node_encoder_list['roi_extractor'](cfg,cfg.model.image_encoder.backend,device)
         
         node_feature_dim = models['roi_extrator'].node_feature_dim
@@ -86,6 +87,16 @@ class IMP(nn.Module):
             params += list(model.parameters())
             print(name,pytorch_count_params(model))
         print('')
+        
+    def eval(self):
+        # nn.Module.eval(self)
+        super().train(mode=False)
+        self.roi_extrator.with_precompute=True
+    def train(self):
+        # nn.Module.train(self)
+        super().train(mode=True)
+        self.roi_extrator.with_precompute=False
+        
     def forward(self, images, image_boxes,node_edges, **args):
         '''compute image feature'''
         node_features, edge_features = self.roi_extrator(images, image_boxes,node_edges)

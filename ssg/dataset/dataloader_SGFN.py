@@ -201,7 +201,7 @@ class SGFNDataset (data.Dataset):
         scan_data = raw_to_data(scan_data_raw)
         
         object_data = scan_data['nodes']
-        relationships_data = scan_data['relationships']        
+        relationships_data = scan_data['relationships']
         
         if self.mconfig.load_images:
             self.open_mv_graph()
@@ -466,8 +466,7 @@ class SGFNDataset (data.Dataset):
                 indices = list(np.random.choice(len(edge_indices),max_edges,replace=False))
                 edge_indices = edge_indices[indices]
             
-        rel_json = relationships_data
-        for r in rel_json:
+        for r in relationships_data:
             r_src = int(r[0])
             r_tgt = int(r[1])
             r_lid = int(r[2])
@@ -820,9 +819,10 @@ def zero_mean(point, normalize:bool):
 
 if __name__ == '__main__':
     import codeLib
-    path = './configs/default_sgfusion.yaml'
+    path = './experiments/config_2DSSG_ORBSLAM3_l20_6_1.yaml'
     config = codeLib.Config(path)
     
+    config.DEVICE='1'
     # config.dataset.root = "../data/example_data/"    
     # config.dataset.label_file = 'inseg.ply'
     # sample_in_runtime = True

@@ -216,12 +216,8 @@ def process(pth_3RScan, scan_id,
     del data
     
     ''' Find and count all corresponding segments'''
-    size_segments_gt = dict()
     map_segment_pd_2_gt = dict() # map segment_pd to segment_gt
     for segment_id in segment_ids:
-        segment_indices = np.where(segments_gt == segment_id)[0]
-        segment_points = points_gt[segment_indices]        
-        size_segments_gt[segment_id] = len(segment_points)
         map_segment_pd_2_gt[segment_id]=segment_id
     
     ''' Save as ply '''

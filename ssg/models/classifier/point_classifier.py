@@ -3,6 +3,7 @@ import torch.nn.functional as F
 import torch
 from codeLib.utils import onnx
 from codeLib.common import reset_parameters_with_activation
+import os
 # from .networks_base import BaseNetwork
 class PointNetCls(nn.Module):
     def __init__(self, k=2, in_size=1024, batch_norm = True, drop_out:float = 0.3,init_weights=True):
@@ -157,7 +158,6 @@ class PointNetRelCls(nn.Module):
         return x
         # return F.log_softmax(x, dim=1) #, trans, trans_feat
     def trace(self, pth = './tmp',name_prefix=''):
-        import os
         x = torch.rand(1, self.in_size)
         names_i = ['x']
         names_o = ['y']
@@ -165,7 +165,7 @@ class PointNetRelCls(nn.Module):
         input_ = (x)
         onnx.export(self, input_, os.path.join(pth, name), 
                         input_names=names_i, output_names=names_o, 
-                        dynamic_axes = {names_i[0]:{0:'n_node', 2:'n_pts'}})
+                        dynamic_axes = {names_i[0]:{0:'n_node', 1:'n_pts'}})
         names = dict()
         names['model_'+name] = dict()
         names['model_'+name]['path'] = name

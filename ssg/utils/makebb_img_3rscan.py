@@ -85,6 +85,9 @@ class Detection(object):
         return 'label: {}, max_iou: {}, box: {} clr: {}'.format(self.label, self.max_iou, self.box, self.clr)
     
 def mask_occupancy(x:torch.tensor, down_scale:int=2):
+    '''
+    x: tensor image with shape [height, width]
+    '''
     width,height = x.shape[-1],x.shape[-2]
     n_w, n_h = width//down_scale, height//down_scale
     
@@ -95,13 +98,9 @@ def mask_occupancy(x:torch.tensor, down_scale:int=2):
         for w in range(n_w-1):
             for h in range(n_h-1):
                 sampled[h,w] = x[h*down_scale:(h+1)*down_scale, w*down_scale: (w+1)*down_scale].any()
-            # for w_ in range(down_scale):
-            #     for h_ in range(down_scale):
-            #         x[h*down_scale+h_, w*down_scale+w_]
     # plt.imshow(sampled)
     # plt.show()
     return sampled.sum()/sampled.size
-    # torchvision.transforms.functional.resize((height,width), interpolation=)
     
 class LabelImage(object):
     fid=int()

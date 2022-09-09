@@ -3,6 +3,7 @@
 #     sys.path.append('../../')
 import os
 from collections import defaultdict
+import pathlib
 from ssg.utils import util_data
 from codeLib.utils.util import read_txt_to_list
 import codeLib.utils.string_numpy as snp
@@ -23,6 +24,7 @@ import codeLib.torchvision.transforms as cltransform
 from torchvision.ops import roi_align
 import h5py,ast
 from codeLib.torch.visualization import show_tensor_images
+from codeLib.common import run
 
 DRAW_BBOX_IMAGE=True
 DRAW_BBOX_IMAGE=False
@@ -54,14 +56,20 @@ class Graph_Loader (data.Dataset):
         self.img_feature_path = config.data.img_feature_path
         self.full_edge = config.data.full_edge
         self.normalize_weight = config.data.normalize_weight
-        self.use_precompute = config.data.use_precompute_img_feature
+        # self.use_precompute = config.data.use_precompute_img_feature
         self.img_feature_type = config.model.image_encoder.backend
+        # self.use_filtered_node_list = config.data.use_filtered_node_list
         
         self.path_h5 = os.path.join(self.path,'relationships_%s.h5' % (mode))
         self.path_mv = os.path.join(self.path,'proposals.h5')
         self.pth_filtered = os.path.join(self.path,'filtered_scans_detection_%s.h5' % (self.mode))
         self.pth_node_weights = os.path.join(self.path,'node_weights.txt')
         self.pth_edge_weights = os.path.join(self.path,'edge_weights.txt')
+        self.path_img_feature = os.path.join(self.path,config.data.path_image_feature)
+            
+        # if config.use_filtered_node_list:
+        #     self.path_filtered_nodes_list = os.path.join(self.path,'filtered_node_list.h5')
+        #     pass
         
         if config.data.img_size > 0:
             if not self.for_eval:
@@ -114,6 +122,23 @@ class Graph_Loader (data.Dataset):
         
         self.preprocessing()
         
+        '''check file exist'''
+        if self.for_eval: # train mode can't use precmopute feature. need to do img. aug.
+            if not os.path.exists(self.path_img_feature):
+                # Try to generate
+                os.environ['MKL_THREADING_LAYER'] = 'GNU'
+                # os.environ['PYTHONPATH'] = config.PYTHONPATH
+                # subprocess.call(["export PYTHONPATH={}".format(PYTHONPATH)], shell=True) 
+                bashCommand=[
+                    'python','ssg/utils/compute_image_feature.py',
+                    "--config",config.config_path,
+                    "-o",pathlib.Path(config.data.path_image_feature).parent.absolute(),
+                    "--mode",mode,
+                ]
+                run(bashCommand)
+                if not os.path.exists(self.path_img_feature):
+                    raise RuntimeError('use precompute image feature is true but file not found.')
+        
         if not self.for_eval:
             w_node_cls = np.loadtxt(self.pth_node_weights)
             w_edge_cls = np.loadtxt(self.pth_edge_weights)
@@ -132,15 +157,20 @@ class Graph_Loader (data.Dataset):
     def open_data(self):
         if not hasattr(self,'sg_data'):
             self.sg_data = h5py.File(self.path_h5,'r')
+            
+    def open_filtered_node_list(self):
+        if not hasattr(self,'filtered_node_list'):
+            self.filtered_node_list = h5py.File(self.path_filtered_nodes_list,'r')
         
     def __len__(self):
         return self.size
     
-    def open_hdf5(self, path):
-        if not hasattr(self,'img_features'):
-            self.img_features = h5py.File(path,'r')
     def open_filtered(self):
         self.filtered_data = h5py.File(self.pth_filtered,'r')
+        
+    def open_image_feature(self):
+        if not hasattr(self,'image_feature'):
+            self.image_feature = h5py.File(self.path_img_feature,'r')
             
     def preprocessing(self):
         pth_node_weights=self.pth_node_weights
@@ -190,21 +220,25 @@ class Graph_Loader (data.Dataset):
                 inter_node_ids = set(sg_node_ids).intersection(mv_node_ids)
                 object_data = {nid: object_data[nid] for nid in inter_node_ids}
                 
-                '''select frames with more than 1 objects'''
+                
                 kf_indices=[]
-                for k in kfs.keys():
-                    kf = kfs[k]
-                    oids = [v[0] for v in kf.attrs['seg2idx']]
-                    obj_count=0
-                    if len(oids)<=1:continue
-                    for oid in oids:
-                        oid = int(oid)
-                        if oid in instance2labelName:
-                            if instance2labelName[oid] in self.classNames:
-                                obj_count+=1
-                    if obj_count>0:
-                        kf_indices.append(int(k))
-                        
+                '''select frames with more than 1 objects'''
+                if False:
+                    for k in kfs.keys():
+                        kf = kfs[k]
+                        oids = [v[0] for v in kf.attrs['seg2idx']]
+                        obj_count=0
+                        if len(oids)<=1:continue
+                        for oid in oids:
+                            oid = int(oid)
+                            if oid in instance2labelName:
+                                if instance2labelName[oid] in self.classNames:
+                                    obj_count+=1
+                        if obj_count>0:
+                            kf_indices.append(int(k))
+                else:
+                    kf_indices = [int(k) for k in kfs.keys()]
+                            
                 if len(kf_indices) == 0:
                     continue
                 
@@ -269,6 +303,10 @@ class Graph_Loader (data.Dataset):
         self.open_data()
         self.open_mv_graph()
         self.open_filtered()
+        if self.for_eval:
+            self.open_image_feature()
+        # if self.use_filtered_node_list:
+        #     self.open_filtered_node_list()
         
         scan_data_raw = self.sg_data[scan_id]
         scan_data = raw_to_data(scan_data_raw)
@@ -283,7 +321,6 @@ class Graph_Loader (data.Dataset):
         mv_nodes = mv_data['nodes']
         kfs = mv_data['kfs']
                 
-        self.filtered_data
         kf_indices = self.filtered_data[scan_id]
         
         '''build graph base on detections'''
@@ -306,12 +343,18 @@ class Graph_Loader (data.Dataset):
         descriptor_generator = util_data.Node_Descriptor_24(with_bbox=self.cfg.data.img_desc_6_pts)
         node_descriptor_for_image = list()
         for mid, fid in enumerate(kf_indices):
-            pth_rgb = os.path.join(fdata,scan_id,'sequence', rgb_filepattern.format(int(fid)))
-            img_data = Image.open(pth_rgb)
-            img_data = np.rot90(img_data,3)# Rotate image
-            img_data = torch.as_tensor(img_data.copy()).permute(2,0,1)
-            img_data = self.transform(img_data)
-            img_data= normalize_imagenet(img_data.float()/255.0)
+            if self.for_eval:
+                img_data = self.image_feature[scan_id][str(fid)]
+                img_data = np.asarray(img_data).copy()
+                img_data = torch.from_numpy(img_data)
+                # images = [torch.from_numpy(img) for img in images]
+            else:
+                pth_rgb = os.path.join(fdata,scan_id,'sequence', rgb_filepattern.format(int(fid)))
+                img_data = Image.open(pth_rgb)
+                img_data = np.rot90(img_data,3)# Rotate image
+                img_data = torch.as_tensor(img_data.copy()).permute(2,0,1)
+                img_data = self.transform(img_data)
+                img_data= normalize_imagenet(img_data.float()/255.0)
             
             images.append(img_data)
             width,height = img_data.shape[-1],img_data.shape[-2]
@@ -348,7 +391,7 @@ class Graph_Loader (data.Dataset):
                 ''' '''
                 obj = object_data[oid]
                 node_descriptor_for_image.append( descriptor_generator(obj) )
-                    
+                
             for om_id1 in per_frame_indices:
                 for om_id2 in per_frame_indices:
                     if om_id1 != om_id2:
@@ -487,13 +530,13 @@ if __name__ == '__main__':
     path = './configs/exp2_all_gnn.yaml'
     path= './configs/exp2_all_basic_bf200.yaml'
     
-    path='./experiments/config_IMP_full_l20_0.yaml'
+    path='./experiments/config_VGfM_full_l20_5.yaml'
     
     cfg= codeLib.Config(path)
     cfg.DEVICE='cpu'
     # config.model.node_encoder.backend='vgg16'
     codeLib.utils.util.set_random_seed(cfg.SEED)
-    dataset = config.get_dataset(cfg,'train')
+    dataset = config.get_dataset(cfg,'validation')
     
     # dataset.__getitem__(0)
     from tqdm import tqdm

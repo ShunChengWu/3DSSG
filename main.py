@@ -256,6 +256,37 @@ def main():
         logger_py.info('start sample')
         model_trainer.sample(val_loader)
         logger_py.info('sample finished')
+    elif cfg.MODE == 'trace':
+        logger_py.info('trace')
+        logger_py.info('build model')
+        
+        cfg.DEVICE = torch.device("cpu")      
+        dataset  = config.get_dataset(cfg,'validation')
+        # val_loader = torch.utils.data.DataLoader(
+        #     dataset, batch_size=1, num_workers=n_workers,
+        #     shuffle=False,
+        #     drop_last=False,
+        #     pin_memory=True,
+        #     collate_fn=graph_collate,
+        # )
+        
+        relationNames = dataset.relationNames
+        classNames = dataset.classNames
+        num_obj_cls = len(dataset.classNames)
+        num_rel_cls = len(dataset.relationNames) if relationNames is not None else 0
+        
+        model = config.get_model(cfg,num_obj_cls=num_obj_cls, num_rel_cls=num_rel_cls)
+        logger_py.info('load checkpoint')
+        checkpoint_io = CheckpointIO(out_dir, model=model)
+        load_dict = checkpoint_io.load('model_best.pt', device=cfg.DEVICE)
+        
+        logger_py.info('trace')
+        model.trace(out_dir)
+        pass
+        
+        
+    else:
+        raise NotImplementedError('unknown input mode')
         
 
 def parse():
@@ -264,7 +295,7 @@ def parse():
     """
     parser = argparse.ArgumentParser(formatter_class=argparse.ArgumentDefaultsHelpFormatter)
     parser.add_argument('--config', type=str, default='./configs/default.yaml', help='configuration file name. Relative path under given path (default: config.yml)')
-    parser.add_argument('--mode', type=str, choices=['train','trace','eval','sample'], default='train', help='mode. can be [train,trace,eval]',required=False)
+    parser.add_argument('--mode', type=str, choices=['train','trace','eval','sample','trace'], default='train', help='mode. can be [train,trace,eval]',required=False)
     parser.add_argument('--loadbest', type=int, default=0,choices=[0,1], help='1: load best model or 0: load checkpoints. Only works in non training mode.')
     parser.add_argument('--log', type=str, default='DEBUG',choices=['DEBUG','INFO','WARNING','CRITICAL'], help='')
     args = parser.parse_args()

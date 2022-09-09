@@ -5,6 +5,8 @@ Created on Tue Oct 12 17:19:08 2021
 
 @author: sc
 """
+import os
+from codeLib.utils import onnx
 import torch
 from torch import nn
 import ssg
@@ -213,11 +215,6 @@ class SGFN(nn.Module):
                 # learnable positional encoding
                 nodes_feature = torch.cat([nodes_feature, embed_desc],dim=1)
             
-            
-            
-            
-            
-
         ''' Create edge feature '''
         # with torch.no_grad():
         #     edge_feature = op_utils.Gen_edge_descriptor(flow=self.flow)(descriptor,node_edges)
@@ -263,3 +260,33 @@ class SGFN(nn.Module):
             'acc_node_cls': acc_node_cls,
             'acc_edgee_cls': acc_edgee_cls,
         }
+    def trace(self, path):
+        path = os.path.join(path,'traced')
+        if not os.path.exists(path): os.makedirs(path)
+        self.eval()
+        print('the traced model will be saved at',path)
+        
+        
+        params = dict()
+        if self.with_pts_encoder:
+            params['enc_o'] = self.obj_encoder.trace(path,'obj')
+        if self.with_img_encoder:
+            params['enc_img'] = self.img_encoder.trace(path,'img')
+
+        # params['enc_r'] = self.rel_encoder.trace(path,'rel')
+        if self.cfg.model.gnn.method != 'none': 
+            params['n_layers']=self.gnn.num_layers
+            if self.cfg.model.gnn.method == 'fan':
+                for i in range(self.cfg.model.gnn.num_layers):
+                    params['gcn_'+str(i)] = self.gnn.gconvs[i].trace(path,'gcn_'+str(i))
+            else:
+                raise NotImplementedError()
+                
+        if hasattr(self.obj_predictor, 'trace'):
+            params['cls_o'] = self.obj_predictor.trace(path,'obj')
+        else:
+            params['cls_o'] = onnx.Linear_layer_wrapper(self.obj_predictor, 'obj_cls',path,'obj')
+            
+        params['cls_r'] = self.rel_predictor.trace(path,'rel')
+        
+        pass

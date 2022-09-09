@@ -127,6 +127,7 @@ Note: the IoU is extremely high because of the overwhelming true negatives (none
 - [x] IMP_full_l20_2: _1 + use global feature
   - [x] IMP_full_l20_2_1: fix loader loader
   - [x] IMP_full_l20_2_2: fix loader loader. turn off full_edge
+- [ ] IMP_full_l20_3: train with filtered node list, without relationship filtering on nodes.
 - [x] IMP_ORBSLAM3_l20_0: train IMP on ORBSLAM3 entities
 - [x] IMP_ORBSLAM3_l20_1: train IMP on ORBSLAM3 entities. turn off full_edge
 - [x] IMP_INSEG_l20_0:
@@ -141,6 +142,7 @@ Note: the IoU is extremely high because of the overwhelming true negatives (none
 - [x] VGfM_INSEG_l20_1: add geometric feature
 - [x] VGfM_FULL_l160_0:
 - [x] VGfM_FULL_l160_1: add geometric feature
+- [ ] VGfM_full_l20_5: train with filtered node list, without relationship filtering on nodes.
 
 - VGfM_ORBSLAM3_l20_0:there was a bug. using `msg_t_node` for both node and edge
 - VGfM_ORBSLAM3_l20_1: fix the bug

@@ -92,3 +92,28 @@ PYTHONPATH=./ python ssg/utils/makebb_img_3rscan.py -o /media/sc/SSD1TB/dataset/
 
 [3rscan]: https://waldjohannau.github.io/RIO/
 [scannet]: http://www.scan-net.org/
+
+# Data layout
+```
+- relationships_{}.h5:{
+    '${scan_id}': #str
+    {
+      'nodes':{
+        '${node_ids}': # int
+        {
+          'center': [x,y,z], #float
+          'dimension': [x,y,z],# 
+          'normAxes':[[],[],[]], #3X3
+          'label': 'labelName' #str 
+          'instance_id': instanceIDX,#int
+          'neighbors: [b'${node_id}', ...], #
+        }
+      },
+      'relationsihps':[
+        ['${src_node_id}','${tgt_node_id}','${rel_label_id}','${predicate_name}'], # [str,str,str,str]
+        ...
+      ],
+    },
+    ...
+  }
+```

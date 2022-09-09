@@ -8,6 +8,7 @@ def get_cvr(in_channels, out_channels):
                 nn.LeakyReLU(0.2, inplace=True),
                 nn.Linear(256,out_channels)
             )
+
 def get_res18(in_channels, out_channels):
     return nn.Linear(in_channels, out_channels)
 

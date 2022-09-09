@@ -10,6 +10,8 @@ import torch.nn as nn
 from torchvision.ops import roi_align
 from torchvision import models
 import logging
+import os
+from codeLib.utils import onnx
 logger_py = logging.getLogger(__name__)
 
 class NodeEncoderBase(nn.Module):
@@ -162,3 +164,19 @@ class NodeEncoderBase(nn.Module):
             x = torch.cat([ self.nn_enc(p_split)  for p_split in torch.split(images,int(self.img_batch_size), dim=0) ], dim=0)
             x = self.nn_post(x)
             return x
+        
+    def trace(self, pth = './tmp', name_prefix=''):
+        # params = inspect.signature(self.forward).parameters
+        # params = OrderedDict(params)
+        names_i = ['x']
+        names_o = ['y']
+        
+        onnx.export(self.prop, (cated), os.path.join(pth, name_nn), 
+                        input_names=names_i, output_names=names_o, 
+                        dynamic_axes = {names_i[0]:{0:'n_node'}})
+        names = dict()
+        names['model_'+name] = dict()
+        names['model_'+name]['path'] = name
+        names['model_'+name]['input']=names_i
+        names['model_'+name]['output']=names_o
+        return names

@@ -4,8 +4,11 @@ from ssg.models import encoder
 from codeLib.common import check_valid
 from torchvision.ops import roi_align
 from ssg.models.encoder import point_encoder_dict
-
 from torch_geometric.nn.conv import MessagePassing
+import os
+from codeLib.utils import onnx
+import inspect
+from collections import OrderedDict
 
 class EdgeDescriptor_8(MessagePassing):
     """ A sequence of scene graph convolution layers  """
@@ -202,6 +205,7 @@ class EdgeEncoder_2DSSG(nn.Module):
 class EdgeEncoder_2DSSG_1(nn.Module):
     def __init__(self,cfg,device):
         super().__init__()
+        self.name = 'edgeEncoderPlane'
         self.edge_descriptor = EdgeDescriptor_plane()
         self.encoder = point_encoder_dict['pointnet'](point_size=len(self.edge_descriptor),
                                                       out_size=cfg.model.edge_feature_dim,
@@ -211,6 +215,40 @@ class EdgeEncoder_2DSSG_1(nn.Module):
         edges_descriptor = self.edge_descriptor(descriptors, edges)
         edges_feature = self.encoder(edges_descriptor)
         return edges_feature
+    
+    def trace(self, pth = './tmp',name_prefix=''):
+        params = inspect.signature(self.forward).parameters
+        params = OrderedDict(params)
+        names_i = [name for name in params.keys() if name != 'args']
+        names_o = ['y']
+        
+        n_node=2
+        n_edge=4
+        x = torch.rand(n_node, 26)
+        edge_index = torch.randint(0, n_node-1, [2,n_edge])
+        edge_index[0] = torch.zeros([n_edge])
+        edge_index[1] = torch.ones([n_edge])
+        
+        self.eval()
+        
+        # check input can be run
+        self(x,edge_index)
+        
+        
+        # names_i = ['x']
+        name = name_prefix+'_'+self.name
+        input_ = (x, edge_index)
+        dynamic_axes = {names_i[0]:{0:'n_node'}, names_i[1]:{1:'n_edges'}}
+        onnx.export(self, input_, os.path.join(pth, name), 
+                        input_names=names_i, output_names=names_o, 
+                        dynamic_axes = dynamic_axes)
+        
+        names = dict()
+        names['model_'+name] = dict()
+        names['model_'+name]['path'] = name
+        names['model_'+name]['input']=names_i
+        names['model_'+name]['output']=names_o
+        return names
         
 class EdgeEncoder_VGfM(nn.Module):
     def __init__(self,**args):
