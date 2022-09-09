@@ -401,8 +401,7 @@ class Trainer_IMP(BaseTrainer):
         if 'temporal_edge_graph' in data: data['temporal_edge_graph']=data['temporal_edge_graph'].t().contiguous()
         
         # check input valid
-        if node_edges_ori.ndim==1:
-            return {}
+        # if node_edges_ori.ndim==1: return {}
         
         # print('')
         # print('gt_rel.sum():',gt_rel.sum())
@@ -413,7 +412,6 @@ class Trainer_IMP(BaseTrainer):
         ''' calculate loss '''
         logs['loss'] = 0
         
-        
         if self.cfg.training.lambda_mode == 'dynamic':
             # calculate loss ratio base on the number of node and edge
             batch_node = node_cls.shape[0]
@@ -421,7 +419,6 @@ class Trainer_IMP(BaseTrainer):
             self.cfg.training.lambda_node = 1
             self.cfg.training.lambda_edge = batch_edge / batch_node
             
-        
         ''' 1. node class loss'''
         self.calc_node_loss(logs, node_cls, gt_cls, self.w_node_cls)
         
@@ -463,6 +460,10 @@ class Trainer_IMP(BaseTrainer):
         logs['loss_obj'] = loss_obj
         
     def calc_edge_loss(self, logs, edge_cls_pred, edge_cls_gt, weights=None):
+        if len(edge_cls_gt)==0:
+            logs['loss'] += 0#self.cfg.training.lambda_edge * loss_rel
+            logs['loss_rel'] = 0
+            return
         if self.cfg.model.multi_rel:
             # batch_mean = torch.sum(edge_cls_gt, dim=(0))
             # zeros = (edge_cls_gt ==0).sum().unsqueeze(0)

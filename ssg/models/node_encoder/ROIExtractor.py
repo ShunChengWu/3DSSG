@@ -17,9 +17,6 @@ class ROI_EXTRACTOR(NodeEncoderBase):
     def reset_parameters(self):
         pass
     def forward(self, images, proposals,edge_indices):
-        if edge_indices.shape[1] != 2:
-            edge_indices=edge_indices.t()
-        assert edge_indices.shape[1] == 2
         '''get image features'''
         images = self.preprocess(images)
         width,height = images.shape[-1], images.shape[-2]        
@@ -31,15 +28,19 @@ class ROI_EXTRACTOR(NodeEncoderBase):
         
         '''build union bounding boxes'''
         union_boxes = list()
-        for ind_pair in edge_indices:
-            pairwise_boxes = proposals[ind_pair]
-            assert pairwise_boxes[0,0] == pairwise_boxes[1,0]
-            # union
-            x_min = pairwise_boxes[:,1].min()
-            y_min = pairwise_boxes[:,2].min()
-            x_max = pairwise_boxes[:,3].max()
-            y_max = pairwise_boxes[:,4].max()
-            union_boxes.append([pairwise_boxes[0,0],x_min,y_min,x_max,y_max])
+        if len(edge_indices):
+            if edge_indices.shape[1] != 2:
+                edge_indices=edge_indices.t()
+            assert edge_indices.shape[1] == 2
+            for ind_pair in edge_indices:
+                pairwise_boxes = proposals[ind_pair]
+                assert pairwise_boxes[0,0] == pairwise_boxes[1,0]
+                # union
+                x_min = pairwise_boxes[:,1].min()
+                y_min = pairwise_boxes[:,2].min()
+                x_max = pairwise_boxes[:,3].max()
+                y_max = pairwise_boxes[:,4].max()
+                union_boxes.append([pairwise_boxes[0,0],x_min,y_min,x_max,y_max])
         union_boxes = torch.FloatTensor(union_boxes).to(images.device)
         
         if self.use_global:
@@ -47,9 +48,12 @@ class ROI_EXTRACTOR(NodeEncoderBase):
             node_features = node_features.view(node_features.shape[0], -1) # [views, cdim]
             node_features = self.nn_post(node_features)
             
-            edge_features = roi_align(images, union_boxes, self.roi_region)
-            edge_features = edge_features.view(edge_features.shape[0], -1) # [views, cdim]
-            edge_features = self.nn_post(edge_features)
+            if len(union_boxes)>0:
+                edge_features = roi_align(images, union_boxes, self.roi_region)
+                edge_features = edge_features.view(edge_features.shape[0], -1) # [views, cdim]
+                edge_features = self.nn_post(edge_features)
+            else:
+                edge_features = torch.FloatTensor().to(images.device)
         else:
             node_features = torch.zeros([proposals.shape[0], self.node_feature_dim],device=self._device)
             for i in range(proposals.shape[0]):

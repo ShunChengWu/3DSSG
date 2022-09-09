@@ -183,6 +183,7 @@ class Graph_Loader (data.Dataset):
             should_process |= not os.path.isfile(pth_node_weights) or not os.path.isfile(pth_edge_weights)
         
         if should_process:
+            print('generating filtered data...')
             ''' load data '''
             selected_scans = read_txt_to_list(os.path.join(self.path,'%s_scans.txt' % (self.mode)))
             self.open_mv_graph()
@@ -222,22 +223,19 @@ class Graph_Loader (data.Dataset):
                 
                 
                 kf_indices=[]
-                '''select frames with more than 1 objects'''
-                if False:
-                    for k in kfs.keys():
-                        kf = kfs[k]
-                        oids = [v[0] for v in kf.attrs['seg2idx']]
-                        obj_count=0
-                        if len(oids)<=1:continue
-                        for oid in oids:
-                            oid = int(oid)
-                            if oid in instance2labelName:
-                                if instance2labelName[oid] in self.classNames:
-                                    obj_count+=1
-                        if obj_count>0:
-                            kf_indices.append(int(k))
-                else:
-                    kf_indices = [int(k) for k in kfs.keys()]
+                '''select frames with at least 1 objects'''
+                for k in kfs.keys():
+                    kf = kfs[k]
+                    oids = [v[0] for v in kf.attrs['seg2idx']]
+                    obj_count=0
+                    if len(oids)<=1:continue
+                    for oid in oids:
+                        oid = int(oid)
+                        if oid in instance2labelName:
+                            if instance2labelName[oid] in self.classNames:
+                                obj_count+=1
+                    if obj_count>0:
+                        kf_indices.append(int(k))
                             
                 if len(kf_indices) == 0:
                     continue
@@ -318,7 +316,7 @@ class Graph_Loader (data.Dataset):
         instance2labelName  = { int(key): node['label'] for key,node in object_data.items()  }
         
         mv_data = self.mv_data[scan_id]
-        mv_nodes = mv_data['nodes']
+        # mv_nodes = mv_data['nodes']
         kfs = mv_data['kfs']
                 
         kf_indices = self.filtered_data[scan_id]
@@ -332,7 +330,7 @@ class Graph_Loader (data.Dataset):
             kf_indices = random_drop(kf_indices, self.drop_img_edge_eval)
         
         
-        # instance2mask=dict()
+        per_frame_info_dict=defaultdict(dict)
         idx2iid=dict()
         bounding_boxes = list() # bounding_boxes[node_id]{kf_id: [boxes]}
         edge_indices=list()
@@ -363,10 +361,12 @@ class Graph_Loader (data.Dataset):
             kf_bid2oid = {v[1]:v[0] for v in kf.attrs['seg2idx']}
             kfdata = np.asarray(kf)
             
-            # box_dict = dict()
+            per_frame_info = per_frame_info_dict[fid]
+            per_frame_info['nodes'] = dict()
+            per_frame_info['edges'] = dict()
             
             # get GT class
-            per_frame_indices=list()
+            per_frame_indices = list()
             for idx in range(kfdata.shape[0]):
                 oid = int(kf_bid2oid[idx])
                 if oid not in instance2labelName: continue
@@ -388,6 +388,9 @@ class Graph_Loader (data.Dataset):
                 idx2iid[om_id] = oid
                 per_frame_indices.append(om_id)
                 
+                assert oid not in per_frame_info['nodes']
+                per_frame_info['nodes'][oid] = om_id#.append({'oid':oid,'mid':om_id})
+                
                 ''' '''
                 obj = object_data[oid]
                 node_descriptor_for_image.append( descriptor_generator(obj) )
@@ -395,7 +398,14 @@ class Graph_Loader (data.Dataset):
             for om_id1 in per_frame_indices:
                 for om_id2 in per_frame_indices:
                     if om_id1 != om_id2:
-                        edge_indices.append([om_id1,om_id2])
+                        em_id = len(edge_indices)
+                        key_mapped = (idx2iid[om_id1],idx2iid[om_id2])
+                        assert key_mapped not in per_frame_info['edges']
+                        per_frame_info['edges'][key_mapped] = em_id
+                        
+                        key = (om_id1,om_id2)
+                        edge_indices.append(key)
+                        
         if DRAW_BBOX_IMAGE:
             t_img = torch.stack(images,dim=0)
             show_tensor_images(t_img.float()/255, '-')
@@ -469,31 +479,54 @@ class Graph_Loader (data.Dataset):
                 
         '''build temporal node graph'''
         temporal_node_graph=list()
-        # collect predictions belong to the same node
-        iid2idxes = defaultdict(list)
-        for idx,iid in idx2iid.items():iid2idxes[iid].append(idx)
-        for iid, indices in iid2idxes.items():
-            for idx1 in indices:
-                for idx2 in indices:
-                    if idx1 == idx2:continue
-                    temporal_node_graph.append([idx1,idx2])
-                    
         temporal_edge_graph=list()
-        edgeIid_2_edgeIndices=defaultdict(list)
-        for idx, edge in enumerate(edge_indices):
-            index1 = edge[0]
-            index2 = edge[1]
-            iid1 = idx2iid[index1]
-            iid2 = idx2iid[index2]
-            key = (iid1,iid2)
-            edgeIid_2_edgeIndices[key].append(idx)
-        for key, indices in edgeIid_2_edgeIndices.items():
-            for idx1 in indices:
-                for idx2 in indices:
-                    if idx1 == idx2:continue
-                    temporal_edge_graph.append([idx1,idx2])
+        sorted_kf_indices = sorted(kf_indices)
+        for idx in range(len(sorted_kf_indices)-1):
+            fid_0 = sorted_kf_indices[idx]
+            fid_1 = sorted_kf_indices[idx+1]
+            finfo_0,finfo_1 = per_frame_info_dict[fid_0], per_frame_info_dict[fid_1]
+            
+            '''check if node exist'''
+            nodes_0,nodes_1 = finfo_0['nodes'],finfo_1['nodes']
+            for oid_0 in nodes_0:
+                if oid_0 in nodes_1:
+                    temporal_node_graph.append([nodes_0[oid_0],nodes_1[oid_0]])
+                    
+            '''check edges'''
+            edges_0,edges_1 = finfo_0['edges'],finfo_1['edges']
+            for key_0 in edges_0:
+                if key_0 in edges_1:
+                    temporal_edge_graph.append([edges_0[key_0],edges_1[key_0]])
+        
+        
+        # collect predictions belong to the same node
+        # iid2idxes = defaultdict(list)
+        # for idx,iid in idx2iid.items():iid2idxes[iid].append(idx)
+        
+        # # build sequential connection
+        # for iid, indices in iid2idxes.items():
+        #     indices = sorted(indices) # temporal
+        #     for idx in range(len(indices)-1):
+        #         idx1 = indices[idx]
+        #         idx2 = indices[idx+1]
+        #         temporal_node_graph.append([idx1,idx2])
+                    
+        # edgeIid_2_edgeIndices=defaultdict(list)
+        # for idx, edge in enumerate(edge_indices):
+        #     index1 = edge[0]
+        #     index2 = edge[1]
+        #     iid1 = idx2iid[index1]
+        #     iid2 = idx2iid[index2]
+        #     key = (iid1,iid2)
+        #     edgeIid_2_edgeIndices[key].append(idx)
+        # for key, indices in edgeIid_2_edgeIndices.items():
+        #     for idx1 in indices:
+        #         for idx2 in indices:
+        #             if idx1 == idx2:continue
+        #             temporal_edge_graph.append([idx1,idx2])
                 
         '''to tensor'''
+        assert len(bounding_boxes) > 0
         images = torch.stack(images,dim=0)
         assert len(cat) == len(bounding_boxes)
         bounding_boxes = torch.from_numpy(np.array(bounding_boxes)).float()
@@ -501,7 +534,12 @@ class Graph_Loader (data.Dataset):
         edge_indices = torch.tensor(edge_indices,dtype=torch.long)
         temporal_node_graph = torch.tensor(temporal_node_graph,dtype=torch.long)
         temporal_edge_graph = torch.tensor(temporal_edge_graph,dtype=torch.long)
-        node_descriptor_for_image = torch.stack(node_descriptor_for_image)
+        if len(node_descriptor_for_image)>0:
+            node_descriptor_for_image = torch.stack(node_descriptor_for_image)
+        else:
+            node_descriptor_for_image = torch.tensor([],dtype=torch.long)
+            
+        # node_descriptor_for_image = torch.tensor([],dtype=torch.long)
         
         output = dict()
         output['scan_id'] = scan_id # str
@@ -536,7 +574,7 @@ if __name__ == '__main__':
     cfg.DEVICE='cpu'
     # config.model.node_encoder.backend='vgg16'
     codeLib.utils.util.set_random_seed(cfg.SEED)
-    dataset = config.get_dataset(cfg,'validation')
+    dataset = config.get_dataset(cfg,'train')
     
     # dataset.__getitem__(0)
     from tqdm import tqdm
@@ -556,4 +594,4 @@ if __name__ == '__main__':
     for epoch in tqdm(range(cfg.training.max_epoch)):
         for data in tqdm(train_loader):
             continue
-        break
+        # break

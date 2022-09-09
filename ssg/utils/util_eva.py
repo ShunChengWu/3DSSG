@@ -779,7 +779,8 @@ class EvalSceneGraph():
             rel_pds=rel_pds.detach()
             
         o_pds = obj_pds.max(1)[1]
-        r_pds = rel_pds > self.multi_rel_threshold if self.multi_rel_prediction else rel_pds.max(1)[1]
+        if len(rel_pds)>0:
+            r_pds = rel_pds > self.multi_rel_threshold if self.multi_rel_prediction else rel_pds.max(1)[1]
         
         '''build idx mapping'''
         mask2insts_flat=dict()

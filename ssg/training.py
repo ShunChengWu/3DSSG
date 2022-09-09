@@ -118,7 +118,7 @@ class Trainer():
                               patient=self.patient)
                         
             # validate
-            if cfg.training.validate_every>0 and (epoch+1) % cfg.training.validate_every==0:
+            if (cfg.training.validate_every>0 and (epoch+1) % cfg.training.validate_every==0) or cfg.training.validate_every<=0:
                 pbar.set_description('[Epoch %02d] loss=%.4f it=%03d,Run Validation' % (epoch, avg_loss, it))
                 eval_dict = self.run_validation(val_loader, logger, epoch,it)
                 

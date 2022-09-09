@@ -102,16 +102,20 @@ class IMP(nn.Module):
         node_features, edge_features = self.roi_extrator(images, image_boxes,node_edges)
         
         node_features = self.obj_embedding(node_features)
-        edge_features = self.pred_embedding(edge_features)
+        if len(edge_features)>0:
+            edge_features = self.pred_embedding(edge_features)
         
-        if hasattr(self, 'gnn') and self.gnn is not None:
+        if hasattr(self, 'gnn') and self.gnn is not None and len(edge_features)>0 and len(node_features)>0:
             if self.cfg.model.gnn.method == 'vgfm':
                 node_features,edge_features = self.gnn(node_features,edge_features,node_edges,geo_feature=args['node_descriptor_8'],**args)
             else:
                 node_features,edge_features = self.gnn(node_features,edge_features,node_edges,**args)
         
         obj_class_logits = self.obj_predictor(node_features)
-        rel_class_logits = self.rel_predictor(edge_features)
+        if len(edge_features)>0:
+            rel_class_logits = self.rel_predictor(edge_features)
+        else:
+            rel_class_logits = edge_features
         return obj_class_logits, rel_class_logits
     
     def calculate_metrics(self, **args):
@@ -125,13 +129,16 @@ class IMP(nn.Module):
         if 'edge_cls_pred' in args and 'edge_cls_gt' in args:
             edge_cls_pred = args['edge_cls_pred'].detach()
             edge_cls_gt   = args['edge_cls_gt']
-            if self.cfg.model.multi_rel:
-                edge_cls_pred = torch.sigmoid(edge_cls_pred)
-                edge_cls_pred = edge_cls_pred > 0.5
+            if len(edge_cls_pred)>0:
+                if self.cfg.model.multi_rel:
+                    edge_cls_pred = torch.sigmoid(edge_cls_pred)
+                    edge_cls_pred = edge_cls_pred > 0.5
+                else:
+                    edge_cls_pred = torch.softmax(edge_cls_pred, dim=1)
+                    edge_cls_pred = torch.max(edge_cls_pred,1)[1]
+                acc_edgee_cls = (edge_cls_gt==edge_cls_pred).sum().item() / edge_cls_gt.nelement()
             else:
-                edge_cls_pred = torch.softmax(edge_cls_pred, dim=1)
-                edge_cls_pred = torch.max(edge_cls_pred,1)[1]
-            acc_edgee_cls = (edge_cls_gt==edge_cls_pred).sum().item() / edge_cls_gt.nelement()
+                acc_edgee_cls=0
         return {
             'acc_node_cls': acc_node_cls,
             'acc_edgee_cls': acc_edgee_cls,
