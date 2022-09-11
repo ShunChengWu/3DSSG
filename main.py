@@ -26,7 +26,7 @@ logger_py = logging.getLogger(__name__)
 # logger_py.setLevel(logging.DEBUG)
 
 def main():
-    cfg = parse()
+    cfg = ssg.Parse()
     
     # Shorthands
     out_dir = os.path.join(cfg['training']['out_dir'], cfg.name)
@@ -168,15 +168,7 @@ def main():
             ''' Get segment dataset '''
             dataset_seg  = config.get_dataset(cfg,'test')
             ''' Get instance dataset'''
-            tmp_cfg = copy.deepcopy(cfg)
-            tmp_cfg.model.use_rgb = False
-            tmp_cfg.model.use_normal = False
-            tmp_cfg.data.input_type = 'sgfn'
-            tmp_cfg.data.load_images=False
-            tmp_cfg.data.load_points=False
-            tmp_cfg.data.path = cfg.data.path_gt
-            tmp_cfg.data.label_file = cfg.data.label_file_gt
-            dataset_inst  = config.get_dataset(tmp_cfg,'test')
+            dataset_inst = config.get_dataset_inst(cfg,'test')
             # write back
             
             '''check'''
@@ -208,7 +200,7 @@ def main():
             logger_py.info('start evaluation')
             pr = cProfile.Profile()
             pr.enable()    
-            eval_dict, eval_tool = model_trainer.evaluate_inst(dataset_seg,dataset_inst, topk=cfg.eval.topK)
+            eval_dict, eval_tool,eval_tool_upperbound = model_trainer.evaluate_inst(dataset_seg,dataset_inst, topk=cfg.eval.topK)
             pr.disable()
             logger_py.info('save time profile to {}'.format(os.path.join(out_dir,'tp_eval_inst.dmp')))
             pr.dump_stats(os.path.join(out_dir,'tp_eval_inst.dmp'))
@@ -219,6 +211,9 @@ def main():
             
             print(eval_tool.gen_text())
             _ = eval_tool.write(out_dir, prefix)
+            
+            eval_tool_upperbound.write(out_dir,'upper_bound')
+            
             if logger:
                 for k,v in eval_dict['visualization'].items(): 
                     logger.add_figure('test/'+prefix+'_'+k, v, global_step=it)
@@ -288,49 +283,6 @@ def main():
     else:
         raise NotImplementedError('unknown input mode')
         
-
-def parse():
-    r"""loads model config
-
-    """
-    parser = argparse.ArgumentParser(formatter_class=argparse.ArgumentDefaultsHelpFormatter)
-    parser.add_argument('--config', type=str, default='./configs/default.yaml', help='configuration file name. Relative path under given path (default: config.yml)')
-    parser.add_argument('--mode', type=str, choices=['train','trace','eval','sample','trace'], default='train', help='mode. can be [train,trace,eval]',required=False)
-    parser.add_argument('--loadbest', type=int, default=0,choices=[0,1], help='1: load best model or 0: load checkpoints. Only works in non training mode.')
-    parser.add_argument('--log', type=str, default='DEBUG',choices=['DEBUG','INFO','WARNING','CRITICAL'], help='')
-    args = parser.parse_args()
-    
-    config_path = os.path.abspath(args.config)
-    if not os.path.exists(config_path):
-        raise RuntimeError('Targer config file does not exist. {}' & config_path)
-        
-    # load config file
-    config = codeLib.Config(config_path)
-    # return config
-    config.LOADBEST = args.loadbest
-    config.MODE = args.mode
-    
-    # check if name exist
-    if 'name' not in config:
-        config_name = os.path.basename(args.config)
-        if len(config_name) > len('config_'):
-            name = config_name[len('config_'):]
-            name = os.path.splitext(name)[0]
-            translation_table = dict.fromkeys(map(ord, '!@#$'), None)
-            name = name.translate(translation_table)
-            config['name'] = name 
-    
-    # init device
-    if torch.cuda.is_available() and len(config.GPU) > 0:
-        config.DEVICE = torch.device("cuda")
-    else:
-        config.DEVICE = torch.device("cpu")      
-        
-    config.log_level = args.log
-    # logging.basicConfig(level=config.log_level)
-    # logging.setLevel(config.log_level)
-    return config
-
 if __name__ == '__main__':
     # logger_py.setLevel('DEBUG')
     # logger_py.debug('hello0')

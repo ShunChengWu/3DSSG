@@ -1,10 +1,10 @@
 import numpy as np
 import torch,random
-import json
-import os
+import copy,os
 # import ssg2d
 from ssg.objects import Node
-from collections import defaultdict
+import codeLib.utils.string_numpy as snp
+from ssg import define
 import ast
 
 # def merge_batch_seg2idx(seg2idxs):
@@ -46,6 +46,10 @@ import ast
 #     return idx2seg
 
 def merge_batch_mask2inst(mask2insts):
+    '''
+    mask2insts: list, dict
+    each mask2inst cannot have the the same mask, but can have duplicate instances
+    '''
     idx2seg=dict()
     # idx2seg[0]=[0]
     if isinstance(mask2insts,list):
@@ -578,3 +582,60 @@ def data_preparation(points, instances, selected_instances, num_points, num_poin
         return obj_points, rel_points, edge_indices, instance2mask, gt_rels, cat
     else:
         return obj_points, rel_points, edge_indices, instance2mask
+    
+def match_class_info_from_two(dataset_seg,dataset_inst):
+    ''' get scan_idx mapping '''
+    scanid2idx_seg = dict()
+    for index in range(len(dataset_seg)):
+        scan_id = snp.unpack(dataset_seg.scans,index)# self.scans[idx]
+        scanid2idx_seg[scan_id] = index
+        
+    scanid2idx_inst = dict()
+    for index in range(len(dataset_inst)):
+        scan_id = snp.unpack(dataset_inst.scans,index)# self.scans[idx]
+        scanid2idx_inst[scan_id] = index
+        
+    '''add a none class for missing instances'''
+    node_cls_names = copy.copy(dataset_seg.classNames)
+    edge_cls_names = copy.copy(dataset_seg.relationNames)
+    if define.NAME_NONE not in dataset_seg.classNames:
+        node_cls_names.append(define.NAME_NONE)
+    if define.NAME_NONE not in dataset_seg.relationNames:
+        edge_cls_names.append(define.NAME_NONE)
+    # remove same part
+    # samepart_idx_edge_cls = self.edge_cls_names.index(define.NAME_SAME_PART)
+    if define.NAME_SAME_PART in edge_cls_names:
+        edge_cls_names.remove(define.NAME_SAME_PART)
+    
+    noneidx_node_cls = node_cls_names.index(define.NAME_NONE)
+    noneidx_edge_cls = edge_cls_names.index(define.NAME_NONE)
+    
+    '''
+    Find index mapping. Ignore NONE for nodes since it is used for mapping missing instance.
+    Ignore SAME_PART for edges.
+    '''
+    seg_valid_node_cls_indices = []
+    inst_valid_node_cls_indices = []
+    for idx in range(len(node_cls_names)):
+        name = node_cls_names[idx]
+        if name == define.NAME_NONE: continue
+        seg_valid_node_cls_indices.append(idx)
+    for idx in range(len(node_cls_names)):
+        name = node_cls_names[idx]
+        if name == define.NAME_NONE: continue
+        inst_valid_node_cls_indices.append(idx)
+    
+    seg_valid_edge_cls_indices = []
+    inst_valid_edge_cls_indices = []
+    for idx in range(len(edge_cls_names)):
+        name = edge_cls_names[idx]
+        if name == define.NAME_SAME_PART: continue
+        seg_valid_edge_cls_indices.append(idx)
+    for idx in range(len(edge_cls_names)):
+        name = edge_cls_names[idx]
+        if name == define.NAME_SAME_PART: continue
+        inst_valid_edge_cls_indices.append(idx)
+        
+    return (scanid2idx_seg, node_cls_names, edge_cls_names,noneidx_node_cls,noneidx_edge_cls,
+            seg_valid_node_cls_indices,inst_valid_node_cls_indices,
+            seg_valid_edge_cls_indices,inst_valid_edge_cls_indices)

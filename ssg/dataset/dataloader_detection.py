@@ -124,7 +124,18 @@ class Graph_Loader (data.Dataset):
         
         '''check file exist'''
         if self.for_eval: # train mode can't use precmopute feature. need to do img. aug.
+            self.open_filtered()
+            should_compute_image_feature=False
             if not os.path.exists(self.path_img_feature):
+                should_compute_image_feature=True
+            else:
+                self.open_image_feature()
+                for scan_id in self.filtered_data:
+                    if scan_id not in self.image_feature:
+                        should_compute_image_feature=True
+                        break
+            
+            if should_compute_image_feature:
                 # Try to generate
                 os.environ['MKL_THREADING_LAYER'] = 'GNU'
                 # os.environ['PYTHONPATH'] = config.PYTHONPATH

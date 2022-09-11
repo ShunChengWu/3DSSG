@@ -1,5 +1,6 @@
 import os,math,json,pathlib,torch
 import numpy as np
+# import ssg
 from codeLib.utils.plot_confusion_matrix import plot_confusion_matrix
 from collections import defaultdict
 # from utils.plot_confusion_matrix import plot_confusion_matrix
@@ -863,7 +864,7 @@ class EvalSceneGraph():
             
                 if self.k>0:
                     # top_k_predicate, top_k_obj = [], []
-                    self.top_k_obj += evaluate_topk_object(bobj_gts, obj_pds)
+                    self.top_k_obj += evaluate_topk_object(bobj_gts, obj_pds,k=self.k)
                     
                     if rel_pds is not None:
                         gt_edges = get_gt(bobj_gts, rel_gts, edge_indices, mask2inst, self.multi_rel_prediction)
@@ -992,6 +993,88 @@ class EvalSceneGraph():
             f.write(self.gen_text())
         return results
             
+class EvalUpperBound():
+    def __init__(self, node_cls_names, edge_cls_names,noneidx_node_cls,noneidx_edge_cls
+                 ,multi_rel:bool,topK:int, none_name:str):
+        if multi_rel:
+            raise NotImplementedError()
+
+        self.node_cls_names = node_cls_names
+        self.edge_cls_names = edge_cls_names
+        self.noneidx_node_cls=noneidx_node_cls
+        self.noneidx_edge_cls=noneidx_edge_cls
+        '''evaluate'''
+        self.eval_tool = EvalSceneGraph(node_cls_names, edge_cls_names,
+                                multi_rel_prediction=multi_rel,k=topK,
+                                save_prediction=True,
+                                none_name=none_name) 
+    def __call__(self,data_seg,data_inst):
+        # Shortcuts
+        scan_id = data_seg['scan_id']
+        # gt_cls = data['gt_cls']
+        # gt_rel = data_seg['gt_rel']
+        mask2seg = data_seg['mask2instance']
+        seg_node_edges = data_seg['node_edges']
+        # data_seg['node_edges'] = data_seg['node_edges'].t().contiguous()
+        seg2inst = data_seg.get('seg2inst',None)
+        
+        inst_mask2instance = data_inst['mask2instance']
+        inst_gt_cls = data_inst['gt_cls']
+        inst_gt_rel = data_inst['gt_rel']
+        inst_node_edges = data_inst['node_edges']
+        
+        '''get upper bound'''
+        # Convert to inst
+        seg_mask2inst=dict()
+        for mask, seg in mask2seg.items():
+            inst = seg2inst[seg] if seg2inst is not None else seg
+            seg_mask2inst[mask] = inst
+        
+        # collect inst in seg
+        seg_instance_set = set()
+        for _, inst in seg_mask2inst.items():
+            seg_instance_set.add(inst)
+            
+        # Find missing nodes
+        missing_nodes=list()
+        for mask, inst in inst_mask2instance.items():
+            if inst not in seg_instance_set:
+                missing_nodes.append(mask)
+        
+        # build seg inst key
+        seg_inst_pair_edges = set()
+        for idx in range(len(seg_node_edges)):
+            src, tgt = seg_node_edges[idx][0].item(), seg_node_edges[idx][1].item()
+            src, tgt = seg_mask2inst[src],seg_mask2inst[tgt]
+            seg_inst_pair_edges.add((src,tgt))
+        
+        # Find missing edges
+        missing_edges=list()
+        for mask in range(len(inst_node_edges)):
+            src, tgt = inst_node_edges[mask][0].item(), inst_node_edges[mask][1].item()
+            key = (src,tgt)
+            if key not in seg_inst_pair_edges:
+                missing_edges.append(mask)
+        
+        ''' Create Foo prdiction vector '''
+        # Nodes
+        node_pred = torch.nn.functional.one_hot(inst_gt_cls, len(self.node_cls_names)).float()
+        node_pred[missing_nodes] = 0
+        node_pred[missing_nodes,self.noneidx_node_cls] = 1.0
+        
+        # edges
+        edge_pred = torch.nn.functional.one_hot(inst_gt_rel, len(self.edge_cls_names)).float()
+        edge_pred[missing_edges] = 0
+        edge_pred[missing_edges,self.noneidx_edge_cls] = 1.0
+        
+        self.eval_tool.add([scan_id], 
+                          node_pred,
+                          inst_gt_cls, 
+                          edge_pred,
+                          inst_gt_rel,
+                          [inst_mask2instance],
+                          data_inst['node_edges'])
+
 if __name__ == '__main__':
     tt = EvaClassification(['1','2'], [0,1])
     pd=dict()

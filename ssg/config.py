@@ -1,7 +1,6 @@
-import os
+import os,copy,logging
 import ssg
 from ssg import SSG3D, SGFN, SGPN, MVEnc, SVEnc, IMP#, DestCmp
-import logging
 from torch.utils.tensorboard import SummaryWriter
 from codeLib.loggers import WandbLogger
 from codeLib.common import filter_args_create
@@ -62,6 +61,18 @@ def get_dataset(cfg, mode='train'):
     if 'node_feature_dim' in cfg.model:
         cfg.data.node_feature_dim = cfg.model.node_feature_dim
     return ssg.dataset.dataset_dict[cfg.data.input_type](cfg, mode=mode)
+
+def get_dataset_inst(cfg,mode='test'):
+    tmp_cfg = copy.deepcopy(cfg)
+    tmp_cfg.model.use_rgb = False
+    tmp_cfg.model.use_normal = False
+    tmp_cfg.data.input_type = 'sgfn'
+    tmp_cfg.data.load_images=False
+    tmp_cfg.data.load_points=False
+    tmp_cfg.data.path = cfg.data.path_gt
+    tmp_cfg.data.label_file = cfg.data.label_file_gt
+    dataset_inst  = get_dataset(tmp_cfg,mode)
+    return dataset_inst
 
 def get_model(cfg, num_obj_cls,num_rel_cls):
     ''' Returns the model instance.

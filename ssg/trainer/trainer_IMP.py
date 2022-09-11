@@ -4,14 +4,14 @@ from collections import defaultdict
 from codeLib.models import BaseTrainer
 from codeLib.common import check_weights, convert_torch_to_scalar
 import torch
-from ssg.utils.util_eva import EvalSceneGraph
+from ssg.utils.util_eva import EvalSceneGraph, EvalUpperBound
 import time
 import logging
 import codeLib.utils.moving_average as moving_average 
 import ssg
 import codeLib.utils.string_numpy as snp
 from ssg import define
-from ssg.utils.util_data import merge_batch_mask2inst
+from ssg.utils.util_data import merge_batch_mask2inst,match_class_info_from_two
 
 logger_py = logging.getLogger(__name__)
 
@@ -80,49 +80,61 @@ class Trainer_IMP(BaseTrainer):
     def evaluate_inst(self,dataset_seg,dataset_inst,topk):
         ignore_missing=self.cfg.eval.ignore_missing
         '''add a none class for missing instances'''
-        node_cls_names = copy.copy(self.node_cls_names)
-        edge_cls_names = copy.copy(self.edge_cls_names)
-        if define.NAME_NONE not in self.node_cls_names:
-            node_cls_names.append(define.NAME_NONE)
-        if define.NAME_NONE not in self.edge_cls_names:
-            edge_cls_names.append(define.NAME_NONE)
-        # remove same part
-        # samepart_idx_edge_cls = self.edge_cls_names.index(define.NAME_SAME_PART)
-        if define.NAME_SAME_PART in edge_cls_names:
-            edge_cls_names.remove(define.NAME_SAME_PART)
         
-        noneidx_node_cls = node_cls_names.index(define.NAME_NONE)
-        noneidx_edge_cls = edge_cls_names.index(define.NAME_NONE)
+        (scanid2idx_seg, node_cls_names, edge_cls_names,noneidx_node_cls,noneidx_edge_cls,
+            seg_valid_node_cls_indices,inst_valid_node_cls_indices,
+            seg_valid_edge_cls_indices,inst_valid_edge_cls_indices) = \
+            match_class_info_from_two(dataset_seg,dataset_inst)
         
-        '''
-        Find index mapping. Ignore NONE for nodes since it is used for mapping missing instance.
-        Ignore SAME_PART for edges.
-        '''
-        seg_valid_node_cls_indices = []
-        inst_valid_node_cls_indices = []
-        for idx in range(len(self.node_cls_names)):
-            name = self.node_cls_names[idx]
-            if name == define.NAME_NONE: continue
-            seg_valid_node_cls_indices.append(idx)
-        for idx in range(len(node_cls_names)):
-            name = node_cls_names[idx]
-            if name == define.NAME_NONE: continue
-            inst_valid_node_cls_indices.append(idx)
+        # node_cls_names = copy.copy(self.node_cls_names)
+        # edge_cls_names = copy.copy(self.edge_cls_names)
+        # if define.NAME_NONE not in self.node_cls_names:
+        #     node_cls_names.append(define.NAME_NONE)
+        # if define.NAME_NONE not in self.edge_cls_names:
+        #     edge_cls_names.append(define.NAME_NONE)
+        # # remove same part
+        # # samepart_idx_edge_cls = self.edge_cls_names.index(define.NAME_SAME_PART)
+        # if define.NAME_SAME_PART in edge_cls_names:
+        #     edge_cls_names.remove(define.NAME_SAME_PART)
         
-        seg_valid_edge_cls_indices = []
-        inst_valid_edge_cls_indices = []
-        for idx in range(len(self.edge_cls_names)):
-            name = self.edge_cls_names[idx]
-            if name == define.NAME_SAME_PART: continue
-            seg_valid_edge_cls_indices.append(idx)
-        for idx in range(len(edge_cls_names)):
-            name = edge_cls_names[idx]
-            if name == define.NAME_SAME_PART: continue
-            inst_valid_edge_cls_indices.append(idx)
+        # noneidx_node_cls = node_cls_names.index(define.NAME_NONE)
+        # noneidx_edge_cls = edge_cls_names.index(define.NAME_NONE)
+        
+        # '''
+        # Find index mapping. Ignore NONE for nodes since it is used for mapping missing instance.
+        # Ignore SAME_PART for edges.
+        # '''
+        # seg_valid_node_cls_indices = []
+        # inst_valid_node_cls_indices = []
+        # for idx in range(len(self.node_cls_names)):
+        #     name = self.node_cls_names[idx]
+        #     if name == define.NAME_NONE: continue
+        #     seg_valid_node_cls_indices.append(idx)
+        # for idx in range(len(node_cls_names)):
+        #     name = node_cls_names[idx]
+        #     if name == define.NAME_NONE: continue
+        #     inst_valid_node_cls_indices.append(idx)
+        
+        # seg_valid_edge_cls_indices = []
+        # inst_valid_edge_cls_indices = []
+        # for idx in range(len(self.edge_cls_names)):
+        #     name = self.edge_cls_names[idx]
+        #     if name == define.NAME_SAME_PART: continue
+        #     seg_valid_edge_cls_indices.append(idx)
+        # for idx in range(len(edge_cls_names)):
+        #     name = edge_cls_names[idx]
+        #     if name == define.NAME_SAME_PART: continue
+        #     inst_valid_edge_cls_indices.append(idx)
         
         
         eval_tool = EvalSceneGraph(node_cls_names, edge_cls_names,multi_rel_prediction=self.cfg.model.multi_rel,k=topk,save_prediction=True,
                                    none_name=define.NAME_NONE) 
+        
+        eval_UpperBound = EvalUpperBound(node_cls_names,edge_cls_names,noneidx_node_cls,noneidx_edge_cls,
+                                         multi_rel=self.cfg.model.multi_rel,topK=topk,none_name=define.NAME_NONE)
+        
+        
+        # eval_upper_bound = 
         eval_list = defaultdict(moving_average.MA)
         
         '''check'''
@@ -142,18 +154,8 @@ class Trainer_IMP(BaseTrainer):
         for index in range(len(dataset_inst)):
             scan_id = snp.unpack(dataset_inst.scans,index)# self.scans[idx]
             scanid2idx_inst[scan_id] = index
-            
-        
-        # '''build main seg loader'''
-        # seg_dataloader = torch.utils.data.DataLoader(
-        #     dataset_seg, batch_size=1, num_workers=0,
-        #     shuffle=False, drop_last=False,
-        #     pin_memory=True,
-        #     collate_fn=graph_collate,
-        # )
-        
+
         '''start eval'''
-        
         self.model.eval()
         for index in tqdm(range(len(dataset_inst))):
         # for data_inst in seg_dataloader:
@@ -162,13 +164,13 @@ class Trainer_IMP(BaseTrainer):
             
             if scan_id_inst not in scanid2idx_seg:
                 #TODO: what should we do if missing scans?
+                raise RuntimeError('')
                 continue
             
             index_seg = scanid2idx_seg[scan_id_inst]
             data_seg  = dataset_seg.__getitem__(index_seg)
             
             assert data_seg['scan_id'] == data_inst['scan_id']
-            
             
             '''process seg'''
             eval_dict={}
@@ -178,6 +180,9 @@ class Trainer_IMP(BaseTrainer):
                 # Process data dictionary
                 data = self.process_data_dict(data_seg)
                 data_inst = self.process_data_dict(data_inst)
+                
+                
+                eval_UpperBound(data,data_inst)
                 
                 # Shortcuts
                 scan_id = data['scan_id']
@@ -194,7 +199,9 @@ class Trainer_IMP(BaseTrainer):
                 data_inst['node_edges'] = data_inst['node_edges'].t().contiguous()
                 
                 # check input valid
-                if node_edges_ori.ndim==1: continue
+                if node_edges_ori.ndim==1: 
+                    raise RuntimeError('')
+                    continue
                 
                 ''' make forward pass through the network '''
                 node_cls, edge_cls = self.model(**data)
@@ -224,11 +231,11 @@ class Trainer_IMP(BaseTrainer):
                             '''merge nodes'''
                             predictions = node_cls[inst2masks[inst]]# get all predictions on that instance
                             node_cls_pred = torch.softmax(predictions, dim=1).mean(dim=0)# averaging the probability
-                            merged_node_cls[mask_new][inst_valid_node_cls_indices] = node_cls_pred[seg_valid_node_cls_indices] # assign and ignor
+                            merged_node_cls[mask_new,inst_valid_node_cls_indices] = node_cls_pred[seg_valid_node_cls_indices] # assign and ignor
                             
                         else:
                             #TODO: handle missing inst
-                            merged_node_cls[mask_new][noneidx_node_cls] = 1.0
+                            merged_node_cls[mask_new,noneidx_node_cls] = 1.0
                             # merged_node_cls_gt[mask_new]=noneidx_node_cls
                             
                             
@@ -240,7 +247,7 @@ class Trainer_IMP(BaseTrainer):
                         merged_instance2idx[inst]=counter
                         predictions = node_cls[inst2masks[inst]]
                         node_cls_pred = torch.softmax(predictions, dim=1).mean(dim=0)                        
-                        merged_node_cls[counter][inst_valid_node_cls_indices] = node_cls_pred[seg_valid_node_cls_indices]
+                        merged_node_cls[counter,inst_valid_node_cls_indices] = node_cls_pred[seg_valid_node_cls_indices]
                         merged_node_cls_gt[counter] = inst_gt_cls[mask_old]
                         counter+=1
                 if ignore_missing:
@@ -251,8 +258,8 @@ class Trainer_IMP(BaseTrainer):
                 inst_mask2inst=merge_batch_mask2inst(inst_mask2instance)
                 
                 # build search list for GT edge pairs
-                inst_gt_pairs = set()
-                inst_gt_rel_dict = dict() # gt instance pair -> predicate label
+                inst_gt_pairs = set() # 
+                inst_gt_rel_dict = dict() # This collects "from" and "to" instances pair as key  -> predicate label
                 for idx in range(len(inst_gt_rel)):
                     src_idx, tgt_idx = data_inst['node_edges'][0,idx].item(),data_inst['node_edges'][1,idx].item()
                     src_inst_idx, tgt_inst_idx = inst_mask2inst[src_idx], inst_mask2inst[tgt_idx]
@@ -305,9 +312,9 @@ class Trainer_IMP(BaseTrainer):
                         #ignore same part
                         
                         edge_pds = torch.softmax(edge_pds,dim=1).mean(0)
-                        merged_edge_cls[counter][inst_valid_edge_cls_indices] = edge_pds
+                        merged_edge_cls[counter,inst_valid_edge_cls_indices] = edge_pds
                     else:
-                        merged_edge_cls[counter][noneidx_edge_cls] = 1.0
+                        merged_edge_cls[counter,noneidx_edge_cls] = 1.0
                         
                     merged_edge_cls_gt[counter] = inst_edge_cls
                     counter+=1
@@ -337,7 +344,7 @@ class Trainer_IMP(BaseTrainer):
         
         vis = self.visualize(eval_tool=eval_tool)
         eval_dict['visualization'] = vis
-        return eval_dict, eval_tool
+        return eval_dict, eval_tool, eval_UpperBound.eval_tool
     def sample(self, dataloader):
         pass
         

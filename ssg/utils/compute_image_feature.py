@@ -76,6 +76,7 @@ if __name__ == '__main__':
     '''image encoder'''
     logger_py.info('create image encoder')
     feature_type = cfg.model.image_encoder.backend
+    cfg.data.use_precompute_img_feature = False # force to set to false to enable backend precompute
     img_encoder = ssg.models.node_encoder_list['roi_extractor'](cfg,cfg.model.image_encoder.backend,cfg.DEVICE)
     img_encoder = img_encoder.eval()
     for param in img_encoder.parameters(): param.requires_grad = False
