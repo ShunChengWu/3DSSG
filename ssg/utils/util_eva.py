@@ -134,55 +134,105 @@ def get_gt(objs_target, rels_target, edges, mask2inst,multiple_prediction:bool):
 
 def evaluate_topk(gt_rel, objs_pred, rels_pred, edges, threshold=0.5, k=40):
     top_k=list()
+    device = objs_pred.device
     objs_pred = objs_pred.detach().cpu()
     rels_pred = rels_pred.detach().cpu()
     
-    for edge in range(len(edges)):
-        edge_from = edges[edge][0]
-        edge_to = edges[edge][1]
-        e = gt_rel[edge]
-        gt_s = e[0]
-        gt_t = e[1]
-        gt_r = e[2]
-        # if len(gt_r) == 0: continue
-        
-        rel_predictions = rels_pred[edge]
-        objs_pred_1 = objs_pred[edge_from]
-        objs_pred_2 = objs_pred[edge_to]
-        node_score = torch.einsum('n,l->nl',objs_pred_1,objs_pred_2)
-        conf_matrix = torch.einsum('nl,m->nlm',node_score,rel_predictions)
-        conf_matrix_1d = conf_matrix.reshape(-1)
-        sorted_conf_matrix, sorted_args_1d = torch.sort(conf_matrix_1d, descending=True) # 1D
+    batch_size = 128
+    all_indices = [idx for idx in range(len(edges))]
+    
+    for indices in torch.split(torch.LongTensor(all_indices),batch_size):
+        sub_preds = objs_pred[edges[indices,0]]
+        obj_preds = objs_pred[edges[indices,1]]
+        rel_preds = rels_pred[indices]
+        so_preds = torch.einsum('bn,bm->bnm',sub_preds,obj_preds)
+        conf_matrix = torch.einsum('bnm, bk->bnmk',so_preds,rel_preds)
+        n_nodes = conf_matrix.shape[1]
+        conf_matrix = conf_matrix.reshape(so_preds.shape[0], -1).to(device) # use CUDA if available
+        torch.cuda.empty_cache()
+        sorted_conf_matrix, sorted_args_1d = torch.sort(conf_matrix, descending=True) # 1D
+        sorted_conf_matrix, sorted_args_1d=sorted_conf_matrix.cpu(),sorted_args_1d.cpu()
+        torch.cuda.empty_cache()
         if k<1:
-            maxk=len(sorted_conf_matrix)
-            maxk=min(len(sorted_conf_matrix),maxk)
+            maxk=sorted_conf_matrix.shape[1]
+            # maxk=min(len(sorted_conf_matrix),maxk)
         else:
             maxk=k
-        sorted_conf_matrix=sorted_conf_matrix[:maxk]
-        sorted_args_1d=sorted_args_1d[:maxk]
+        sorted_conf_matrix=sorted_conf_matrix[:,:maxk]
+        sorted_args_1d=sorted_args_1d[:,:maxk]
         
         temp_topk = []
         
-        if len(gt_r) == 0:
-            # Ground truth is None
-            indices = torch.where(sorted_conf_matrix < threshold)[0]
-            if len(indices) == 0:
-                index = maxk+1 # 
-            else:
-                index = sorted(indices)[0].item()+1
-            temp_topk.append(index)
-        for predicate in gt_r: # for the multi rel case
-            index_1d = (gt_s*conf_matrix.shape[1]+gt_t)*conf_matrix.shape[2]+predicate
-            indices = torch.where(sorted_args_1d == index_1d)[0]
-            # gt_conf = conf_matrix[gt_s, gt_t, predicate]
-            # indices = torch.where(sorted_conf_matrix == gt_conf)[0]
-            if len(indices) == 0:
-                index = maxk+1
-            else:
-                index = sorted(indices)[0].item()+1
-            temp_topk.append(index)
-        temp_topk = sorted(temp_topk)
-        top_k += temp_topk
+        for mask, idx in enumerate(indices):
+            e = gt_rel[idx]
+            gt_s = e[0]
+            gt_t = e[1]
+            gt_r = e[2]
+            if len(gt_r) == 0:
+                # Ground truth is None
+                indices = torch.where(sorted_conf_matrix[mask] < threshold)[0]
+                if len(indices) == 0:
+                    index = maxk+1 # 
+                else:
+                    index = sorted(indices)[0].item()+1
+                temp_topk.append(index)
+            for predicate in gt_r: # for the multi rel case
+                index_1d = (gt_s*n_nodes+gt_t)*n_nodes+predicate
+                indices = torch.where(sorted_args_1d[mask] == index_1d)[0]
+                if len(indices) == 0:
+                    index = maxk+1
+                else:
+                    index = sorted(indices)[0].item()+1
+                temp_topk.append(index)
+            temp_topk = sorted(temp_topk)
+            top_k += temp_topk
+        
+    # for idx in range(len(edges)):
+    #     edge_from = edges[idx][0]
+    #     edge_to = edges[idx][1]
+    #     e = gt_rel[idx]
+    #     gt_s = e[0]
+    #     gt_t = e[1]
+    #     gt_r = e[2]
+    #     # if len(gt_r) == 0: continue
+        
+    #     rel_predictions = rels_pred[idx]
+    #     objs_pred_1 = objs_pred[edge_from]
+    #     objs_pred_2 = objs_pred[edge_to]
+    #     node_score = torch.einsum('n,l->nl',objs_pred_1,objs_pred_2)
+    #     conf_matrix = torch.einsum('nl,m->nlm',node_score,rel_predictions)
+    #     conf_matrix_1d = conf_matrix.reshape(-1)
+    #     sorted_conf_matrix, sorted_args_1d = torch.sort(conf_matrix_1d, descending=True) # 1D
+    #     if k<1:
+    #         maxk=len(sorted_conf_matrix)
+    #         maxk=min(len(sorted_conf_matrix),maxk)
+    #     else:
+    #         maxk=k
+    #     sorted_conf_matrix=sorted_conf_matrix[:maxk]
+    #     sorted_args_1d=sorted_args_1d[:maxk]
+        
+    #     temp_topk = []
+        
+    #     if len(gt_r) == 0:
+    #         # Ground truth is None
+    #         indices = torch.where(sorted_conf_matrix < threshold)[0]
+    #         if len(indices) == 0:
+    #             index = maxk+1 # 
+    #         else:
+    #             index = sorted(indices)[0].item()+1
+    #         temp_topk.append(index)
+    #     for predicate in gt_r: # for the multi rel case
+    #         index_1d = (gt_s*conf_matrix.shape[1]+gt_t)*conf_matrix.shape[2]+predicate
+    #         indices = torch.where(sorted_args_1d == index_1d)[0]
+    #         # gt_conf = conf_matrix[gt_s, gt_t, predicate]
+    #         # indices = torch.where(sorted_conf_matrix == gt_conf)[0]
+    #         if len(indices) == 0:
+    #             index = maxk+1
+    #         else:
+    #             index = sorted(indices)[0].item()+1
+    #         temp_topk.append(index)
+    #     temp_topk = sorted(temp_topk)
+    #     top_k += temp_topk
     return top_k
 
 def evaluate_topk_recall(
@@ -996,9 +1046,8 @@ class EvalSceneGraph():
 class EvalUpperBound():
     def __init__(self, node_cls_names, edge_cls_names,noneidx_node_cls,noneidx_edge_cls
                  ,multi_rel:bool,topK:int, none_name:str):
-        if multi_rel:
-            raise NotImplementedError()
-
+        # if multi_rel: raise NotImplementedError()
+        self.multi_rel=multi_rel
         self.node_cls_names = node_cls_names
         self.edge_cls_names = edge_cls_names
         self.noneidx_node_cls=noneidx_node_cls
@@ -1063,9 +1112,13 @@ class EvalUpperBound():
         node_pred[missing_nodes,self.noneidx_node_cls] = 1.0
         
         # edges
-        edge_pred = torch.nn.functional.one_hot(inst_gt_rel, len(self.edge_cls_names)).float()
-        edge_pred[missing_edges] = 0
-        edge_pred[missing_edges,self.noneidx_edge_cls] = 1.0
+        if not self.multi_rel:
+            edge_pred = torch.nn.functional.one_hot(inst_gt_rel, len(self.edge_cls_names)).float()
+            edge_pred[missing_edges] = 0
+            # edge_pred[missing_edges,self.noneidx_edge_cls] = 1.0
+        else:
+            edge_pred = inst_gt_rel.clone().float()
+            edge_pred[missing_edges] = 0
         
         self.eval_tool.add([scan_id], 
                           node_pred,

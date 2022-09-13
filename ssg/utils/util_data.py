@@ -583,7 +583,7 @@ def data_preparation(points, instances, selected_instances, num_points, num_poin
     else:
         return obj_points, rel_points, edge_indices, instance2mask
     
-def match_class_info_from_two(dataset_seg,dataset_inst):
+def match_class_info_from_two(dataset_seg,dataset_inst, multi_rel:bool):
     ''' get scan_idx mapping '''
     scanid2idx_seg = dict()
     for index in range(len(dataset_seg)):
@@ -600,15 +600,23 @@ def match_class_info_from_two(dataset_seg,dataset_inst):
     edge_cls_names = copy.copy(dataset_seg.relationNames)
     if define.NAME_NONE not in dataset_seg.classNames:
         node_cls_names.append(define.NAME_NONE)
-    if define.NAME_NONE not in dataset_seg.relationNames:
-        edge_cls_names.append(define.NAME_NONE)
-    # remove same part
-    # samepart_idx_edge_cls = self.edge_cls_names.index(define.NAME_SAME_PART)
-    if define.NAME_SAME_PART in edge_cls_names:
-        edge_cls_names.remove(define.NAME_SAME_PART)
+    if not multi_rel:
+        if define.NAME_NONE not in dataset_seg.relationNames:
+            edge_cls_names.append(define.NAME_NONE)
+        # remove same part
+        if define.NAME_SAME_PART in edge_cls_names:
+            edge_cls_names.remove(define.NAME_SAME_PART)
+            
+        noneidx_edge_cls = edge_cls_names.index(define.NAME_NONE)
+    else:
+        noneidx_edge_cls = None
+        if define.NAME_NONE in dataset_seg.relationNames:
+            edge_cls_names.remove(define.NAME_NONE)
+            noneidx_edge_cls = edge_cls_names.index(define.NAME_NONE)
+            
     
     noneidx_node_cls = node_cls_names.index(define.NAME_NONE)
-    noneidx_edge_cls = edge_cls_names.index(define.NAME_NONE)
+    
     
     '''
     Find index mapping. Ignore NONE for nodes since it is used for mapping missing instance.

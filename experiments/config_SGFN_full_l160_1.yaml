@@ -26,9 +26,10 @@ training:
  model_selection_mode: maximize # can be maximize or minimize. e.g. if it's "loss", should "minimize", if it's accuracy, should "maximize"
  max_epoch: 500
 eval: #evaluation
- mode: segment #eval on [segment, instance].  
+ mode: instance #eval on [segment, instance].  
  data_workers: 8
- topK: 100
+ topK: 1
+ ignore_missing: false
 model:
  method: sgfn
  multi_rel: true # multiple relationship 
@@ -53,7 +54,7 @@ model:
   node_from_gnn: true
 data:
  input_type: sgfn #[3RScan, graph, sgfn, sgpn]
- path: "./data/3RScan_3RScan160/"
+ path: "./data/3RScan_3RScan160_test/"
  path_gt: "./data/3RScan_3RScan160/"
  img_feature_path: "/media/sc/SSD1TB/storage/kf_feature/"
  label_file: "labels.instances.align.annotated.v2.ply"
@@ -63,7 +64,7 @@ data:
  is_roi_img: true
  load_images: false
  load_points: truse
- load_cache: true
+ load_cache: false
  sample_num_nn: 2
  sample_num_seed: 4
  drop_img_edge: 4 # if is int and >0, select given number. if is float/double, select percentage between [1-x,1]
@@ -83,7 +84,7 @@ logging:
  log_grad_freq: 1000 
  log_graph: True
 wandb:
- dry_run: false
+ dry_run: true
  entity: 'shunchengwu'
  project: "ssg"
  tags: ["ssg", "sgfn","inseg"]

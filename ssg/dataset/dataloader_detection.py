@@ -65,7 +65,13 @@ class Graph_Loader (data.Dataset):
         self.pth_filtered = os.path.join(self.path,'filtered_scans_detection_%s.h5' % (self.mode))
         self.pth_node_weights = os.path.join(self.path,'node_weights.txt')
         self.pth_edge_weights = os.path.join(self.path,'edge_weights.txt')
-        self.path_img_feature = os.path.join(self.path,config.data.path_image_feature)
+        
+        SEGMENT_TYPE='GT'
+        with open(os.path.join(self.cfg.data.path,'args.json')) as f:
+            tmp = json.load(f)
+            label_type = tmp['label_type']
+        image_feature_folder_name =define.NAME_IMAGE_FEAUTRE_FORMAT.format(SEGMENT_TYPE,label_type)
+        self.path_img_feature = os.path.join(self.cfg.data.path_image_feature,image_feature_folder_name+'.h5')
             
         # if config.use_filtered_node_list:
         #     self.path_filtered_nodes_list = os.path.join(self.path,'filtered_node_list.h5')
@@ -143,7 +149,8 @@ class Graph_Loader (data.Dataset):
                 bashCommand=[
                     'python','ssg/utils/compute_image_feature.py',
                     "--config",config.config_path,
-                    "-o",pathlib.Path(config.data.path_image_feature).parent.absolute(),
+                    '-n',image_feature_folder_name,
+                    "-o",self.cfg.data.path_image_feature,
                     "--mode",mode,
                 ]
                 run(bashCommand)
@@ -476,7 +483,7 @@ class Graph_Loader (data.Dataset):
             if key in relatinoships_gt:
                 if self.multi_rel_outputs:
                     for x in relatinoships_gt[key]:
-                        gt_rels[e,x] = 1# adj_matrix_onehot[index1,index2,x]
+                        gt_rels[e,x] = 1
                 else:
                     if len(relatinoships_gt[key])!=1:
                         print('scan_id',scan_id)

@@ -21,6 +21,7 @@ OBJ_NAME = 'mesh.refined.obj'
 TEXTURE_NAME = 'mesh.refined_0.png'
 INFO_NAME = '_info.txt'
 RELATIONSHIP_NAME = 'relationships.json'
+
 # 3RScan sequence
 IMG_FOLDER_NAME = 'sequence'
 FRAME_NAME_FORMAT = 'frame-{:06d}'
@@ -34,6 +35,7 @@ SCANNET_SEG_SUBFIX = '_vh_clean_2.0.010000.segs.json'
 SCANNET_AGGRE_SUBFIX = '.aggregation.json'
 SCANNET_PLY_SUBFIX = '_vh_clean_2.labels.ply'
 
-
+# Defined
 NAME_SAME_PART = 'same part'
 NAME_NONE='none'
+NAME_IMAGE_FEAUTRE_FORMAT= 'image_feature_{}_{}'

@@ -71,6 +71,7 @@ def get_dataset_inst(cfg,mode='test'):
     tmp_cfg.data.load_points=False
     tmp_cfg.data.path = cfg.data.path_gt
     tmp_cfg.data.label_file = cfg.data.label_file_gt
+    tmp_cfg.data.load_cache = False
     dataset_inst  = get_dataset(tmp_cfg,mode)
     return dataset_inst
 

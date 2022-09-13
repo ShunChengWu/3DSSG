@@ -37,6 +37,14 @@ img_batchsize: 8
 - 2DSSG_exp_2_3: with LR schedular setup1
 - 2DSSG_full_l160_0: try to train with the best setup
 
+## IMP 
+- [x] IMP_FULL_l160_0:
+- [ ] IMP_FULL_l160_1: fixing training procedure
+
+## VGfM
+- [x] VGfM_FULL_l160_0:
+- [x] VGfM_FULL_l160_1: add geometric feature
+
 #### relationships
 Note taht there is an inconsistency in the reported number. At some points the
 number is R@1.
@@ -59,42 +67,57 @@ number is R@1.
 | IMP_FULL_l160_0    |      |       |      |      |      |      |
 
 #### Relationships (R@1)
-| method            | Relationships | Objects | Predicate |
-| ----------------- | ------------- | ------- | --------- |
-| 3DSSG baseline    | 15.0          | 35.1    | 5.4       |
-| 3DSSG GCNfeat     | 58.5          | 39.9    | 20.3      |
-| 3DSSG_PN          | 64.2          | 33.4    | 31.5      |
-| Jo_IJCV           | 71.2          | 52.0    | 42.5      |
-| 3DSSG_test_14     | 70.2          | 31.1    | 74.2      |
-| 2DSSS_exp2_3      | 84.4          | 50.5    | 87.5      |
-| SGFN_full_l160_1  | 84.2          | 34.6    | 87.5      |
-| 2DSSG_full_l160_0 | 84.2          | 52.3    | 86.9      |
-| VGfM_FULL_l160_0  | 65.0          | 32.9    | 66.4      |
-| IMP_FULL_l160_0   | 63.2          | 37.0    | 66.6      |
-| VGfM_FULL_l160_1  | 63.1          | 54.0    | 65.3      |
+| method                | Relationships | Objects | Predicate |
+| --------------------- | ------------- | ------- | --------- |
+| 3DSSG baseline        | 15.0          | 35.1    | 5.4       |
+| 3DSSG GCNfeat         | 58.5          | 39.9    | 20.3      |
+| 3DSSG_PN              | 64.2          | 33.4    | 31.5      |
+| Jo_IJCV               | 71.2          | 52.0    | 42.5      |
+| 3DSSG_test_14         | 70.2          | 31.1    | 74.2      |
+| 2DSSS_exp2_3          | 84.4          | 50.5    | 87.5      |
+| SGFN_full_l160_1      | 84.2          | 34.6    | 87.5      |
+| 2DSSG_full_l160_0     | 84.2          | 52.3    | 86.9      |
+| VGfM_FULL_l160_0      | 65.0          | 32.9    | 66.4      |
+| IMP_FULL_l160_0       | 63.2          | 37.0    | 66.6      |
+| VGfM_FULL_l160_1      | 63.1          | 54.0    | 65.3      |
+| IMP_FULL_l160_1       |               |         |           |
+| VGfM_FULL_l160_2_inst | 
+| VGfM_FULL_UB          | 
+| SGFN_full_l160_UB     | 
+| SGFN_full_l160_1_inst |           |    |    |
 
 Note: why ours looks much better in relationships? Our topK relationship includes true positive. maybe this is not the case for johanna? But the "none" relationships should also be correct. otherwise the network can always predicate something.
 
 #### objects
-| method            | IoU  | Precision | Recall |
-| ----------------- | ---- | --------- | ------ |
-| 3DSSG_test_14     | 8.0  | 13.3      | 16.2   |
-| SGFN_full_l160_1  | 7.7  | 15.3      | 13.9   |
-| 2DSSS_exp2_3      | 15.9 | 29.1      | 26.9   |
-| 2DSSG_full_l160_0 | 19.1 | 30.9      | 31.9   |
-| VGfM_FULL_l160_0  | 6.6  | 13.9      | 15.3   |
-| IMP_FULL_l160_0   | 9.5  | 16.4      | 22.6   |
+| method                | IoU  | Precision | Recall |
+| --------------------- | ---- | --------- | ------ |
+| 3DSSG_test_14         | 8.0  | 13.3      | 16.2   |
+| SGFN_full_l160_1      | 7.7  | 15.3      | 13.9   |
+| 2DSSS_exp2_3          | 15.9 | 29.1      | 26.9   |
+| 2DSSG_full_l160_0     | 19.1 | 30.9      | 31.9   |
+| VGfM_FULL_l160_0      | 6.6  | 13.9      | 15.3   |
+| IMP_FULL_l160_0       | 9.5  | 16.4      | 22.6   |
+| IMP_FULL_l160_1       |      |           |        |
+| VGfM_FULL_l160_2_inst | 
+| VGfM_FULL_UB          | 
+| SGFN_full_l160_UB     | 
+| SGFN_full_l160_1_inst |   |       |    |
 
 #### predicates
-| method            | IoU  | Precision | Recall |
-| ----------------- | ---- | --------- | ------ |
-| 3DSSG_test_14     | 98.6 | 34.3      | 11.6   |
-| SGFN_full_l160_1  | 99.3 | 32.4      | 11.4   |
-| 2DSSS_exp2_3      | 99.3 | 42.1      | 24.2   |
-| 2DSSG_full_l160_0 | 99.3 | 38.3      | 26.3   |
-| VGfM_FULL_l160_0  | 98.3 | 13.0      | 3.9    |
-| IMP_FULL_l160_0   | 98.3 | 17.5      | 6.1    |
-| VGfM_FULL_l160_1  | 98.2 | 16.2      | 8.9    |
+| method                | IoU  | Precision | Recall |
+| --------------------- | ---- | --------- | ------ |
+| 3DSSG_test_14         | 98.6 | 34.3      | 11.6   |
+| SGFN_full_l160_1      | 99.3 | 32.4      | 11.4   |
+| 2DSSS_exp2_3          | 99.3 | 42.1      | 24.2   |
+| 2DSSG_full_l160_0     | 99.3 | 38.3      | 26.3   |
+| VGfM_FULL_l160_0      | 98.3 | 13.0      | 3.9    |
+| IMP_FULL_l160_0       | 98.3 | 17.5      | 6.1    |
+| VGfM_FULL_l160_1      | 98.2 | 16.2      | 8.9    |
+| IMP_FULL_l160_1       |      |           |        |
+| VGfM_FULL_l160_2_inst | 
+| VGfM_FULL_l160_UB     | 
+| SGFN_full_l160_UB     | 
+| SGFN_full_l160_1_inst | 
 
 Note: the IoU is extremely high because of the overwhelming true negatives (none relationship).
 
@@ -131,8 +154,7 @@ Note: the IoU is extremely high because of the overwhelming true negatives (none
 - [x] IMP_ORBSLAM3_l20_0: train IMP on ORBSLAM3 entities
 - [x] IMP_ORBSLAM3_l20_1: train IMP on ORBSLAM3 entities. turn off full_edge
 - [x] IMP_INSEG_l20_0:
-- [x] IMP_FULL_l160_0:
-- [ ] IMP_FULL_l160_1: fixing training procedure
+
 
 - VGfM_full_l20_0: there was a bug. using `msg_t_node` for both node and edge
 - VGfM_full_l20_1: with the bug.
@@ -141,8 +163,6 @@ Note: the IoU is extremely high because of the overwhelming true negatives (none
 - [x] VGfM_full_l20_4: add geometric feature
 - [x] VGfM_INSEG_l20_0:
 - [x] VGfM_INSEG_l20_1: add geometric feature
-- [x] VGfM_FULL_l160_0:
-- [x] VGfM_FULL_l160_1: add geometric feature
 - [x] VGfM_full_l20_5: train with filtered node list, without relationship filtering on nodes.
 - [X] VGfM_full_l20_UB: UpperBound. Only consider missing instances and predicates 
 - [ ] VGfM_FULL_l160_2: fixing training procedure
@@ -330,8 +350,6 @@ Note: the IoU is extremely high because of the overwhelming true negatives (none
 | VGfM_full_l20_4         | 11.1    | 18.7    | 38.1    | 55.1    | 95.4     | 98.2     |
 | VGfM_full_l20_5         | 13.49   | 24.78   | 38.40   | 59.81   | 95.34    | 98.56    |
 | VGfM_full_l20_UB        | 91.9    | 93.8    | 97.9    | 98.2    | 95.6     | 97.5     |
-| IMP_FULL_l160_1 |
-| VGfM_FULL_l160_2        |
 
 Note: `2DSSG_ORBSLAM3_l20_1*` is ignore missing objects and scans.
 
@@ -388,8 +406,6 @@ objects and predicates are missing due to the missing nodes.
 | VGfM_full_l20_4         | 25.6  | 47.2      | 39.1   |
 | VGfM_full_l20_5         | 11.97 | 25.5      | 25.3   |
 | VGfM_full_l20_UB        | 93.4  | 95.2      | 98.1   |
-| IMP_FULL_l160_1 |
-| VGfM_FULL_l160_2 |
 
 #### Predicate
 | method                  | IoU   | Precision | Recall |
@@ -439,8 +455,7 @@ objects and predicates are missing due to the missing nodes.
 | VGfM_full_l20_4         | 26.9  | 43.8      | 33.6   |
 | VGfM_full_l20_5         | 17.4  | 45.2      | 18.9   |
 | VGfM_full_l20_UB        | 36.7  | 99.5      | 37.3   |
-| IMP_FULL_l160_1 |
-| VGfM_FULL_l160_2 |
+
 
 
 Note: remember to recalculate average. (ignore none in recall and iou)

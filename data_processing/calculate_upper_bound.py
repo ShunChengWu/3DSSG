@@ -21,11 +21,11 @@ def calculate(args:codeLib.Config, topK:int=10):
     (scanid2idx_seg, node_cls_names, edge_cls_names,noneidx_node_cls,noneidx_edge_cls,
             seg_valid_node_cls_indices,inst_valid_node_cls_indices,
             seg_valid_edge_cls_indices,inst_valid_edge_cls_indices) = \
-        ssg.utils.util_data.match_class_info_from_two(dataset_seg,dataset_inst)
+        ssg.utils.util_data.match_class_info_from_two(dataset_seg,dataset_inst,multi_rel=args.model.multi_rel)
         
     eval_UB = ssg.utils.util_eva.EvalUpperBound(node_cls_names,edge_cls_names,
                                                 noneidx_node_cls,noneidx_edge_cls,
-                                                multi_rel=False,topK=topK,none_name=define.NAME_NONE)
+                                                multi_rel=args.model.multi_rel,topK=topK,none_name=define.NAME_NONE)
     
     for idx in tqdm(range(len(dataset_inst))):
         data_inst = dataset_inst.__getitem__(idx)                

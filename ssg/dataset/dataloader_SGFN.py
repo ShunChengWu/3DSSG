@@ -451,7 +451,7 @@ class SGFNDataset (data.Dataset):
                 if self.for_eval :
                     edge_indices = random_drop(edge_indices, self.mconfig.drop_edge_eval)
                     
-                if self.mconfig.max_num_edge > 0 and len(edge_indices) > self.mconfig.max_num_edge:
+                if self.mconfig.max_num_edge > 0 and len(edge_indices) > self.mconfig.max_num_edge and not self.for_eval:
                     choices = np.random.choice(range(len(edge_indices)),self.mconfig.max_num_edge,replace=False).tolist()
                     edge_indices = [edge_indices[t] for t in choices]
         else:

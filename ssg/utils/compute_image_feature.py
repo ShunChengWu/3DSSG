@@ -5,11 +5,13 @@ Load graph file. Compute image feature for all the keyframes and save
 
 '''
 import os,logging, argparse
+from ssg import define
 def Parser(add_help=True):
     parser = argparse.ArgumentParser(description='Process some integers.', formatter_class = argparse.ArgumentDefaultsHelpFormatter,
                                       add_help=add_help)
     parser.add_argument('--config', type=str, default='./configs/default.yaml', help='configuration file name. Relative path under given path (default: config.yml)')
     parser.add_argument('--mode', type=str, default='validation', choices=['test', 'validation'], help="allow multiple rel pred outputs per pair",required=False)
+    parser.add_argument('-n','--folder_name',type=str,default='image_features', help='folder name which will be created at outdir',required=True)
     parser.add_argument('-o','--outdir',default='/media/sc/SSD1TB/dataset/3RScan/', help='where to store all image features.',required=True)
     # parser.add_argument('--relation', type=str,default='relationships', choices=['relationships_extended', 'relationships'])
     parser.add_argument('--target_scan', type=str, default='', help='path to a txt file that contains a list of scan ids that you want to use.')    
@@ -24,15 +26,11 @@ def Parser(add_help=True):
     return parser
 '''Logging'''
 args = Parser().parse_args()
-foldername='image_feature'
-pattern = '{}/*.h5'.format(foldername)
-pth_out = os.path.join(args.outdir,foldername)# '/media/sc/SSD1TB/dataset/3RScan/roi_images/'
-pth_link = os.path.join(args.outdir,foldername+'.h5')
-logging.basicConfig(filename=os.path.join(args.outdir,'compute_{}.log'.format(foldername)), level=logging.DEBUG)
+# logging.basicConfig(filename=os.path.join(args.outdir,'compute_{}.log'.format(foldername)), level=logging.DEBUG)
 logger_py = logging.getLogger(__name__)
 logger_py.info('args:\n{}'.format(args.__dict__))
 
-import torch
+import torch,json
 from PIL import Image
 from ssg.models import encoder
 from torchvision import transforms
@@ -63,8 +61,15 @@ if __name__ == '__main__':
         cfg.DEVICE = torch.device("cpu")
     logger_py.info('use backend {}'.format(cfg.model.image_encoder.backend))
     
+    
+    '''read label type '''
     fdata = define.DATA_PATH
     rgb_filepattern = 'frame-{0:06d}.color.jpg'
+    foldername = args.folder_name
+    pattern = '{}/*.h5'.format(foldername)
+    pth_out = os.path.join(args.outdir,foldername)# '/media/sc/SSD1TB/dataset/3RScan/roi_images/'
+    pth_link = os.path.join(args.outdir,foldername+'.h5')
+    
     
     '''create save'''
     pathlib.Path(pth_out).mkdir(parents=True,exist_ok=True)
