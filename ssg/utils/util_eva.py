@@ -1062,18 +1062,35 @@ class EvalUpperBound():
                                 none_name=none_name) 
     def __call__(self,data_seg,data_inst):
         # Shortcuts
-        scan_id = data_seg['scan_id']
-        # gt_cls = data['gt_cls']
-        # gt_rel = data_seg['gt_rel']
-        mask2seg = data_seg['mask2instance']
-        seg_node_edges = data_seg['node_edges']
-        # data_seg['node_edges'] = data_seg['node_edges'].t().contiguous()
-        seg2inst = data_seg.get('seg2inst',None)
-        
+        scan_id = data_inst['scan_id']
         inst_mask2instance = data_inst['mask2instance']
         inst_gt_cls = data_inst['gt_cls']
         inst_gt_rel = data_inst['gt_rel']
         inst_node_edges = data_inst['node_edges']
+        
+        if data_seg is None:
+            node_pred = torch.zeros_like(torch.nn.functional.one_hot(inst_gt_cls, len(self.node_cls_names))).float()
+            node_pred[:,self.noneidx_node_cls] = 1.0
+        
+            if not self.multi_rel:
+                edge_pred = torch.zeros_like(torch.nn.functional.one_hot(inst_gt_rel, len(self.edge_cls_names))).float()
+                edge_pred[:,self.noneidx_edge_cls] = 1.0
+            else:
+                edge_pred = torch.zeros_like(inst_gt_rel).float()
+            
+            self.eval_tool.add([scan_id], 
+                          node_pred,
+                          inst_gt_cls, 
+                          edge_pred,
+                          inst_gt_rel,
+                          [inst_mask2instance],
+                          data_inst['node_edges'])
+            return 
+        mask2seg = data_seg['mask2instance']
+        seg_node_edges = data_seg['node_edges']
+        seg2inst = data_seg.get('seg2inst',None)
+        
+        
         
         '''get upper bound'''
         # Convert to inst

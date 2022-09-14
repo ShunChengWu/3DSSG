@@ -57,40 +57,65 @@ class EvalInst(object):
             
             if scan_id_inst not in scanid2idx_seg:
                 #TODO: what should we do if missing scans?
-                raise RuntimeError('')
-                continue
-            
-            index_seg = scanid2idx_seg[scan_id_inst]
-            data_seg  = dataset_seg.__getitem__(index_seg)
-            
-            assert data_seg['scan_id'] == data_inst['scan_id']
-            
+                # raise RuntimeError('')
+                # continue
+                data_seg = None
+            else:
+                index_seg = scanid2idx_seg[scan_id_inst]
+                data_seg  = dataset_seg.__getitem__(index_seg)
+                assert data_seg['scan_id'] == data_inst['scan_id']
+                
+            # data_seg = None
+
             '''process seg'''
             eval_dict={}
             with torch.no_grad():
                 logs = {}
         
                 # Process data dictionary
-                data = self.process_data_dict(data_seg)
+                data_seg = self.process_data_dict(data_seg)
                 data_inst = self.process_data_dict(data_inst)
-                
-                
                 # record in eval_UB
-                eval_UpperBound(data,data_inst)
+                eval_UpperBound(data_seg,data_inst)
+                # continue
                 
                 # Shortcuts
-                scan_id = data['scan_id']
-                # gt_cls = data['gt_cls']
-                gt_rel = data['gt_rel']
-                mask2seg = data['mask2instance']
-                node_edges_ori = data['node_edges']
-                data['node_edges'] = data['node_edges'].t().contiguous()
-                seg2inst = data.get('seg2inst',None)
-                
+                scan_id = data_inst['scan_id']
                 inst_mask2instance = data_inst['mask2instance']
                 inst_gt_cls = data_inst['gt_cls']
                 inst_gt_rel = data_inst['gt_rel']
+                inst_node_edges_ori = data_inst['node_edges']
                 data_inst['node_edges'] = data_inst['node_edges'].t().contiguous()
+                
+                if data_seg is None:
+                    node_pred = torch.zeros_like(torch.nn.functional.one_hot(inst_gt_cls, len(node_cls_names))).float()
+                    node_pred[:,noneidx_node_cls] = 1.0
+                
+                    if not self.cfg.model.multi_rel:
+                        edge_pred = torch.zeros_like(torch.nn.functional.one_hot(inst_gt_rel, len(edge_cls_names))).float()
+                        edge_pred[:,noneidx_edge_cls] = 1.0
+                    else:
+                        edge_pred = torch.zeros_like(inst_gt_rel).float()
+                    
+                    eval_tool.add([scan_id], 
+                          node_pred,
+                          inst_gt_cls, 
+                          edge_pred,
+                          inst_gt_rel,
+                          [inst_mask2instance],
+                          inst_node_edges_ori)
+                    continue
+                    #TODO: build empty prediction
+                    # raise NotImplementedError()
+                
+                # gt_cls = data_seg['gt_cls']
+                gt_rel = data_seg['gt_rel']
+                mask2seg = data_seg['mask2instance']
+                node_edges_ori = data_seg['node_edges']
+                data_seg['node_edges'] = data_seg['node_edges'].t().contiguous()
+                seg2inst = data_seg.get('seg2inst',None)
+                
+                
                 
                 # print(scan_id, inst_gt_cls.shape, inst_gt_rel.shape)
                 # continue
@@ -98,12 +123,13 @@ class EvalInst(object):
                 # sys.exit()
                 
                 # check input valid
-                if node_edges_ori.ndim==1: 
-                    raise RuntimeError('')
-                    continue
+                # if node_edges_ori.ndim==1: 
+                    # print('hallo')
+                #     raise RuntimeError('')
+                #     continue
                 
                 ''' make forward pass through the network '''
-                node_cls, edge_cls = self.model(**data)
+                node_cls, edge_cls = self.model(**data_seg)
                 
                 '''merge prediction from seg to instance (in case of "same part")'''
                 inst2masks = defaultdict(list)                
@@ -168,7 +194,7 @@ class EvalInst(object):
                
                 merged_edge_cls_dict = defaultdict(list) # map edge predictions on the same pair of instances.
                 for idx in range(len(gt_rel)):
-                    src_idx, tgt_idx = data['node_edges'][0,idx].item(), data['node_edges'][1,idx].item()
+                    src_idx, tgt_idx = data_seg['node_edges'][0,idx].item(), data_seg['node_edges'][1,idx].item()
                     # relname = self.edge_cls_names[gt_rel[idx].item()]
                     
                     src_seg_idx = mask2seg[src_idx]

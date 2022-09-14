@@ -80,7 +80,7 @@ data:
  sample_num_seed: 2
  img_desc_6_pts: true # return 6 extreme points 
  drop_img_edge: 4 # if is int and >0, select given number. if is float/double, select percentage between [1-x,1]
- drop_img_edge_eval: 8
+ drop_img_edge_eval: 0
  drop_edge: 0.5 # if is int and >0, select given number. if is float/double, select percentage between [1-x,1]
  drop_edge_eval: 0 # if is int and >0, select given number. if is float/double, select percentage between [1-x,1]
  normalize_weight: true 

@@ -107,15 +107,6 @@ class Trainer_IMP(BaseTrainer, EvalInst):
         #     eval_dict[k] = v.item()
         return eval_dict
     
-    def process_data_dict(self, data):
-        ''' Processes the data dictionary and returns respective tensors
-
-        Args:
-            data (dictionary): data dictionary
-        '''
-        data =  dict(zip(data.keys(), self.toDevice(*data.values()) ))
-        return data
-    
     def compute_loss(self,data,eval_mode=False,it=None, eval_tool=None):
         ''' Compute the loss.
 

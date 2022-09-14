@@ -1,3 +1,40 @@
+# New
+There was a problem with the edge connection and network setup. 
+3DSSG should have exactly the same parameters apart from the use of input rel. representation and the GNN architecture. 
+The edge connection for multi-predicate estimation should be fully connected. For this need to redo experiments
+
+- [ ] 3DSSG_full_l160_0
+- [ ] 2DSSG_full_l160_1
+
+
+# R@1 Relationship
+segment-level, instance-level
+| method                 | Trip | Obj  | Pred | mO   | mR   | Trip      | Obj       | Pred      | mO        | mR        |
+| ---------------------- | ---- | ---- | ---- | ---- | ---- | --------- | --------- | --------- | --------- | --------- |
+| 2DSSG_full_l20_2       | 58.6 | 77.4 | 97.6 | 80.9 | 71.4 | 56.5/96.4 | 75.8/97.9 | 97.7/99.9 | 79.4/98.1 | 70.3/98.5 |
+| SGFN_full_0_3          | 32.1 | 58.6 | 93.1 | 47.6 | 63.1 | 33.0/100  | 59.4/100  | 93.8/100  | 49.4/100  | 67.2/100  |
+| 3DSSG_full_l20_1       | 
+| IMP_ORBSLAM3_l20_1     | 2.55 | 25.6 | 82.0 | 5.0  | 11.1 | 0.1/1.3   | 0.8/3.2   | 97.1/97.2 | 0.1/2.3   | 12.5/12.6 |
+| VGfM_ORBSLAM3_l20_3    | 7.8  | 35.4 | 72.1 | 8.7  | 17.4 | 0.1/1.3   | 1.0/3.2   | 97.1/97.2 | 0.6/2.3   | 12.5/12.6 |
+| 2DSSG_ORBSLAM3_l20_6_1 | 27.2 | 57.0 | 86.0 | 55.4 | 49.3 | 6.5/21.8  | 26.2/44.2 | 96.3/98.2 | 28.1/48.6 | 21.3/39.0 |
+| SGFN_ORBSLAM3_l20_0    | 8.6  | 35.6 | 86.2 | 10.8 | 15.2 | 2.3/21.8  | 16.4/44.2 | 97.0/98.2 | 7.3/48.6  | 13.2/39.0 |
+| 3DSSG_ORBSLAM3_l20_0   | 7.1  | 31.0 | 86.3 | 16.8 | 34.9 | 1.6/21.8  | 13.7/44.2 | 96.4/98.2 | 9.3/48.6  | 17.3/39.0 |
+| 2DSSG_INSEG_l20_1      | 42.6 | 67.9 | 91.7 | 59.1 | 56.7 | 26.6/57.2 | 53.3/74.7 | 95.1/99.1 | 47.1/75.5 | 34.2/68.0 |
+| SGFN_inseg_0_5         | 39.7 | 67.3 | 84.6 | 59.3 | 61.6 | 27.2/58.1 | 54.7/75.1 | 91.0/99.2 | 47.9/75.7 | 38.5/68.5 |
+| 3DSSG_INSEG_0          |
+
+Note: VGfM and IMP in ORBSLAM3, INSEG should be retrained due to the filtering.
+
+Note: Why in ORBSLAM3 2DSSG has higher UB than VGfM?
+
+3D method should have the same UB. 
+
+2D methods should have the same UB in object estimation. for predicate IMP and VGfM should have way smaller UB due to the limitation of edge building on image space.
+
+all those methods are evaluated with fully-connected edge, which not be.
+
+
+# ============= OLD ===================
 # SSG with GT Segmentation. Multiple predicate prediction. 160-26
 full_edge. multi_rel.
 ## SGPN (3DSSG)
@@ -141,6 +178,7 @@ Note: the IoU is extremely high because of the overwhelming true negatives (none
 
 - 3DSSG_full_l20_0: -> not valid. was using the full edge in training.
 - 3DSSG_full_l20_1: don't use full edge
+- [ ] 3DSSG_full_l20_1: retrain. model doesn't match.
 - [x] 3DSSG_INSEG_0:
 - [x] 3DSSG_ORBSLAM3_l20_0:
 
@@ -150,7 +188,7 @@ Note: the IoU is extremely high because of the overwhelming true negatives (none
 - [x] IMP_full_l20_2: _1 + use global feature
   - [x] IMP_full_l20_2_1: fix loader loader
   - [x] IMP_full_l20_2_2: fix loader loader. turn off full_edge
-- [ ] IMP_full_l20_3: train with filtered node list, without relationship filtering on nodes.
+- [x] IMP_full_l20_3: train with filtered node list, without relationship filtering on nodes.
 - [x] IMP_ORBSLAM3_l20_0: train IMP on ORBSLAM3 entities
 - [x] IMP_ORBSLAM3_l20_1: train IMP on ORBSLAM3 entities. turn off full_edge
 - [x] IMP_INSEG_l20_0:
@@ -165,7 +203,7 @@ Note: the IoU is extremely high because of the overwhelming true negatives (none
 - [x] VGfM_INSEG_l20_1: add geometric feature
 - [x] VGfM_full_l20_5: train with filtered node list, without relationship filtering on nodes.
 - [X] VGfM_full_l20_UB: UpperBound. Only consider missing instances and predicates 
-- [ ] VGfM_FULL_l160_2: fixing training procedure
+- [x] VGfM_FULL_l160_2: fixing training procedure
 
 - VGfM_ORBSLAM3_l20_0:there was a bug. using `msg_t_node` for both node and edge
 - VGfM_ORBSLAM3_l20_1: fix the bug
@@ -193,17 +231,6 @@ Note: the IoU is extremely high because of the overwhelming true negatives (none
 - 2DSSG_ORBSLAM3_l20_7: old edge description+ dynamic
 - [x] 2DSSG_ORBSLAM3_l20_6_1: turn off full_edge
 - [x] 2DSSG_ORBSLAM3_l20_7_1: turn off full_edge
-
-
-# R@1 Relationship
-segment-level, instance-level
-| method           | Trip | Obj  | Pred | mO   | mR   | Trip       | Obj        | Pred       | mO         | mR          |
-| ---------------- | ---- | ---- | ---- | ---- | ---- | ---------- | ---------- | ---------- | ---------- | ----------- |
-| 2DSSG_full_l20_2 | 58.6 | 77.4 | 97.6 | 80.9 | 71.4 | 56.5/96.4  | 75.8/97.9  | 97.7/99.9  | 79.4/98.1  | 70.3/98.5   |
-| SGFN_full_0_3    | 32.1 | 58.6 | 93.1 | 47.6 | 63.1 | 33.0/100.0 | 59.4/100.0 | 93.8/100.0 | 49.4/100.0 | 67.2 /100.0 |
-
-
-
 
 ## Segment level
 #### Relationship

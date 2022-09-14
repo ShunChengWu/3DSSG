@@ -49,7 +49,8 @@ data:
  sample_in_runtime: true
  sample_num_nn: 1
  sample_num_seed: 1
- load_cache: true
+ load_points: true
+ load_cache: false
  drop_edge: 0 # if is int and >0, select given number. if is float/double, select percentage between [1-x,1]
  drop_edge_eval: 0 # if is int and >0, select given number. if is float/double, select percentage between [1-x,1]
  normalize_weight: true 
@@ -60,7 +61,7 @@ logging:
  log_grad_freq: 1000 
  log_graph: True
 wandb:
- dry_run: false
+ dry_run: true
  entity: 'shunchengwu'
  project: "ssg"
  tags: ["ssg", "3dssg"]

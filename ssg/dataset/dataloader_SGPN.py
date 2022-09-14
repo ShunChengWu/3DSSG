@@ -12,6 +12,7 @@ from ssg.utils.util_data import raw_to_data, cvt_all_to_dict_from_h5
 
 class SGPNDataset(torch.utils.data.Dataset):
     def __init__(self, config, mode, **args):
+        raise RuntimeError('out dated. use SGFN loader instead.')
         assert mode in ['train','validation','test']
         torch.multiprocessing.set_sharing_strategy('file_system') 
         self._device = config.DEVICE
@@ -198,24 +199,19 @@ class SGPNDataset(torch.utils.data.Dataset):
         '''sample training set'''  
         instances_ids = list(instance2labelName.keys())
         if 0 in instances_ids: instances_ids.remove(0)
-        if self.sample_in_runtime and not self.for_eval:
-            selected_nodes = list(object_data.keys())
+        # if self.sample_in_runtime and not self.for_eval:
+        #     selected_nodes = list(object_data.keys())
         
-        use_all=False
+        # use_all=False
         sample_num_nn=self.mconfig.sample_num_nn# 1 if "sample_num_nn" not in self.config else self.config.sample_num_nn
         sample_num_seed=self.mconfig.sample_num_seed#1 if "sample_num_seed" not in self.config else self.config.sample_num_seed
-        if sample_num_nn==0 or sample_num_seed ==0:
-            use_all=True
+        # if sample_num_nn==0 or sample_num_seed ==0:
+        #     use_all=True
             
-        if not use_all:
-            filtered_nodes = util_data.build_neighbor_sgfn(nns, selected_nodes, sample_num_nn, sample_num_seed) # select 1 node and include their neighbor nodes n times.
-        else:
-            filtered_nodes = selected_nodes # use all nodes
-            
-        instances_ids = list(filtered_nodes)
-        if 0 in instances_ids: instances_ids.remove(0)               
-        
-        instances_id = list(np.unique(instances))
+        # if not use_all:
+        #     filtered_nodes = util_data.build_neighbor_sgfn(nns, selected_nodes, sample_num_nn, sample_num_seed) # select 1 node and include their neighbor nodes n times.
+        # else:
+        #     filtered_nodes = selected_nodes # use all nodes          
         
         selected_nodes = list(instance2labelName.keys())
 

@@ -70,6 +70,7 @@ class BaseTrainer(object):
         Args:
             data (dictionary): data dictionary
         '''
+        if data is None: return data
         try:
             data =  dict(zip(data.keys(), self.toDevice(*data.values()) ))
         except:

@@ -54,7 +54,7 @@ class SGFNDataset (data.Dataset):
         self.load_cache = False
         self.for_eval = mode != 'train'
         self.max_edges=config.data.max_num_edge
-        self.full_edge = self.config.data.full_edge
+        self.full_edge = self.multi_rel_outputs #self.config.data.full_edge
         
         self.output_node = args.get('output_node', True)
         self.output_edge = args.get('output_edge', True)    
@@ -136,7 +136,7 @@ class SGFNDataset (data.Dataset):
 
         '''compute weight  ''' #TODO: rewrite this. in runtime sampling the weight might need to be calculated in each epoch.
         if not self.for_eval:
-            if config.data.full_edge:
+            if self.full_edge:
                 edge_mode='fully_connected'
             else:
                 edge_mode='nn'
@@ -195,8 +195,8 @@ class SGFNDataset (data.Dataset):
            
     def __getitem__(self, index):
         scan_id = snp.unpack(self.scans,index)# self.scans[idx]
-        
         self.open_data()
+        
         scan_data_raw = self.sg_data[scan_id]
         scan_data = raw_to_data(scan_data_raw)
         
@@ -422,29 +422,32 @@ class SGFNDataset (data.Dataset):
         
         '''sample connections'''
         if self.sample_in_runtime:
-            if not self.for_eval:
-                edge_indices = util_data.build_edge_from_selection_sgfn(filtered_instances,nns,max_edges_per_node=-1)
-                edge_indices = [[oid2idx[edge[0]],oid2idx[edge[1]]] for edge in edge_indices ]
-                # edge_indices = util_data.build_edge_from_selection(filtered_nodes, nns, max_edges_per_node=-1)
-            else:
+            if self.full_edge:
+                '''use dense'''
                 edge_indices = list()
                 for n in range(len(cat)):
                     for m in range(len(cat)):
                         if n == m:continue
                         edge_indices.append([n,m])
-                        
-                # edge_indices = set()
-                # for k,v in nns.items():
-                #     k=int(k)
-                #     if k not in oid2idx:continue
-                #     mask_k = oid2idx[k]
-                #     for vv in v:
-                #         vv = int(vv)
-                #         if vv not in oid2idx:continue
-                #         mask_vv = oid2idx[vv]
-                #         edge_indices.add((mask_k,mask_vv))
-                # edge_indices = [[l[0],l[1]] for l in edge_indices]
-                        
+            else:
+                if not self.for_eval:
+                    '''sample from neighbor'''
+                    edge_indices = util_data.build_edge_from_selection_sgfn(filtered_instances,nns,max_edges_per_node=-1)
+                    edge_indices = [[oid2idx[edge[0]],oid2idx[edge[1]]] for edge in edge_indices ]
+                else:
+                    '''dense neighbor'''
+                    edge_indices = set()
+                    for k,v in nns.items():
+                        k=int(k)
+                        if k not in oid2idx:continue
+                        mask_k = oid2idx[k]
+                        for vv in v:
+                            vv = int(vv)
+                            if vv not in oid2idx:continue
+                            mask_vv = oid2idx[vv]
+                            edge_indices.add((mask_k,mask_vv))
+
+            '''edge dropout'''
             if len(edge_indices)>0:
                 if not self.for_eval:
                     edge_indices = random_drop(edge_indices, self.mconfig.drop_edge)       

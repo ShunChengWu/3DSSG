@@ -97,7 +97,7 @@ logging:
  log_grad_freq: 1000 
  log_graph: True
 wandb:
- dry_run: false
+ dry_run: true
  entity: 'shunchengwu'
  project: "ssg"
  tags: ["ssg", "sgpn","orbslam3"]
