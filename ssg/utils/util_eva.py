@@ -81,6 +81,7 @@ def evaluate_topk_predicate(gt_edges, rels_pred, threshold=0.5,k=-1):
         
         
         if len(rels_target) == 0:# Ground truth is None
+            continue
             '''If gt is none, find the first prediction that is below threshold (which predicts "no relationship")'''
             indices = torch.where(sorted_conf < threshold)[0]
             if len(indices) == 0:
@@ -138,7 +139,7 @@ def evaluate_topk(gt_rel, objs_pred, rels_pred, edges, threshold=0.5, k=40):
     objs_pred = objs_pred.detach().cpu()
     rels_pred = rels_pred.detach().cpu()
     
-    batch_size = 128
+    batch_size = 64
     all_indices = [idx for idx in range(len(edges))]
     
     for indices in torch.split(torch.LongTensor(all_indices),batch_size):
@@ -147,7 +148,8 @@ def evaluate_topk(gt_rel, objs_pred, rels_pred, edges, threshold=0.5, k=40):
         rel_preds = rels_pred[indices]
         so_preds = torch.einsum('bn,bm->bnm',sub_preds,obj_preds)
         conf_matrix = torch.einsum('bnm, bk->bnmk',so_preds,rel_preds)
-        n_nodes = conf_matrix.shape[1]
+        batch, dim_n, dim_m, dim_k = conf_matrix.shape
+        
         conf_matrix = conf_matrix.reshape(so_preds.shape[0], -1).to(device) # use CUDA if available
         torch.cuda.empty_cache()
         sorted_conf_matrix, sorted_args_1d = torch.sort(conf_matrix, descending=True) # 1D
@@ -169,6 +171,7 @@ def evaluate_topk(gt_rel, objs_pred, rels_pred, edges, threshold=0.5, k=40):
             gt_t = e[1]
             gt_r = e[2]
             if len(gt_r) == 0:
+                continue # 
                 # Ground truth is None
                 indices = torch.where(sorted_conf_matrix[mask] < threshold)[0]
                 if len(indices) == 0:
@@ -177,7 +180,7 @@ def evaluate_topk(gt_rel, objs_pred, rels_pred, edges, threshold=0.5, k=40):
                     index = sorted(indices)[0].item()+1
                 temp_topk.append(index)
             for predicate in gt_r: # for the multi rel case
-                index_1d = (gt_s*n_nodes+gt_t)*n_nodes+predicate
+                index_1d = (gt_s*dim_m+gt_t)*dim_k+predicate
                 indices = torch.where(sorted_args_1d[mask] == index_1d)[0]
                 if len(indices) == 0:
                     index = maxk+1
@@ -913,13 +916,13 @@ class EvalSceneGraph():
                         self.eva_p_cls.update(pd['edges'],gt['edges'],False)
             
                 if self.k>0:
-                    # top_k_predicate, top_k_obj = [], []
                     self.top_k_obj += evaluate_topk_object(bobj_gts, obj_pds,k=self.k)
                     
                     if rel_pds is not None:
                         gt_edges = get_gt(bobj_gts, rel_gts, edge_indices, mask2inst, self.multi_rel_prediction)
                         self.top_k_rel += evaluate_topk_predicate(gt_edges, rel_pds, 
-                                                                  threshold=self.multi_rel_threshold, k = self.k)
+                                                                  threshold=self.multi_rel_threshold, 
+                                                                  k = self.k)
                         
                         self.top_k_triplet += evaluate_topk(gt_edges, obj_pds, rel_pds, edge_indices, 
                                               threshold=self.multi_rel_threshold, k=self.k) # class_labels, relationships_dict)
@@ -1101,6 +1104,7 @@ class EvalUpperBound():
         missing_edges=list()
         for mask in range(len(inst_node_edges)):
             src, tgt = inst_node_edges[mask][0].item(), inst_node_edges[mask][1].item()
+            src, tgt = inst_mask2instance[src], inst_mask2instance[tgt]
             key = (src,tgt)
             if key not in seg_inst_pair_edges:
                 missing_edges.append(mask)
@@ -1115,7 +1119,7 @@ class EvalUpperBound():
         if not self.multi_rel:
             edge_pred = torch.nn.functional.one_hot(inst_gt_rel, len(self.edge_cls_names)).float()
             edge_pred[missing_edges] = 0
-            # edge_pred[missing_edges,self.noneidx_edge_cls] = 1.0
+            edge_pred[missing_edges,self.noneidx_edge_cls] = 1.0
         else:
             edge_pred = inst_gt_rel.clone().float()
             edge_pred[missing_edges] = 0

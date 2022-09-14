@@ -30,8 +30,8 @@ class EvalInst(object):
         
         '''check'''
         #length
-        print('len(dataset_seg), len(dataset_inst):',len(dataset_seg), len(dataset_inst))
-        print('ignore missing',ignore_missing)
+        # print('len(dataset_seg), len(dataset_inst):',len(dataset_seg), len(dataset_inst))
+        # print('ignore missing',ignore_missing)
         #classes
         
         
@@ -49,6 +49,7 @@ class EvalInst(object):
         '''start eval'''
         self.model.eval()
         for index in tqdm(range(len(dataset_inst))):
+            # if index>10: break
         # for data_inst in seg_dataloader:
             data_inst = dataset_inst.__getitem__(index)                
             scan_id_inst = data_inst['scan_id']
@@ -91,7 +92,8 @@ class EvalInst(object):
                 inst_gt_rel = data_inst['gt_rel']
                 data_inst['node_edges'] = data_inst['node_edges'].t().contiguous()
                 
-                # print(inst_gt_cls.shape, inst_gt_rel.shape)
+                # print(scan_id, inst_gt_cls.shape, inst_gt_rel.shape)
+                # continue
                 # import sys
                 # sys.exit()
                 

@@ -81,10 +81,10 @@ number is R@1.
 | IMP_FULL_l160_0       | 63.2          | 37.0    | 66.6      |
 | VGfM_FULL_l160_1      | 63.1          | 54.0    | 65.3      |
 | IMP_FULL_l160_1       |               |         |           |
-| VGfM_FULL_l160_2_inst | 
-| VGfM_FULL_UB          | 
-| SGFN_full_l160_UB     | 
-| SGFN_full_l160_1_inst |           |    |    |
+| VGfM_FULL_l160_2_inst | 82.3          | 17.0    | 29.5      |
+| VGfM_FULL_l160_UB     | 83.4          | 95.9    | 86.9      |
+| SGFN_full_l160_UB     | 83.8          | 100     | 90.3      |
+| SGFN_full_l160_1_inst | 83.7          | 34.9    | 87.6      |
 
 Note: why ours looks much better in relationships? Our topK relationship includes true positive. maybe this is not the case for johanna? But the "none" relationships should also be correct. otherwise the network can always predicate something.
 
@@ -98,10 +98,10 @@ Note: why ours looks much better in relationships? Our topK relationship include
 | VGfM_FULL_l160_0      | 6.6  | 13.9      | 15.3   |
 | IMP_FULL_l160_0       | 9.5  | 16.4      | 22.6   |
 | IMP_FULL_l160_1       |      |           |        |
-| VGfM_FULL_l160_2_inst | 
-| VGfM_FULL_UB          | 
-| SGFN_full_l160_UB     | 
-| SGFN_full_l160_1_inst |   |       |    |
+| VGfM_FULL_l160_2_inst | 1.8  | 11.3      | 4.6    |
+| VGfM_FULL_l160_UB     | 93.9 | 99.4      | 94.4   |
+| SGFN_full_l160_UB     | 100  | 100       | 100    |
+| SGFN_full_l160_1_inst | 7.9  | 16.7      | 13.8   |
 
 #### predicates
 | method                | IoU  | Precision | Recall |
@@ -114,10 +114,10 @@ Note: why ours looks much better in relationships? Our topK relationship include
 | IMP_FULL_l160_0       | 98.3 | 17.5      | 6.1    |
 | VGfM_FULL_l160_1      | 98.2 | 16.2      | 8.9    |
 | IMP_FULL_l160_1       |      |           |        |
-| VGfM_FULL_l160_2_inst | 
-| VGfM_FULL_l160_UB     | 
-| SGFN_full_l160_UB     | 
-| SGFN_full_l160_1_inst | 
+| VGfM_FULL_l160_2_inst | 39.4 | 0.3       | 19.0   |
+| VGfM_FULL_l160_UB     | 99.5 | 100       | 31.7   |
+| SGFN_full_l160_UB     | -    | -         | 59.5   |
+| SGFN_full_l160_1_inst | -    | -         | 11.7   |
 
 Note: the IoU is extremely high because of the overwhelming true negatives (none relationship).
 
@@ -193,6 +193,16 @@ Note: the IoU is extremely high because of the overwhelming true negatives (none
 - 2DSSG_ORBSLAM3_l20_7: old edge description+ dynamic
 - [x] 2DSSG_ORBSLAM3_l20_6_1: turn off full_edge
 - [x] 2DSSG_ORBSLAM3_l20_7_1: turn off full_edge
+
+
+# R@1 Relationship
+segment-level, instance-level
+| method           | Trip | Obj  | Pred | mO   | mR   | Trip       | Obj        | Pred       | mO         | mR          |
+| ---------------- | ---- | ---- | ---- | ---- | ---- | ---------- | ---------- | ---------- | ---------- | ----------- |
+| 2DSSG_full_l20_2 | 58.6 | 77.4 | 97.6 | 80.9 | 71.4 | 56.5/96.4  | 75.8/97.9  | 97.7/99.9  | 79.4/98.1  | 70.3/98.5   |
+| SGFN_full_0_3    | 32.1 | 58.6 | 93.1 | 47.6 | 63.1 | 33.0/100.0 | 59.4/100.0 | 93.8/100.0 | 49.4/100.0 | 67.2 /100.0 |
+
+
 
 
 ## Segment level
