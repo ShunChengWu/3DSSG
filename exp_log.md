@@ -5,9 +5,12 @@ The edge connection for multi-predicate estimation should be fully connected. Fo
 
 - [ ] 3DSSG_full_l160_0
 - [ ] 2DSSG_full_l160_1
+## 3RScan160, Multiple Predicates
+| method                 | Trip | Obj  | Pred | mO   | mR   | Trip      | Obj       | Pred      | mO        | mR        |
+| ---------------------- | ---- | ---- | ---- | ---- | ---- | --------- | --------- | --------- | --------- | --------- |
+| 3DSSG_full_l160_0 |  | | | | | 5.9/66.7
 
-
-# R@1 Relationship
+## ScanNet20, Single Predicate
 segment-level, instance-level
 | method                 | Trip | Obj  | Pred | mO   | mR   | Trip      | Obj       | Pred      | mO        | mR        |
 | ---------------------- | ---- | ---- | ---- | ---- | ---- | --------- | --------- | --------- | --------- | --------- |

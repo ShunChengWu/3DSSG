@@ -5,9 +5,9 @@ import ssg.config as config
 from ssg.utils.util_data import match_class_info_from_two
 from ssg.utils.util_eva import EvalUpperBound
 
-def process(cfg1,cfg2):
+def process(cfg1):
     db_1  = config.get_dataset(cfg1,'test')
-    db_2  = config.get_dataset_inst(cfg2,'test')
+    db_2  = config.get_dataset_inst(cfg1,'test')
     
     topk = cfg1.eval.topK
     
@@ -36,20 +36,21 @@ def process(cfg1,cfg2):
         else:
             index_seg = scanid2idx_seg[scan_id_inst]
             data_seg  = db_1.__getitem__(index_seg)
-        eval_UpperBound(data_seg,data_inst)
+        missing_node_frac, missing_edge_frac = eval_UpperBound(data_seg,data_inst)
+        
+        print(scan_id_inst, missing_node_frac, missing_edge_frac)
+        print(eval_UpperBound.eval_tool.gen_text())
+        print('')
     pass
 
 if __name__ == '__main__':
     parser = argparse.ArgumentParser()
     parser.add_argument('config1')
-    parser.add_argument('config2')
     args = parser.parse_args()
     
     cfg1 = codeLib.Config(args.config1)
-    cfg2 = codeLib.Config(args.config2)
     # init device
     device = 'cuda' if torch.cuda.is_available() and len(cfg1.GPU) > 0 else 'cpu'
     cfg1.DEVICE=torch.device(device)
-    cfg2.DEVICE=torch.device(device)
     
-    process(cfg1,cfg2)
+    process(cfg1)

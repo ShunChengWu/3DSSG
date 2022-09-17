@@ -67,41 +67,52 @@ def evaluate_topk_predicate(gt_edges, rels_pred, threshold=0.5,k=-1):
     for rel in range(size_p):
         rel_pred = rels_pred[rel]
         rels_target = gt_edges[rel][2]
-        # if len(rels_target) == 0: continue
-        sorted_conf, sorted_args = torch.sort(rel_pred, descending=True)  # 1D
-        if k<1:
-            maxk=len(sorted_conf)
-            maxk=min(len(sorted_conf),maxk)
-        else:
-            maxk=k
-        sorted_conf=sorted_conf[:maxk]
-        sorted_args=sorted_args[:maxk]
-
-        temp_topk = []
-        
-        
         if len(rels_target) == 0:# Ground truth is None
             continue
-            '''If gt is none, find the first prediction that is below threshold (which predicts "no relationship")'''
-            indices = torch.where(sorted_conf < threshold)[0]
-            if len(indices) == 0:
-                index = maxk+1
-            else:
-                index = sorted(indices)[0].item()+1
-            temp_topk.append(index)
+        
+        temp_topk = []
+        sorted_args=[]
+        if rel_pred.sum() == 0:#happens when use multi-rel. nothing to match. skip
+            pass
         else:
-            for gt in rels_target:
-                '''if has gt, find the location of the gt label prediction.'''
-                if gt in sorted_args:
-                    index = sorted(torch.where(sorted_args == gt)[0])[0].item()+1
-                else:
-                    index = maxk+1
-                    
-                # if len(indices) == 0:
-                #     index = len(sorted_conf)+1
-                # else:
-                #     index = sorted(indices)[0].item()+1
-                temp_topk.append(index)
+            # if len(rels_target) == 0: continue
+            sorted_conf, sorted_args = torch.sort(rel_pred, descending=True)  # 1D
+            if k<1:
+                maxk=len(sorted_conf)
+                maxk=min(len(sorted_conf),maxk)
+            else:
+                maxk=k
+            sorted_conf=sorted_conf[:maxk]
+            sorted_args=sorted_args[:maxk]
+        
+        
+        # if len(rels_target) == 0:# Ground truth is None
+        #     continue
+        #     '''If gt is none, find the first prediction that is below threshold (which predicts "no relationship")'''
+        #     indices = torch.where(sorted_conf < threshold)[0]
+        #     if len(indices) == 0:
+        #         index = maxk+1
+        #     else:
+        #         index = sorted(indices)[0].item()+1
+        #     temp_topk.append(index)
+        # else:
+        for gt in rels_target:
+            '''if has gt, find the location of the gt label prediction.'''
+            if gt in sorted_args:
+                index = sorted(torch.where(sorted_args == gt)[0])[0].item()+1
+                index = math.ceil(index / len(rels_target))
+            else:
+                index = maxk+1
+                
+            
+            # if index != 1:
+            #     print('hallo')
+                
+            # if len(indices) == 0:
+            #     index = len(sorted_conf)+1
+            # else:
+            #     index = sorted(indices)[0].item()+1
+            temp_topk.append(index)
         temp_topk = sorted(temp_topk)  # ascending I hope/think
         top_k += temp_topk
     return top_k
@@ -110,8 +121,8 @@ def get_gt(objs_target, rels_target, edges, mask2inst,multiple_prediction:bool):
     gt_edges = [] # initialize
     idx2instance = torch.zeros_like(objs_target)
     for idx, iid in mask2inst.items():
-        if idx > 0:
-            idx2instance[idx] = iid
+        # if idx > 0:
+        idx2instance[idx] = iid
 
     for edge_index in range(len(edges)):
         idx_eo = edges[edge_index][0].cpu().numpy().item()
@@ -186,6 +197,7 @@ def evaluate_topk(gt_rel, objs_pred, rels_pred, edges, threshold=0.5, k=40):
                     index = maxk+1
                 else:
                     index = sorted(indices)[0].item()+1
+                    index = math.ceil(index/len(gt_r))
                 temp_topk.append(index)
             temp_topk = sorted(temp_topk)
             top_k += temp_topk
@@ -1148,6 +1160,8 @@ class EvalUpperBound():
                           inst_gt_rel,
                           [inst_mask2instance],
                           data_inst['node_edges'])
+        
+        return len(missing_nodes)/len(seg_instance_set), len(missing_edges)/len(inst_gt_rel)
 
 if __name__ == '__main__':
     tt = EvaClassification(['1','2'], [0,1])
