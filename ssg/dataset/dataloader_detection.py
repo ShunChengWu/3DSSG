@@ -66,11 +66,12 @@ class Graph_Loader (data.Dataset):
         self.pth_node_weights = os.path.join(self.path,'node_weights.txt')
         self.pth_edge_weights = os.path.join(self.path,'edge_weights.txt')
         
-        SEGMENT_TYPE='GT'
+        # SEGMENT_TYPE='GT'
         with open(os.path.join(self.cfg.data.path,'args.json')) as f:
             tmp = json.load(f)
             label_type = tmp['label_type']
-        image_feature_folder_name =define.NAME_IMAGE_FEAUTRE_FORMAT.format(SEGMENT_TYPE,label_type)
+            segment_type = tmp['segment_type']
+        image_feature_folder_name =define.NAME_IMAGE_FEAUTRE_FORMAT.format(segment_type,label_type)
         self.path_img_feature = os.path.join(self.cfg.data.path_image_feature,image_feature_folder_name+'.h5')
             
         # if config.use_filtered_node_list:
@@ -316,6 +317,9 @@ class Graph_Loader (data.Dataset):
     
     def __getitem__(self,idx):
         scan_id = snp.unpack(self.scans,idx)# self.scans[idx]
+        
+        # scan_id = 'c7895f7a-339c-2d13-82ac-09ef1c9001ba'
+        
         self.open_data()
         self.open_mv_graph()
         self.open_filtered()

@@ -72,16 +72,14 @@ def evaluate_topk_predicate(gt_edges, rels_pred, threshold=0.5,k=-1):
         
         temp_topk = []
         sorted_args=[]
+        maxk=k
         if rel_pred.sum() == 0:#happens when use multi-rel. nothing to match. skip
             pass
         else:
             # if len(rels_target) == 0: continue
             sorted_conf, sorted_args = torch.sort(rel_pred, descending=True)  # 1D
             if k<1:
-                maxk=len(sorted_conf)
-                maxk=min(len(sorted_conf),maxk)
-            else:
-                maxk=k
+                maxk=min(len(sorted_conf),1) # take top1
             sorted_conf=sorted_conf[:maxk]
             sorted_args=sorted_args[:maxk]
         
@@ -167,8 +165,7 @@ def evaluate_topk(gt_rel, objs_pred, rels_pred, edges, threshold=0.5, k=40):
         sorted_conf_matrix, sorted_args_1d=sorted_conf_matrix.cpu(),sorted_args_1d.cpu()
         torch.cuda.empty_cache()
         if k<1:
-            maxk=sorted_conf_matrix.shape[1]
-            # maxk=min(len(sorted_conf_matrix),maxk)
+            maxk=min(len(sorted_conf_matrix),1) # take top1
         else:
             maxk=k
         sorted_conf_matrix=sorted_conf_matrix[:,:maxk]
@@ -1098,6 +1095,7 @@ class EvalUpperBound():
                           [inst_mask2instance],
                           data_inst['node_edges'])
             return 
+        seg_gt_cls= data_seg['gt_cls']
         mask2seg = data_seg['mask2instance']
         seg_node_edges = data_seg['node_edges']
         seg2inst = data_seg.get('seg2inst',None)

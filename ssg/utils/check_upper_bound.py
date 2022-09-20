@@ -11,10 +11,12 @@ def process(cfg1):
     
     topk = cfg1.eval.topK
     
-    (scanid2idx_seg, node_cls_names, edge_cls_names,noneidx_node_cls,noneidx_edge_cls,
-            seg_valid_node_cls_indices,inst_valid_node_cls_indices,
-            seg_valid_edge_cls_indices,inst_valid_edge_cls_indices) = \
-            match_class_info_from_two(db_1,db_2, multi_rel=cfg1.model.multi_rel)
+    (scanid2idx_seg, scanid2idx_inst, 
+     node_cls_names, edge_cls_names,
+     noneidx_node_cls,noneidx_edge_cls,
+     seg_valid_node_cls_indices,inst_valid_node_cls_indices,
+     seg_valid_edge_cls_indices,inst_valid_edge_cls_indices) = \
+         match_class_info_from_two(db_1,db_2, multi_rel=cfg1.model.multi_rel)
 
     # eval_tool = EvalSceneGraph(node_cls_names, edge_cls_names,multi_rel_prediction=self.cfg.model.multi_rel,k=topk,save_prediction=True,
                             #    none_name=define.NAME_NONE) 
@@ -23,8 +25,16 @@ def process(cfg1):
                                         multi_rel=cfg1.model.multi_rel,topK=topk,none_name=define.NAME_NONE)
     
     
+    # scan_id = '10b17957-3938-2467-88a5-9e9254930dad'
+    # index_inst = scanid2idx_inst[scan_id]
+    # index_seg  = scanid2idx_seg[scan_id]
+    # data_inst = db_2.__getitem__(index_inst)
+    # data_seg  = db_1.__getitem__(index_seg)
+    # missing_node_frac, missing_edge_frac = eval_UpperBound(data_seg,data_inst)
+    
+    print("scan_id_inst, missing_node_frac, missing_edge_frac")
     for index in range(len(db_2)):
-        data_inst = db_2.__getitem__(index)                
+        data_inst = db_2.__getitem__(index)
         scan_id_inst = data_inst['scan_id']
         # print('scan_id_inst',scan_id_inst)
         
@@ -39,8 +49,8 @@ def process(cfg1):
         missing_node_frac, missing_edge_frac = eval_UpperBound(data_seg,data_inst)
         
         print(scan_id_inst, missing_node_frac, missing_edge_frac)
-        print(eval_UpperBound.eval_tool.gen_text())
-        print('')
+        # print(eval_UpperBound.eval_tool.gen_text())
+        # print('')
     pass
 
 if __name__ == '__main__':

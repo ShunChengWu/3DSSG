@@ -1,6 +1,7 @@
 if __name__ == '__main__' and __package__ is None:
     from os import sys
     sys.path.append('../')
+from collections import defaultdict
 import os,json,trimesh, argparse
 import open3d as o3d
 import numpy as np
@@ -51,6 +52,9 @@ def Parser(add_help=True):
     parser.add_argument('--min_seg_size', type=int,default=512,help='Minimum number of points of a segment.')
     parser.add_argument('--corr_thres', type=float,default=0.5,help='How the percentage of the points to the same target segment must exceeds this value.')
     parser.add_argument('--occ_thres', type=float,default=0.75,help='2nd/1st must smaller than this.')
+    
+    # constant
+    parser.add_argument('--segment_type', type=str,default='INSEG')
     return parser
 
 debug = True
@@ -332,7 +336,7 @@ def process(pth_3RScan, scan_id,label_type,
 
     ''' Find best corresponding segment '''
     map_segment_pd_2_gt = dict() # map segment_pd to segment_gt
-    gt_segments_2_pd_segments = dict() # how many segment_pd corresponding to this segment_gt
+    gt_segments_2_pd_segments = defaultdict(list) # how many segment_pd corresponding to this segment_gt
     for segment_id, cor_counter in count_seg_pd_2_corresponding_seg_gts.items():
         size_pd = size_segments_pd[segment_id]
         if verbose: print('segment_id', segment_id, size_pd)
@@ -362,8 +366,6 @@ def process(pth_3RScan, scan_id,label_type,
             if verbose or debug: print('add correspondence of segment {:s} {:4d} to label {:4d} with the ratio {:2.3f} {:1.3f}'.\
                   format(instance2labelName[segment_gt],segment_id,max_corr_seg,max_corr_ratio,occ_ratio))
             map_segment_pd_2_gt[segment_id] = max_corr_seg
-            if max_corr_seg not in gt_segments_2_pd_segments:
-                gt_segments_2_pd_segments[max_corr_seg] = list()
             gt_segments_2_pd_segments[max_corr_seg].append(segment_id)
         else:
             if verbose or debug: print('filter correspondence segment {:s} {:4d} to label {:4d} with the ratio {:2.3f} {:1.3f}'.\
@@ -406,7 +408,7 @@ def process(pth_3RScan, scan_id,label_type,
     if seg_groups is not None:
         for split_id in range(len(seg_groups)):
             seg_group = seg_groups[split_id]
-            relationships = gen_relationship(scan_id,split_id,map_segment_pd_2_gt, instance2labelName, 
+            relationships = gen_relationship(scan_id,split_id,gt_relationships,map_segment_pd_2_gt, instance2labelName, 
                                              gt_segments_2_pd_segments,seg_group)
             if len(relationships["objects"]) == 0 or len(relationships['relationships']) == 0:
                 continue
@@ -419,7 +421,7 @@ def process(pth_3RScan, scan_id,label_type,
                 assert(rel[0] in relationships['objects'])
                 assert(rel[1] in relationships['objects'])
     else:
-        relationships = gen_relationship(scan_id,0, map_segment_pd_2_gt, instance2labelName, 
+        relationships = gen_relationship(scan_id,0,gt_relationships, map_segment_pd_2_gt, instance2labelName, 
                                                    gt_segments_2_pd_segments)
         if len(relationships["objects"]) != 0 and len(relationships['relationships']) != 0:
                 list_relationships.append(relationships)
@@ -431,7 +433,7 @@ def process(pth_3RScan, scan_id,label_type,
     return list_relationships, segs_neighbors
 
 
-def gen_relationship(scan_id:str,split:int, map_segment_pd_2_gt:dict,instance2labelName:dict,gt_segments_2_pd_segments:dict,
+def gen_relationship(scan_id:str,split:int, gt_relationships:list,map_segment_pd_2_gt:dict,instance2labelName:dict,gt_segments_2_pd_segments:dict,
                      target_segments:list=None) -> dict:
     '''' Save as relationship_*.json '''
     relationships = dict() #relationships_new["scans"].append(s)
@@ -466,6 +468,10 @@ def gen_relationship(scan_id:str,split:int, map_segment_pd_2_gt:dict,instance2la
                 continue
             idx_in_txt_new = target_relationships.index(name)
             
+            if id_src == id_tar:
+                continue # an edge canno self connect
+                print('halloe',print(rel))
+            
             if id_src in gt_segments_2_pd_segments and id_tar in gt_segments_2_pd_segments:
                 segments_src = gt_segments_2_pd_segments[id_src]
                 segments_tar = gt_segments_2_pd_segments[id_tar]                
@@ -484,7 +490,8 @@ def gen_relationship(scan_id:str,split:int, map_segment_pd_2_gt:dict,instance2la
                         
                         ''' check if they are neighbors '''
                         split_relationships.append([ int(segment_src), int(segment_tar), idx_in_txt_new, name ])
-                        if debug:print('inherit', instance2labelName[id_src],name, instance2labelName[id_tar])
+                        if debug:print('segment',segment_src, '(',id_src,')',segment_tar,'(',id_tar,')',
+                                       'inherit',instance2labelName[id_src],name, instance2labelName[id_tar])
             # else:
             #     if debug:
             #         if id_src in gt_segments_2_pd_segments:
@@ -507,6 +514,23 @@ def gen_relationship(scan_id:str,split:int, map_segment_pd_2_gt:dict,instance2la
             for j in range(i+1,len(groups)):
                 split_relationships.append([int(groups[i]),int(groups[j]), idx_in_txt_new, define.NAME_SAME_PART])
                 split_relationships.append([int(groups[j]),int(groups[i]), idx_in_txt_new, define.NAME_SAME_PART])
+                
+    '''check if a pair has multiple relationsihps'''
+    relatinoships_gt_dict= defaultdict(list)
+    for r in split_relationships:
+        r_src = int(r[0])
+        r_tgt = int(r[1])
+        r_lid = int(r[2])
+        r_cls = r[3]
+        relatinoships_gt_dict[(r_src,r_tgt)].append(r_cls)
+    invalid_keys=list()
+    for key,value in relatinoships_gt_dict.items():
+        if len(value) != 1:
+            invalid_keys.append(key)
+    for key in invalid_keys:
+        print('key:',key, 'has more than one predicates:',relatinoships_gt_dict[key])
+        print(objects[key[0]]['label'],objects[key[1]]['label'])
+    assert len(invalid_keys)==0
     
     relationships["relationships"] = split_relationships
     return relationships
@@ -591,8 +615,7 @@ if __name__ == '__main__':
             relationships_new["scans"] += relationships
             relationships_new['neighbors'][scan_id] = segs_neighbors
             
-            if debug:
-                break
+            # if debug: break
             
     '''Save'''
     pth_args = os.path.join(args.pth_out,'args.json')

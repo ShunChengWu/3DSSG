@@ -2,21 +2,43 @@
 There was a problem with the edge connection and network setup. 
 3DSSG should have exactly the same parameters apart from the use of input rel. representation and the GNN architecture. 
 The edge connection for multi-predicate estimation should be fully connected. For this need to redo experiments
-
 - [ ] 3DSSG_full_l160_0
 - [ ] 2DSSG_full_l160_1
-## 3RScan160, Multiple Predicates
-| method                 | Trip | Obj  | Pred | mO   | mR   | Trip      | Obj       | Pred      | mO        | mR        |
-| ---------------------- | ---- | ---- | ---- | ---- | ---- | --------- | --------- | --------- | --------- | --------- |
-| 3DSSG_full_l160_0 |  | | | | | 5.9/66.7
 
-## ScanNet20, Single Predicate
+
+## 3RScan160, Multiple Predicates
+| method            | Trip      | Obj       | Pred      | mO        | mR        |
+| ----------------- | --------- | --------- | --------- | --------- | --------- |
+| IMP_FULL_l160_1   | 0.0/73.7  | 3.5/95.9  | 1.4/74.0  | 1.1/94.4  | 18.5/81.5 |
+| VGfM_FULL_l160_2  | 0.1/73.7  | 17.0/95.9 | 9.8/74.0  | 4.6/94.4  | 19.0/81.5 |
+| 3DSSG_full_l160_0 | 8.2/100   | 30.4/100  | 63.4/100  | 10.4/100  | 17.4/100  |
+| SGFN_full_l160_2  | 6.3/100   | 34.6/100  | 37.2/100  | 15.6/100  | 10.8/100  |
+| 2DSSG_full_l160_1 | 11.7/96.4 | 49.9/95.9 | 42.7/95.6 | 28.5/94.5 | 25.4/95.5 |
+
+## ScanNet20, Single Predicate, full
+| method           | Trip      | Obj       | Pred      | mO        | mR        |
+| ---------------- | --------- | --------- | --------- | --------- | --------- |
+| IMP_full_l20_3   | 8.8/97.3  | 28.1/97.9 | 94.3/99.9 | 4.9/98.1  | 12.5/98.2 |
+| VGfM_full_l20_5  | 16.8/97.3 | 38.4/97.9 | 94.3/99.9 | 24.1/98.1 | 18.9/98.2 |
+| 3DSSG_full_l20_2 | 10.9/100  | 35.1/100  | 88.1/100  | 17.3/100  | 28.3/100  |
+| SGFN_full_0_3    | 35.6/100  | 59.8/100  | 89.3/100  | 53.0/100  | 66.1/100  |
+| 2DSSG_full_l20_2 | 61.3/97.4 | 76.6/97.9 | 95.6/99.9 | 79.1/98.1 | 70.5/98.5 |
+## ScanNet20, Single Predicate, inseg
+| method            | Trip      | Obj       | Pred      | mO        | mR        |
+| ----------------- | --------- | --------- | --------- | --------- | --------- |
+| 2DSSG_INSEG_l20_1 | 31.4/63.7 | 54.3/75.0 | 90.6/98.3 | 47.9/75.7 | 33.9/67.4 |
+| SGFN_inseg_0_5    | 29.3/63.8 | 55.1/75.1 | 84.3/98.3 | 46.8/75.7 | 37.4/67.5 |
+| 3DSSG_INSEG_0     |
+| IMP_INSEG_l20_1   | 0.7/6.8   | 7.6/24.9  | 94.3/94.9 | 1.3/23.2  | 12.5/18.9 |
+| VGfM_INSEG_l20_2 | 
+##
+
 segment-level, instance-level
 | method                 | Trip | Obj  | Pred | mO   | mR   | Trip      | Obj       | Pred      | mO        | mR        |
 | ---------------------- | ---- | ---- | ---- | ---- | ---- | --------- | --------- | --------- | --------- | --------- |
 | 2DSSG_full_l20_2       | 58.6 | 77.4 | 97.6 | 80.9 | 71.4 | 56.5/96.4 | 75.8/97.9 | 97.7/99.9 | 79.4/98.1 | 70.3/98.5 |
 | SGFN_full_0_3          | 32.1 | 58.6 | 93.1 | 47.6 | 63.1 | 33.0/100  | 59.4/100  | 93.8/100  | 49.4/100  | 67.2/100  |
-| 3DSSG_full_l20_1       | 
+| 3DSSG_full_l20_1       |
 | IMP_ORBSLAM3_l20_1     | 2.55 | 25.6 | 82.0 | 5.0  | 11.1 | 0.1/1.3   | 0.8/3.2   | 97.1/97.2 | 0.1/2.3   | 12.5/12.6 |
 | VGfM_ORBSLAM3_l20_3    | 7.8  | 35.4 | 72.1 | 8.7  | 17.4 | 0.1/1.3   | 1.0/3.2   | 97.1/97.2 | 0.6/2.3   | 12.5/12.6 |
 | 2DSSG_ORBSLAM3_l20_6_1 | 27.2 | 57.0 | 86.0 | 55.4 | 49.3 | 6.5/21.8  | 26.2/44.2 | 96.3/98.2 | 28.1/48.6 | 21.3/39.0 |

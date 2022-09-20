@@ -27,7 +27,7 @@ training:
  model_selection_mode: maximize # can be maximize or minimize. e.g. if it's "loss", should "minimize", if it's accuracy, should "maximize"
  max_epoch: 200
 eval: #evaluation
- mode: segment #eval on [segment, instance].  
+ mode: instance #eval on [segment, instance].  
  data_workers: 8
  topK: 10
  ignore_missing: false

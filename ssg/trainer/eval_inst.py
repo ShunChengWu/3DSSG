@@ -15,7 +15,7 @@ class EvalInst(object):
         ignore_missing=self.cfg.eval.ignore_missing
         
         '''add a none class for missing instances'''
-        (scanid2idx_seg, node_cls_names, edge_cls_names,noneidx_node_cls,noneidx_edge_cls,
+        (scanid2idx_seg, _, node_cls_names, edge_cls_names,noneidx_node_cls,noneidx_edge_cls,
             seg_valid_node_cls_indices,inst_valid_node_cls_indices,
             seg_valid_edge_cls_indices,inst_valid_edge_cls_indices) = \
             match_class_info_from_two(dataset_seg,dataset_inst, multi_rel=self.cfg.model.multi_rel)

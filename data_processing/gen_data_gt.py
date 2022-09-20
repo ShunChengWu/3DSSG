@@ -46,6 +46,8 @@ def Parser(add_help=True):
     parser.add_argument('--min_segs', type=int,default=5,help='Minimum segments for each segGroup')
     parser.add_argument('--split_method', type=str, choices=['BBOX','KNN'],default='BBOX',help='How to split the scene.')
     
+    # constant
+    parser.add_argument('--segment_type', type=str,default='GT')
     return parser
 
 name_same_segment = 'same part'

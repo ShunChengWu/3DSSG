@@ -644,6 +644,6 @@ def match_class_info_from_two(dataset_seg,dataset_inst, multi_rel:bool):
         if name == define.NAME_SAME_PART: continue
         inst_valid_edge_cls_indices.append(idx)
         
-    return (scanid2idx_seg, node_cls_names, edge_cls_names,noneidx_node_cls,noneidx_edge_cls,
+    return (scanid2idx_seg, scanid2idx_inst, node_cls_names, edge_cls_names,noneidx_node_cls,noneidx_edge_cls,
             seg_valid_node_cls_indices,inst_valid_node_cls_indices,
             seg_valid_edge_cls_indices,inst_valid_edge_cls_indices)

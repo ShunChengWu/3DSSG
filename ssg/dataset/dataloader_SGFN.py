@@ -271,11 +271,11 @@ class SGFNDataset (data.Dataset):
             instances_ids = list(filtered_nodes)
             if 0 in instances_ids: instances_ids.remove(0)
             
-        if 'max_num_node' in self.mconfig and self.mconfig.max_num_node>0 and len(instances_ids)>self.mconfig.max_num_node:
-            instances_ids = random_drop(instances_ids, self.mconfig.max_num_node )
+            if 'max_num_node' in self.mconfig and self.mconfig.max_num_node>0 and len(instances_ids)>self.mconfig.max_num_node:
+                instances_ids = random_drop(instances_ids, self.mconfig.max_num_node )
         
-        if self.shuffle_objs:
-            random.shuffle(instances_ids)
+            if self.shuffle_objs:
+                random.shuffle(instances_ids)
 
         ''' 
         Find instances we care abot. Build oid2idx and cat list
@@ -446,6 +446,7 @@ class SGFNDataset (data.Dataset):
                             if vv not in oid2idx:continue
                             mask_vv = oid2idx[vv]
                             edge_indices.add((mask_k,mask_vv))
+                    edge_indices = [[e[0],e[1]] for e in edge_indices]
 
             '''edge dropout'''
             if len(edge_indices)>0:
@@ -481,6 +482,7 @@ class SGFNDataset (data.Dataset):
             assert index1>=0
             assert index2>=0
             if self.sample_in_runtime:
+                # print('index1,index2',index1,index2, type(edge_indices),edge_indices)
                 if [index1,index2] not in edge_indices: continue
             
             if r_cls not in self.relationNames:
