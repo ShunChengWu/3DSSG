@@ -218,23 +218,26 @@ class SGFN(nn.Module):
         ''' Create edge feature '''
         # with torch.no_grad():
         #     edge_feature = op_utils.Gen_edge_descriptor(flow=self.flow)(descriptor,node_edges)
-        edges_feature = self.rel_encoder(descriptor,node_edges)
-        
+        if len(node_edges)>0:
+            edges_feature = self.rel_encoder(descriptor,node_edges)
                     
-        ''' GNN '''
-        probs=None
-        if hasattr(self, 'gnn') and self.gnn is not None:
-            gnn_nodes_feature, gnn_edges_feature, probs = self.gnn(nodes_feature, edges_feature, node_edges)
-            
-            if self.cfg.model.gnn.node_from_gnn:
-                nodes_feature = gnn_nodes_feature
-            edges_feature = gnn_edges_feature
+            ''' GNN '''
+            probs=None
+            if hasattr(self, 'gnn') and self.gnn is not None:
+                gnn_nodes_feature, gnn_edges_feature, probs = self.gnn(nodes_feature, edges_feature, node_edges)
+
+                if self.cfg.model.gnn.node_from_gnn:
+                    nodes_feature = gnn_nodes_feature
+                edges_feature = gnn_edges_feature
         
         '''1. Node '''
         node_cls = self.obj_predictor(nodes_feature)
         '''2.Edge'''
         # edge_cls=None
-        edge_cls = self.rel_predictor(edges_feature)
+        if len(node_edges)>0:
+            edge_cls = self.rel_predictor(edges_feature)
+        else:
+            edge_cls = None
             
         return node_cls, edge_cls
     

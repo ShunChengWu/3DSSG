@@ -77,7 +77,7 @@ class SGPN(nn.Module):
         rel_feature = self.rel_encoder(rel_points)
 
         probs=None        
-        if self.cfg.model.gnn.num_layers > 0:
+        if self.cfg.model.gnn.num_layers > 0 and len(node_edges)>0:
             gcn_obj_feature, gcn_rel_feature = self.gnn(obj_feature, rel_feature, node_edges)
             
             if self.cfg.model.gnn.node_from_gnn:

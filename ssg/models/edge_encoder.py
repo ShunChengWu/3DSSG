@@ -17,6 +17,7 @@ class EdgeDescriptor_8(MessagePassing):
         about target_to_source or source_to_target. check https://pytorch-geometric.readthedocs.io/en/latest/notes/create_gnn.html
         '''
         super().__init__(flow=flow)
+        
     def forward(self, descriptor, edges_indices):
         size = self.__check_input__(edges_indices, None)
         coll_dict = self.__collect__(self.__user_args__,edges_indices,size, {"x":descriptor})
@@ -43,8 +44,7 @@ class EdgeDescriptor_8(MessagePassing):
         # length log ratio
         edge_feature[:,7] = torch.log( x_i[:,7] / x_j[:,7])
         # edge_feature, *_ = self.ef(edge_feature.unsqueeze(-1))
-        return edge_feature.unsqueeze(-1)
-    
+        return edge_feature.unsqueeze(-1) 
 
 class EdgeDescriptor_plane(MessagePassing):
     """ A sequence of scene graph convolution layers  """
@@ -54,6 +54,7 @@ class EdgeDescriptor_plane(MessagePassing):
         '''
         super().__init__(flow=flow)
         self.dim=18
+
     def forward(self, descriptor, edges_indices):
         size = self.__check_input__(edges_indices, None)
         coll_dict = self.__collect__(self.__user_args__,edges_indices,size, {"x":descriptor})
@@ -101,7 +102,6 @@ class EdgeDescriptor_plane(MessagePassing):
         v_ij = self.norm(center_j-center_i)
         normal_right = torch.cross(v_ij,normal_up,dim=1)
         normal_front = torch.cross(normal_up,normal_right,dim=1) # assume gravity align
-        
         
         '''calculate plane distances'''
         pts_i = x_i[:,8:].view(batch,6,3)
