@@ -15,13 +15,13 @@ import ssg.utils.compute_weight as compute_weight
 import torch
 import json
 import numpy as np
-import pandas
+# import pandas
 from PIL import Image
-from torchvision.io import read_image
+# from torchvision.io import read_image
 from ssg import define
 from ssg.utils.util_data import raw_to_data, cvt_all_to_dict_from_h5
 import codeLib.torchvision.transforms as cltransform
-from torchvision.ops import roi_align
+# from torchvision.ops import roi_align
 import h5py,ast
 from codeLib.torch.visualization import show_tensor_images
 from codeLib.common import run
@@ -567,13 +567,16 @@ class Graph_Loader (data.Dataset):
         output['scan_id'] = scan_id # str
         output['gt_rel'] = gt_rels  # tensor
         output['gt_cls'] = gt_class # tensor
+        
         output['images'] = images# tensor
+        output['node_descriptor_8'] = node_descriptor_for_image
         output['node_edges'] = edge_indices # tensor
+        
         output['mask2instance'] = idx2iid #dict
         output['image_boxes'] = bounding_boxes #list
         output['temporal_node_graph'] = temporal_node_graph
         output['temporal_edge_graph'] = temporal_edge_graph
-        output['node_descriptor_8'] = node_descriptor_for_image
+        
         del self.filtered_data
         del self.sg_data
         del self.mv_data   

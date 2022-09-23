@@ -123,11 +123,11 @@ class Trainer_IMP(BaseTrainer, EvalInst):
         
         # Shortcuts
         scan_id = data['scan_id']
-        gt_cls = data['gt_cls']
-        gt_rel = data['gt_rel']
-        mask2instance = data['mask2instance']
-        node_edges_ori = data['node_edges']
-        data['node_edges'] = data['node_edges'].t().contiguous()
+        gt_cls = data['image_gt_cls']
+        gt_rel = data['image_gt_rel']
+        mask2instance = data['image_mask2instance']
+        node_edges_ori = data['image_node_edges']
+        data['image_node_edges'] = data['image_node_edges'].t().contiguous()
         if 'temporal_node_graph' in data: data['temporal_node_graph']=data['temporal_node_graph'].t().contiguous()
         if 'temporal_edge_graph' in data: data['temporal_edge_graph']=data['temporal_edge_graph'].t().contiguous()
         

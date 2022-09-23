@@ -2,8 +2,10 @@
 There was a problem with the edge connection and network setup. 
 3DSSG should have exactly the same parameters apart from the use of input rel. representation and the GNN architecture. 
 The edge connection for multi-predicate estimation should be fully connected. For this need to redo experiments
-- [ ] 3DSSG_full_l160_0
-- [ ] 2DSSG_full_l160_1
+- [x] 3DSSG_full_l160_0
+- [x] 2DSSG_full_l160_1
+
+Use SGFN loader to train VGfM and IMP
 
 
 ## 3RScan160, Multiple Predicates
@@ -28,10 +30,11 @@ The edge connection for multi-predicate estimation should be fully connected. Fo
 | method            | Trip      | Obj       | Pred      | mRecall_O | mRecall_P |
 | ----------------- | --------- | --------- | --------- | --------- | --------- |
 | IMP_INSEG_l20_1   | 0.7/6.8   | 7.6/24.9  | 94.3/94.9 | 1.3/23.2  | 12.5/18.9 |
-| VGfM_INSEG_l20_2  |
+| VGfM_INSEG_l20_2  | 0.0/6.8   | 2.5/24.9  | 93.4/94.9 | 1.2/23.2  | 12.5/18.9 |
 | 3DSSG_INSEG_1     | 17.2/63.8 | 41.7/75.1 | 91.4/98.3 | 34.7/75.7 | 33.1/67.5 |
 | SGFN_inseg_0_5    | 29.3/63.8 | 55.1/75.1 | 84.3/98.3 | 46.8/75.7 | 37.4/67.5 |
 | 2DSSG_INSEG_l20_1 | 31.4/63.7 | 54.3/75.0 | 90.6/98.3 | 47.9/75.7 | 33.9/67.4 |
+TODO: investigate why IMP and VGfM have so low upper bound
 
 ## ScanNet20, Single Predicate, ORBSLAM3
 | method                 | Trip     | Obj       | Pred      | mRecall_O | mRecall_P |
@@ -41,6 +44,7 @@ The edge connection for multi-predicate estimation should be fully connected. Fo
 | 3DSSG_ORBSLAM3_l20_0   | 1.8/25.5 | 12.9/44.2 | 93.2/96.1 | 8.7/48.6  | 17.5/35.2 |
 | SGFN_ORBSLAM3_l20_0    | 2.5/25.5 | 15.5/44.2 | 94.0/96.1 | 6.9/48.6  | 13.2/35.2 |
 | 2DSSG_ORBSLAM3_l20_6_1 | 8.7/25.5 | 27.0/44.2 | 93.2/96.1 | 25.1/48.6 | 19.6/35.2 |
+TODO: investigate why IMP and VGfM have so low upper bound
 
 ##
 segment-level, instance-level

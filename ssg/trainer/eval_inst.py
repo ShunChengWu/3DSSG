@@ -12,6 +12,7 @@ class EvalInst(object):
     def __init__(self):
         pass
     def evaluate_inst(self,dataset_seg,dataset_inst,topk):
+        is_eval_image = self.cfg.model.method in ['imp']
         ignore_missing=self.cfg.eval.ignore_missing
         
         '''add a none class for missing instances'''
@@ -73,10 +74,11 @@ class EvalInst(object):
                 logs = {}
         
                 # Process data dictionary
+                #TODO: need to differentiate IMP,VGfM and SGFN,3DSSG
                 data_seg = self.process_data_dict(data_seg)
                 data_inst = self.process_data_dict(data_inst)
                 # record in eval_UB
-                eval_UpperBound(data_seg,data_inst)
+                eval_UpperBound(data_seg,data_inst,is_eval_image)
                 # continue
                 
                 # Shortcuts
@@ -109,10 +111,18 @@ class EvalInst(object):
                     # raise NotImplementedError()
                 
                 # gt_cls = data_seg['gt_cls']
-                gt_rel = data_seg['gt_rel']
-                mask2seg = data_seg['mask2instance']
-                node_edges_ori = data_seg['node_edges']
-                data_seg['node_edges'] = data_seg['node_edges'].t().contiguous()
+                if not is_eval_image:
+                    gt_rel = data_seg['gt_rel']
+                    mask2seg = data_seg['mask2instance']
+                    
+                    data_seg['node_edges'] = data_seg['node_edges'].t().contiguous()
+                    node_edges = data_seg['node_edges']
+                else:
+                # node_edges_ori = data_seg['node_edges']
+                    mask2seg = data_seg['image_mask2instance']
+                    gt_rel = data_seg['image_gt_rel']
+                    data_seg['image_node_edges'] = data_seg['image_node_edges'].t().contiguous()
+                    node_edges = data_seg['image_node_edges']
                 seg2inst = data_seg.get('seg2inst',None)
                 
                 
@@ -194,7 +204,7 @@ class EvalInst(object):
                
                 merged_edge_cls_dict = defaultdict(list) # map edge predictions on the same pair of instances.
                 for idx in range(len(gt_rel)):
-                    src_idx, tgt_idx = data_seg['node_edges'][0,idx].item(), data_seg['node_edges'][1,idx].item()
+                    src_idx, tgt_idx = node_edges[0,idx].item(), node_edges[1,idx].item()
                     # relname = self.edge_cls_names[gt_rel[idx].item()]
                     
                     src_seg_idx = mask2seg[src_idx]

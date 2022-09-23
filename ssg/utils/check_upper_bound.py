@@ -9,6 +9,9 @@ def process(cfg1):
     db_1  = config.get_dataset(cfg1,'test')
     db_2  = config.get_dataset_inst(cfg1,'test')
     
+    
+    is_eval_image = cfg1.model.method in ['imp']
+    
     topk = cfg1.eval.topK
     
     (scanid2idx_seg, scanid2idx_inst, 
@@ -46,7 +49,7 @@ def process(cfg1):
         else:
             index_seg = scanid2idx_seg[scan_id_inst]
             data_seg  = db_1.__getitem__(index_seg)
-        missing_node_frac, missing_edge_frac = eval_UpperBound(data_seg,data_inst)
+        missing_node_frac, missing_edge_frac = eval_UpperBound(data_seg,data_inst,is_eval_image)
         
         print(scan_id_inst, missing_node_frac, missing_edge_frac)
         # print(eval_UpperBound.eval_tool.gen_text())

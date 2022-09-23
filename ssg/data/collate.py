@@ -84,12 +84,17 @@ def graph_collate(batch):
     n_images_acc=0
     instance2mask=list()
     mask2instance=list()
-    # image_boxes=list()
+    image_mask2instance=list()
     roi_imgs = list()
     for b in batch:
         if 'node_edges' in b:
             x = b['node_edges']
             x += n_nodes_acc
+        
+        if 'image_node_edges' in b:
+            x = b['image_node_edges']
+            x += n_nodes_acc
+            
         if 'temporal_node_graph' in b:
             x = b['temporal_node_graph']
             x += n_nodes_acc
@@ -110,9 +115,10 @@ def graph_collate(batch):
         if 'mask2instance' in b:
             x = b['mask2instance']
             mask2instance.append( { mask+n_nodes_acc: inst for mask,inst in x.items() } )
-            # mask2instance.append( { mask+n_nodes_acc: inst for mask, inst in x.items()} )
-            
-        # b['instance2mask'] = x
+        
+        if 'image_mask2instance' in b:
+            x = b['image_mask2instance']
+            image_mask2instance.append( { mask+n_nodes_acc: inst for mask,inst in x.items() } )
         
         if 'image_boxes' in b:
             x = b['image_boxes']
@@ -124,6 +130,11 @@ def graph_collate(batch):
         if 'gt_cls' in b:
             n_nodes = len(b['gt_cls'])
             n_nodes_acc += n_nodes
+        
+        if 'image_gt_cls' in b:
+            n_nodes = len(b['image_gt_cls'])
+            n_nodes_acc += n_nodes
+            
         if 'images' in b:
             n_images = len(b['images'])
             n_images_acc += n_images
@@ -137,15 +148,18 @@ def graph_collate(batch):
         out['instance2mask'] = instance2mask
     if len(mask2instance)>0:
         out['mask2instance'] = mask2instance
+    if len(image_mask2instance)>0:
+        out['image_mask2instance'] = image_mask2instance
     if len(roi_imgs)>0:
         out['roi_imgs'] = roi_imgs
         
-    for x in ['node_edges','image_edges','temporal_node_graph','temporal_edge_graph']:
+    for x in ['node_edges','image_node_edges','image_edges','temporal_node_graph','temporal_edge_graph']:
         if x in elem:
             out[x] = torch.cat([d[x] for d in batch])
         
     
-    for x in ['scan_id','gt_rel','gt_cls','images','descriptor','node_descriptor_8', 'obj_points', 'rel_points','image_boxes']:
+    for x in ['scan_id','gt_rel','gt_cls','image_gt_cls','images','descriptor','node_descriptor_8', 
+              'obj_points', 'rel_points','image_boxes','image_gt_rel']:
         if x in elem:
             # print('===')
             # print(x)
@@ -173,21 +187,6 @@ def graph_collate(batch):
     #         out[x] = collate([d[x] for d in batch])
         
     return out
-    # {key: graph_collate([d[key] for d in batch]) for key in elem}
-    
-    # output['scan_id'] = scan_id # str
-    # output['gt_rel'] = gt_rels  # tensor
-    # output['gt_cls'] = gt_class # tensor
-    # output['images'] = images# tensor
-    # output['descriptor'] = descriptor #tensor
-    
-    # output['node_edges'] = edge_indices # tensor
-    # output['image_edges'] = image_indices # tensor
-    
-    # output['instance2mask'] = instance2mask #dict
-    # output['image_boxes'] = bounding_boxes #list
-
-    raise TypeError(default_collate_err_msg_format.format(elem_type))
     
 def batch_graph_collate(batch):
     elem = batch[0]
@@ -198,7 +197,7 @@ def batch_graph_collate(batch):
     return out
     
 if __name__ == '__main__':
-    import ssg2d
+    import ssg
     import codeLib
     
     config = codeLib.Config('../../configs/default.yaml')

@@ -97,9 +97,9 @@ class IMP(nn.Module):
         super().train(mode=True)
         self.roi_extrator.with_precompute=False
         
-    def forward(self, images, image_boxes,node_edges, **args):
+    def forward(self, images, image_boxes,image_node_edges, **args):
         '''compute image feature'''
-        node_features, edge_features = self.roi_extrator(images, image_boxes,node_edges)
+        node_features, edge_features = self.roi_extrator(images, image_boxes,image_node_edges)
         
         node_features = self.obj_embedding(node_features)
         if len(edge_features)>0:
@@ -107,9 +107,9 @@ class IMP(nn.Module):
         
         if hasattr(self, 'gnn') and self.gnn is not None and len(edge_features)>0 and len(node_features)>0:
             if self.cfg.model.gnn.method == 'vgfm':
-                node_features,edge_features = self.gnn(node_features,edge_features,node_edges,geo_feature=args['node_descriptor_8'],**args)
+                node_features,edge_features = self.gnn(node_features,edge_features,image_node_edges,geo_feature=args['node_descriptor_8'],**args)
             else:
-                node_features,edge_features = self.gnn(node_features,edge_features,node_edges,**args)
+                node_features,edge_features = self.gnn(node_features,edge_features,image_node_edges,**args)
         
         obj_class_logits = self.obj_predictor(node_features)
         if len(edge_features)>0:

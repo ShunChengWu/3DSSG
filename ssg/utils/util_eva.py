@@ -1069,7 +1069,7 @@ class EvalUpperBound():
                                 multi_rel_prediction=multi_rel,k=topK,
                                 save_prediction=True,
                                 none_name=none_name) 
-    def __call__(self,data_seg,data_inst):
+    def __call__(self,data_seg,data_inst, is_eval_image:bool):
         # Shortcuts
         scan_id = data_inst['scan_id']
         inst_mask2instance = data_inst['mask2instance']
@@ -1095,11 +1095,16 @@ class EvalUpperBound():
                           [inst_mask2instance],
                           data_inst['node_edges'])
             return 
-        seg_gt_cls= data_seg['gt_cls']
-        mask2seg = data_seg['mask2instance']
-        seg_node_edges = data_seg['node_edges']
+        if not is_eval_image:
+            seg_gt_cls= data_seg['gt_cls']
+            mask2seg = data_seg['mask2instance']
+            seg_node_edges = data_seg['node_edges']
+        else:
+            seg_gt_cls = data_seg['image_gt_cls']
+            mask2seg = data_seg['image_mask2instance']
+            seg_node_edges = data_seg['image_node_edges']
         seg2inst = data_seg.get('seg2inst',None)
-        
+            
         
         
         '''get upper bound'''

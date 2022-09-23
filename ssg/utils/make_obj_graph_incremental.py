@@ -144,7 +144,7 @@ if __name__ == '__main__':
                 del h5f[scan_id]
                 
         '''calculate '''
-        kfs = dict()
+        kfs = dict() # key str(frame_id), values: {'idx': fid, 'bboxes': {object_id: [xmin,ymin,xmax,ymax]} }
         objects = dict()
         node2kfs = dict()
         
@@ -298,8 +298,6 @@ if __name__ == '__main__':
                 seg2idx[int(kk)] = ii
             dset = dkfs.create_dataset(k,data=boxes_)
             dset.attrs['seg2idx'] = [(k,v) for k,v in seg2idx.items()]  
-            # dset = dkfs.create_dataset(k, data=occlu_)
-            # dset.attrs['seg2idx'] = [(k,v) for k,v in seg2idx.items()]  
         if DEBUG: break
         # break
     print('')

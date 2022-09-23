@@ -146,7 +146,7 @@ class Trainer():
         
         epo_time = time.time()
         it_time = time.time()
-        time.sleep(2)# Prevent possible deadlock during epoch transition
+        # time.sleep(2)# Prevent possible deadlock during epoch transition
         torch.multiprocessing.set_sharing_strategy('file_system')
         it_dataset = train_loader.__iter__()
         pbar = tqdm(it_dataset,leave=False)
