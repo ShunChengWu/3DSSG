@@ -5,7 +5,17 @@ The edge connection for multi-predicate estimation should be fully connected. Fo
 - [x] 3DSSG_full_l160_0
 - [x] 2DSSG_full_l160_1
 
-Use SGFN loader to train VGfM and IMP
+Use SGFN loader to train VGfM and IMP. 
+Change loader from graph to sgfn.
+remember to change drop_img_edge
+- [ ] IMP_FULL_l160_2
+- [ ] IMP_full_l20_4
+- [ ] IMP_INSEG_l20_2
+- [ ] IMP_ORBSLAM3_l20_2
+- [ ] VGfM_FULL_l160_3
+- [ ] VGfM_full_l20_6
+- [ ] VGFM_INSEG_l20_3
+- [ ] VGFM_ORBSLAM3_l20_3
 
 
 ## 3RScan160, Multiple Predicates
