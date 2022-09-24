@@ -30,6 +30,7 @@ class SGFNDataset (data.Dataset):
     def __init__(self,config,mode, **args):
         super().__init__()
         assert mode in ['train','validation','test']
+        self.mode = mode
         self._device = config.DEVICE
         path = config.data['path']
         self.config = config
