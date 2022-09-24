@@ -272,10 +272,11 @@ class SGFNDataset (data.Dataset):
         mv_data = None
         if self.mconfig.load_images:
             self.open_mv_graph()
-            self.open_img()
+            
             mv_data = self.mv_data[scan_id]
             mv_nodes = mv_data['nodes'] # contain kf ids of a given node
             if self.mconfig.is_roi_img:
+                self.open_img()
                 roi_imgs = self.roi_imgs[scan_id]
             else:
                 self.open_filtered()
@@ -370,7 +371,11 @@ class SGFNDataset (data.Dataset):
         '''release'''
         del self.sg_data
         if self.mconfig.load_images:
-            del self.roi_imgs
+            if self.mconfig.is_roi_img:
+                del self.roi_imgs
+            else:
+                del self.filtered_data
+                del self.image_feature
             del self.mv_data
         
         output = dict()
