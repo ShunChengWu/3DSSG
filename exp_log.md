@@ -15,7 +15,7 @@ remember to change drop_img_edge
 - [ ] VGfM_FULL_l160_3
 - [ ] VGfM_full_l20_6
 - [ ] VGFM_INSEG_l20_3
-- [ ] VGFM_ORBSLAM3_l20_3
+- [ ] VGFM_ORBSLAM3_l20_4
 
 
 ## 3RScan160, Multiple Predicates
