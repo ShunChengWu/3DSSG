@@ -179,7 +179,7 @@ def process(scan_id):
                 show_tensor_images(img_boxes, title=cls_label)
             
             h5d = h5f.create_dataset(oid,data=img_boxes.numpy(), compression="gzip", compression_opts=9)
-            h5d.attrs['seg2idx'] = fidx2idx
+            h5d.attrs['fid2idx'] = fidx2idx #TODO: was seg2idx. renamed. may create bug in some other files.
     fp.close()
 
 if __name__ == '__main__':

@@ -52,7 +52,7 @@ class IMP(nn.Module):
         self.cfg.model.image_encoder.update({
             'backend':"vgg16",
             'backend_finetune':False,
-            'use_global': False,
+            'use_global': True,
         })
         self.cfg.data.use_precompute_img_feature = False
         self.cfg.model.gnn.update({

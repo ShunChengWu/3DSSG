@@ -329,30 +329,29 @@ class MessagePassing_IMP(MessagePassing):
     def __init__(self, dim_node, aggr= 'mean', **kwargs):
         super().__init__(aggr=aggr)
         self.dim_node = dim_node
+        # Attention layer
         self.subj_node_gate = nn.Sequential(nn.Linear(self.dim_node * 2, 1), nn.Sigmoid())
         self.obj_node_gate = nn.Sequential(nn.Linear(self.dim_node * 2, 1), nn.Sigmoid())
 
         self.subj_edge_gate = nn.Sequential(nn.Linear(self.dim_node * 2, 1), nn.Sigmoid())
         self.obj_edge_gate = nn.Sequential(nn.Linear(self.dim_node * 2, 1), nn.Sigmoid())
+        
+        
     def forward(self,x,edge_feature,edge_index):
         node_msg, edge_msg = self.propagate(edge_index, x=x, edge_feature=edge_feature)
         return node_msg, edge_msg
 
     def message(self, x_i, x_j,edge_feature):
+        '''Node'''
         message_pred_to_subj = self.subj_node_gate(torch.cat([x_i,edge_feature],dim=1)) * edge_feature #n_rel x d
         message_pred_to_obj  = self.obj_node_gate(torch.cat([x_j,edge_feature],dim=1)) * edge_feature#n_rel x d
-        node_message = (message_pred_to_subj+message_pred_to_obj)*0.5
+        node_message = (message_pred_to_subj+message_pred_to_obj)
         
+        '''Edge'''
         message_subj_to_pred = self.subj_edge_gate(torch.cat([x_i, edge_feature], 1)) * x_i  # nrel x d
         message_obj_to_pred  = self.obj_edge_gate(torch.cat([x_j, edge_feature], 1)) * x_j# nrel x d
-        edge_message = (message_subj_to_pred+message_obj_to_pred)*0.5
-        
-        # x = torch.cat([x_i,edge_feature,x_j],dim=1)
-        # x = self.nn1(x)#.view(b,-1)
-        # new_x_i = x[:,:self.dim_hidden]
-        # new_e   = x[:,self.dim_hidden:(self.dim_hidden+self.dim_edge)]
-        # new_x_j = x[:,(self.dim_hidden+self.dim_edge):]
-        # x = new_x_i+new_x_j
+        edge_message = (message_subj_to_pred+message_obj_to_pred)
+
         return [node_message, edge_message]
     
     def aggregate(self, x: Tensor, index: Tensor,
@@ -379,7 +378,7 @@ class MessagePassing_VGfM(MessagePassing):
     def message(self, x_i, x_j,edge_feature, geo_feature):
         message_pred_to_subj = self.subj_node_gate(torch.cat([x_i,edge_feature],dim=1)) * edge_feature #n_rel x d
         message_pred_to_obj  = self.obj_node_gate(torch.cat([x_j,edge_feature],dim=1)) * edge_feature#n_rel x d
-        node_message = (message_pred_to_subj+message_pred_to_obj)*0.5
+        node_message = (message_pred_to_subj+message_pred_to_obj)
         
         message_subj_to_pred = self.subj_edge_gate(torch.cat([x_i, edge_feature], 1)) * x_i  # nrel x d
         message_obj_to_pred  = self.obj_edge_gate(torch.cat([x_j, edge_feature], 1)) * x_j# nrel x d
@@ -426,6 +425,8 @@ class TripletIMP(torch.nn.Module):
         pass
     
     def forward(self, x, edge_feature, edge_index, **kwargs):
+        x = self.node_gru(x)
+        edge_feature = self.node_gru(edge_feature)
         for i in range(self.num_layers):
             node_msg, edge_msg = self.msp_IMP(x=x, edge_feature=edge_feature,edge_index=edge_index)
             x = self.node_gru(node_msg,x)
@@ -456,6 +457,8 @@ class TripletVGfM(torch.nn.Module):
         # reset_parameters_with_activation(self.nn2[0], 'relu')
         
     def forward(self, x, edge_feature, edge_index, geo_feature, temporal_node_graph, temporal_edge_graph, **args):
+        x = self.node_gru(x)
+        edge_feature = self.node_gru(edge_feature)
         extended_geo_feature = self.edge_encoder(geo_feature,edge_index)
         for i in range(self.num_layers):
             node_msg, edge_msg = self.msg_vgfm(x=x, edge_feature=edge_feature,geo_feature=extended_geo_feature,edge_index=edge_index)
