@@ -100,6 +100,7 @@ def get_model(cfg, num_obj_cls,num_rel_cls):
             num_obj_cls=num_obj_cls,
             device=cfg.DEVICE).to(cfg.DEVICE)
     elif cfg.model.method == 'imp':
+        # logger_py.info('use IMP implementation')
         return method_dict[cfg.model.method](
             cfg=cfg,
             num_obj_cls=num_obj_cls,

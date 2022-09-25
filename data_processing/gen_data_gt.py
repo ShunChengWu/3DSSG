@@ -1,12 +1,15 @@
 if __name__ == '__main__' and __package__ is None:
     from os import sys
     sys.path.append('../')
+import codeLib
+from ssg.utils import util_3rscan, util_label
 from utils import util_ply
 import trimesh
 import open3d as o3d
 import numpy as np
-from utils import define, util
-from utils import util_ply, util_label, util, define
+# from utils import define, util
+# from utils import util_ply, util_label, util, define
+from ssg import define
 from utils.util_search import SAMPLE_METHODS,find_neighbors
 from tqdm import tqdm
 from pathlib import Path
@@ -83,7 +86,7 @@ def generate_groups(cloud:trimesh.points.PointCloud, distance:float=1, bbox_dist
     if debug:
         seg_colors = dict()
         for index in seg_ids:
-            seg_colors[index] = util.color_rgb(util.rand_24_bit())
+            seg_colors[index] = codeLib.common.color_rgb(codeLib.common.rand_24_bit())
         counter=0
     '''Get segment groups'''
     seg_group = list()
@@ -203,7 +206,7 @@ def process(pth_3RScan, scan_id,
 
     _, label_name_mapping, _ = util_label.getLabelMapping(args.label_type)
     pth_semseg_file = os.path.join(pth_3RScan, scan_id, segseg_file_name)
-    instance2labelName = util.load_semseg(pth_semseg_file, label_name_mapping,args.mapping)
+    instance2labelName = util_3rscan.load_semseg(pth_semseg_file, label_name_mapping,args.mapping)
     
     '''extract object bounding box info'''
     objs_obbinfo=dict()
@@ -287,7 +290,7 @@ def gen_relationship(scan_id:str,
     split_relationships = list()
     ''' Inherit relationships from ground truth segments '''
     if gt_relationships is not None:
-        relationships_names = util.read_relationships(os.path.join(define.FILE_PATH, args.relation + ".txt"))
+        relationships_names = codeLib.utils.util.read_txt_to_list(os.path.join(define.FILE_PATH, args.relation + ".txt"))
         for rel in gt_relationships:
             id_src = rel[0]
             id_tar = rel[1]
@@ -317,12 +320,12 @@ if __name__ == '__main__':
     elif args.search_method == 'KNN':
         search_method = SAMPLE_METHODS.RADIUS
     
-    util.set_random_seed(2020)
+    codeLib.utils.util.set_random_seed(2020)
     
     ''' Map label to 160'''
     label_names, _, _ = util_label.getLabelMapping(args.label_type)
     # label_names = sorted(util.read_classes(define.CLASS160_FILE))
-    target_relationships = sorted(util.read_relationships(define.RELATIONSHIP27_FILE))
+    target_relationships = sorted(codeLib.utils.util.read_txt_to_list(define.RELATIONSHIP27_FILE))
     
     if args.only_support_type>0:
     # target_relationships = sorted(util.read_classes(define.RELEASE_PATH + '/classes160.txt'))
@@ -348,7 +351,7 @@ if __name__ == '__main__':
                 
     target_scan=[]
     if args.target_scan != '':
-        target_scan = util.read_txt_to_list(args.target_scan)
+        target_scan = codeLib.utils.util.read_txt_to_list(args.target_scan)
             
     valid_scans=list()
     relationships_new = dict()

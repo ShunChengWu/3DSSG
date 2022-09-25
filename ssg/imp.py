@@ -11,6 +11,7 @@ import ssg
 from .models.classifier import PointNetCls, PointNetRelClsMulti, PointNetRelCls
 from codeLib.utils.util import pytorch_count_params
 import logging
+import torchvision
 logger_py = logging.getLogger(__name__)
 
 class IMP(nn.Module):
@@ -45,25 +46,48 @@ class IMP(nn.Module):
         self.dim = 512
         self.update_step = 2
         self.avgpool = nn.AdaptiveAvgPool2d(1)
+        
+        
+        logger_py.info('use offical setup')
+        self.cfg.model.image_encoder.update({
+            'backend':"vgg16",
+            'backend_finetune':False,
+            'use_global': False,
+        })
+        self.cfg.data.use_precompute_img_feature = False
+        self.cfg.model.gnn.update({
+            "hidden_dim":512,
+            "num_layers":2,
+            "aggr": "mean"
+        })
+        # self.cfg.model.image_encoder.backend='vgg16'
+        
 
         '''build models'''
         models = dict()
         
-        cfg.data.use_precompute_img_feature = False
-        models['roi_extrator'] = ssg.models.node_encoder_list['roi_extractor'](cfg,cfg.model.image_encoder.backend,device)
+        models['roi_extractor'] = ssg.models.node_encoder_list['roi_extractor'](cfg,cfg.model.image_encoder.backend,device)
         
-        node_feature_dim = models['roi_extrator'].node_feature_dim
+        models['obj_embedding'] = ssg.models.classifier.classifider_list['vgg16'](
+            models['roi_extractor'].node_feature_dim,
+            self.dim,replace=True,
+            pretrained=True)
         
-        models['obj_embedding'] = nn.Sequential(
-            nn.Linear(node_feature_dim, self.dim),
-            nn.ReLU(True),
-            nn.Linear(self.dim, self.dim),
-        )
-        models['pred_embedding'] = nn.Sequential(
-            nn.Linear(node_feature_dim, self.dim),
-            nn.ReLU(True),
-            nn.Linear(self.dim, self.dim),
-        )
+        models['pred_embedding'] = ssg.models.classifier.classifider_list['vgg16'](
+            models['roi_extractor'].node_feature_dim,
+            self.dim,replace=True,
+            pretrained=True)
+        
+        # models['obj_embedding'] = nn.Sequential(
+        #     nn.Linear(node_feature_dim, self.dim),
+        #     nn.ReLU(True),
+        #     nn.Linear(self.dim, self.dim),
+        # )
+        # models['pred_embedding'] = nn.Sequential(
+        #     nn.Linear(node_feature_dim, self.dim),
+        #     nn.ReLU(True),
+        #     nn.Linear(self.dim, self.dim),
+        # )
         
         models['gnn'] = ssg.models.gnn_list[cfg.model.gnn.method](
             dim_node=cfg.model.gnn.hidden_dim,
@@ -91,15 +115,15 @@ class IMP(nn.Module):
     def eval(self):
         # nn.Module.eval(self)
         super().train(mode=False)
-        self.roi_extrator.with_precompute=True
+        self.roi_extractor.with_precompute=True
     def train(self):
         # nn.Module.train(self)
         super().train(mode=True)
-        self.roi_extrator.with_precompute=False
+        self.roi_extractor.with_precompute=False
         
     def forward(self, images, image_boxes,image_node_edges, **args):
         '''compute image feature'''
-        node_features, edge_features = self.roi_extrator(images, image_boxes,image_node_edges)
+        node_features, edge_features = self.roi_extractor(images, image_boxes,image_node_edges)
         
         node_features = self.obj_embedding(node_features)
         if len(edge_features)>0:

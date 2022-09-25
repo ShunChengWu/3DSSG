@@ -8,6 +8,7 @@ FILE_PATH = ROOT_PATH+'files/'
 Scan3RJson_PATH = FILE_PATH+'3RScan.json'
 LABEL_MAPPING_FILE = FILE_PATH+'3RScan.v2 Semantic Classes - Mapping.csv'
 CLASS160_FILE = FILE_PATH+'classes160.txt'
+RELATIONSHIP27_FILE = FILE_PATH+'relationships.txt'
 
 # Coco
 PATH_LABEL_COCOSTUFF = './files/cocostuff.txt'

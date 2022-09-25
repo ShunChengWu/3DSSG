@@ -94,78 +94,33 @@ class SGFNDataset (data.Dataset):
         
         '''set transform'''
         if self.mconfig.load_images:
-            if not self.for_eval:
-                self.transform  = transforms.Compose([
-                    transforms.Resize(config.data.roi_img_size),
-                    cltransform.TrivialAugmentWide(),
-                    # RandAugment(),
-                    ])
+            if self.mconfig.is_roi_img:
+                if not self.for_eval:
+                    self.transform  = transforms.Compose([
+                        transforms.Resize(config.data.roi_img_size),
+                        cltransform.TrivialAugmentWide(),
+                        # RandAugment(),
+                        ])
+                else:
+                    self.transform = transforms.Compose([
+                        transforms.Resize(config.data.roi_img_size),
+                        ])
             else:
-                self.transform = transforms.Compose([
-                    transforms.Resize(config.data.roi_img_size),
-                    ])
+                if not self.for_eval:
+                    if config.data.img_size > 0:
+                        self.transform = transforms.Compose([
+                                    transforms.Resize(config.data.img_size),
+                                ])
+                    else:
+                        self.transform = transforms.Compose([
+                                ])
+                else:
+                    self.transform = transforms.Compose([
+                                ])
         
         # Generate filtered data and compute weights
         self.__preprocessing()
         
-        # if not self.for_eval:
-        #     w_node_cls = np.loadtxt(self.pth_node_weights)
-        #     w_edge_cls = np.loadtxt(self.pth_edge_weights)
-        #     self.w_node_cls = torch.from_numpy(w_node_cls).float()
-        #     self.w_edge_cls = torch.from_numpy(w_edge_cls).float()
-        
-        # ''' load data '''
-        # if self.mconfig.load_images:
-        #     self.open_mv_graph()
-        #     self.open_img()
-        
-        # self.open_data()
-        # c_sg_data = cvt_all_to_dict_from_h5(self.sg_data)
-        
-        # '''check scan_ids'''
-        # # filter input scans with relationship data
-        # tmp   = set(c_sg_data.keys())
-        # inter = sorted(list(tmp.intersection(selected_scans)))
-        # if self.mconfig.load_images:
-        #     # filter input scans with image data
-        #     tmp   = set(self.mv_data.keys())
-        #     inter = sorted(list(tmp.intersection(inter)))
-            
-        #     # filter input scans with roi images
-        #     tmp   = set(self.roi_imgs.keys())
-        #     inter = sorted(list(tmp.intersection(inter)))
-            
-        #     #TODO: also filter out nodes when only with points input. this gives fair comparison on points and images methods.
-        #     filtered_sg_data = dict()
-        #     for scan_id in inter:
-        #         mv_node_ids = [int(x) for x in self.mv_data[scan_id]['nodes'].keys()]
-        #         sg_node_ids = c_sg_data[scan_id]['nodes'].keys()                
-        #         inter_node_ids = set(sg_node_ids).intersection(mv_node_ids)
-                
-        #         filtered_sg_data[scan_id] = dict()
-        #         filtered_sg_data[scan_id]['nodes'] = {nid: c_sg_data[scan_id]['nodes'][nid] for nid in inter_node_ids}
-                
-        #         filtered_sg_data[scan_id]['relationships'] = c_sg_data[scan_id]['relationships']
-        #     c_sg_data = filtered_sg_data
-        
-        # self.size = len(inter)
-        # self.scans = snp.pack(inter)#[s for s in data.keys()]
-
-        # '''compute weight  ''' #TODO: rewrite this. in runtime sampling the weight might need to be calculated in each epoch.
-        # if not self.for_eval:
-        #     if self.full_edge:
-        #         edge_mode='fully_connected'
-        #     else:
-        #         edge_mode='nn'
-        #     wobjs, wrels, o_obj_cls, o_rel_cls = compute_weight.compute_sgfn(self.classNames, self.relationNames, c_sg_data, selected_scans,
-        #                                                                 normalize=config.data.normalize_weight,
-        #                                                                 for_BCE=multi_rel_outputs==True,
-        #                                                                 edge_mode=edge_mode,
-        #                                                                 none_index=self.none_idx,
-        #                                                                 verbose=config.VERBOSE)
-        #     self.w_node_cls = torch.from_numpy(np.array(wobjs)).float()
-        #     self.w_edge_cls = torch.from_numpy(np.array(wrels)).float()
-
         '''compute channel dims'''
         self.dim_pts = 3
         if self.use_rgb:
@@ -375,7 +330,8 @@ class SGFNDataset (data.Dataset):
                 del self.roi_imgs
             else:
                 del self.filtered_data
-                del self.image_feature
+                if self.for_eval:
+                    del self.image_feature
             del self.mv_data
         
         output = dict()
@@ -877,6 +833,8 @@ class SGFNDataset (data.Dataset):
     
     def __load_roi_images(self, cat:list, idx2oid:dict,mv_nodes:dict, roi_imgs:dict,
                           object_data:dict, filtered_instances:list):
+        descriptor_generator = util_data.Node_Descriptor_24(with_bbox=self.mconfig.img_desc_6_pts)
+        
         roi_images = list()
         node_descriptor_for_image = torch.zeros([len(cat), len(descriptor_generator)])
         
@@ -907,7 +865,8 @@ class SGFNDataset (data.Dataset):
             t_img= normalize_imagenet(t_img.float()/255.0)
             roi_images.append( t_img)
             
-        descriptor_generator = util_data.Node_Descriptor_24(with_bbox=self.mconfig.img_desc_6_pts)
+            #TODO: add temporal graph
+            
         '''compute node description'''
         for i in range(len(filtered_instances)):
             instance_id = filtered_instances[i]
