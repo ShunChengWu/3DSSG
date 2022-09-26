@@ -39,7 +39,7 @@ class SGFNDataset (data.Dataset):
         self.path = config.data.path
         self.label_file = config.data.label_file
         self.use_data_augmentation=self.mconfig.data_augmentation
-        self.root_3rscan = define.DATA_PATH
+        self.root_3rscan = config.data.path_3rscan
         self.path_h5 = os.path.join(self.path,'relationships_%s.h5' % (mode))
         self.path_mv = os.path.join(self.path,'proposals.h5')
         self.path_roi_img = self.mconfig.roi_img_path
@@ -47,7 +47,7 @@ class SGFNDataset (data.Dataset):
         self.pth_node_weights = os.path.join(self.path,'node_weights.txt')
         self.pth_edge_weights = os.path.join(self.path,'edge_weights.txt')
         try:
-            self.root_scannet = define.SCANNET_DATA_PATH
+            self.root_scannet = config.data.path_scannet
         except:
             self.root_scannet = None
             

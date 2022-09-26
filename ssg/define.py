@@ -1,6 +1,6 @@
 ROOT_PATH = '/home/sc/research/PersistentSLAM/python/3DSSG/'
 # DATA_PATH = '/media/sc/SSD1TB/dataset/3RScan/data/3RScan/'
-SCANNET_DATA_PATH = '/media/sc/space1/dataset/scannet/scans/'
+# SCANNET_DATA_PATH = '/media/sc/space1/dataset/scannet/scans/'
 SCANNET_SPLIT_TRAIN = '/media/sc/space1/dataset/scannet/Tasks/Benchmark/scannetv2_train.txt'
 SCANNET_SPLIT_VAL = '/media/sc/space1/dataset/scannet/Tasks/Benchmark/scannetv2_val.txt'
 

@@ -89,6 +89,7 @@ model:
 data:
  input_type: sgfn #[3RScan, graph, sgfn, sgpn]
  path_3rscan: "./data/3RScan/"
+ path_scannet: '/media/sc/space1/dataset/scannet/scans/'
  path: "./data/3RScan_3RScan160/"
  path_gt: "./data/3RScan_3RScan160/"
  img_feature_path: "/media/sc/SSD1TB/storage/kf_feature/"
