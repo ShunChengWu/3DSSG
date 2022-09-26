@@ -964,7 +964,7 @@ class SGFNDataset (data.Dataset):
                 img_data = np.asarray(img_data).copy()
                 img_data = torch.from_numpy(img_data)
             else:
-                pth_rgb = os.path.join(define.DATA_PATH,scan_id,'sequence', define.RGB_NAME_FORMAT.format(int(fid)))
+                pth_rgb = os.path.join(self.cfg.data.path_3rscan,scan_id,'sequence', define.RGB_NAME_FORMAT.format(int(fid)))
                 img_data = Image.open(pth_rgb)
                 img_data = np.rot90(img_data,3)# Rotate image
                 img_data = torch.as_tensor(img_data.copy()).permute(2,0,1)
