@@ -103,6 +103,8 @@ if __name__ == '__main__':
             images=list()
             for fid in kf_indices:
                 pth_rgb = os.path.join(cfg.data.path_3rscan,scan_id,'sequence', define.RGB_NAME_FORMAT.format(int(fid)))
+                print(cfg.data.path_3rscan)
+                print(pth_rgb)
                 img_data = Image.open(pth_rgb)
                 img_data = np.rot90(img_data,3)# Rotate image
                 img_data = torch.as_tensor(img_data.copy()).permute(2,0,1)
