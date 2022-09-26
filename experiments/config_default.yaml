@@ -88,13 +88,14 @@ model:
   dropout: 0.3
 data:
  input_type: sgfn #[3RScan, graph, sgfn, sgpn]
+ path_3rscan: "./data/3RScan/"
  path: "./data/3RScan_3RScan160/"
  path_gt: "./data/3RScan_3RScan160/"
  img_feature_path: "/media/sc/SSD1TB/storage/kf_feature/"
  label_file: "labels.instances.align.annotated.v2.ply"
  label_file_gt: "labels.instances.align.annotated.v2.ply"
- roi_img_path: "/media/sc/SSD1TB/dataset/3RScan/roi_images.h5"
- path_image_feature: "/media/sc/SSD1TB/dataset/3RScan/"
+ roi_img_path: "./data/3RScan/roi_images.h5"
+ path_image_feature: "./data/3RScan/"
  data_augmentation: false
  sample_in_runtime: true
  is_roi_img: true

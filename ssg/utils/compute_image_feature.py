@@ -102,7 +102,7 @@ if __name__ == '__main__':
             logger_py.info('get image list')
             images=list()
             for fid in kf_indices:
-                pth_rgb = os.path.join(define.DATA_PATH,scan_id,'sequence', define.RGB_NAME_FORMAT.format(int(fid)))
+                pth_rgb = os.path.join(cfg.data.path_3rscan,scan_id,'sequence', define.RGB_NAME_FORMAT.format(int(fid)))
                 img_data = Image.open(pth_rgb)
                 img_data = np.rot90(img_data,3)# Rotate image
                 img_data = torch.as_tensor(img_data.copy()).permute(2,0,1)

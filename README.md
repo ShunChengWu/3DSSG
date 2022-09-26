@@ -176,3 +176,20 @@ If you find the code useful please consider citing our [paper](https://arxiv.org
 
 
 [1]: https://arxiv.org/pdf/2103.14898.pdf
+
+
+## Run on cluster
+Copy data to cluster
+
+```
+rsync -ahz /home/sc/research/PersistentSLAM/python/3DSSG/data/3RScan_ScanNet20_gt /media/fileserver/gpucluster/workfiles/wsh/3DSSG/data/
+```
+Setup ssh key
+```
+bash /mnt/nfs-user/scripts/ssh_key.sh
+```
+
+Run setup
+```
+bash /mnt/nfs-user/scripts/setup_3dssg.sh
+```
