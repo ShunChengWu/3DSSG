@@ -19,17 +19,24 @@ def load_config(path, default_path=None):
     # If yes, load this config first as default
     # If no, use the default_path
     if inherit_from is not None:
-        cfg = load_config(inherit_from, default_path)
+        if isinstance(inherit_from,list):
+            cfg = [load_config(path, default_path) for path in inherit_from]
+        else:
+            cfg = [load_config(inherit_from, default_path)]
     elif default_path is not None:
         with open(default_path, 'r') as f:
-            cfg = yaml.load(f, Loader=yaml.Loader)
+            cfg = [yaml.load(f, Loader=yaml.Loader)]
     else:
-        cfg = dict()
+        cfg = [dict()]
 
+    cfg.append(cfg_special)
+    
     # Include main configuration
-    update_recursive(cfg, cfg_special)
+    out_cfg = dict()
+    for c in cfg:
+        update_recursive(out_cfg, c)
 
-    return cfg
+    return out_cfg
 
 def update_recursive(dict1, dict2):
     ''' Update two config dictionaries recursively.

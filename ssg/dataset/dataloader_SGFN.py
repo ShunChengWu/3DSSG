@@ -135,8 +135,8 @@ class SGFNDataset (data.Dataset):
         self.scans = snp.pack([k for k in self.filtered_data.keys()])
         self.size = len(self.filtered_data)
             
-        '''check file exist'''
-        if self.for_eval and self.mconfig.load_images: # train mode can't use precmopute feature. need to do img. aug.
+        '''check if pre-computed global image featur eexist'''
+        if self.for_eval and not self.mconfig.is_roi_img and self.mconfig.load_images: # train mode can't use precmopute feature. need to do img. aug.
             # self.open_filtered()
             should_compute_image_feature=False
             if not os.path.exists(self.path_img_feature):
@@ -916,6 +916,7 @@ class SGFNDataset (data.Dataset):
         object_data = scan_data['nodes']
         mv_nodes = mv_data['nodes']
         mv_kfs = mv_data['kfs']
+        feature_type = self.cfg.model.image_encoder.backend
         
         # 
         descriptor_generator = util_data.Node_Descriptor_24(with_bbox=self.cfg.data.img_desc_6_pts)
@@ -960,7 +961,7 @@ class SGFNDataset (data.Dataset):
             
             '''load image'''
             if self.for_eval:
-                img_data = self.image_feature[scan_id][str(fid)]
+                img_data = self.image_feature[feature_type][scan_id][str(fid)]
                 img_data = np.asarray(img_data).copy()
                 img_data = torch.from_numpy(img_data)
             else:

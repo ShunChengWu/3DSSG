@@ -45,17 +45,9 @@ if __name__ == '__main__':
     logger_py.info('args:\n{}'.format(args.__dict__))
     logger_py.info('use backend {}'.format(cfg.model.image_encoder.backend))
     
-    
     '''read label type '''
     # fdata = define.DATA_PATH
     # rgb_filepattern =  define.RGB_NAME_FORMAT
-    foldername = args.folder_name
-    pattern = '{}/*.h5'.format(foldername)
-    pth_out = os.path.join(args.outdir,foldername)# '/media/sc/SSD1TB/dataset/3RScan/roi_images/'
-    pth_link = os.path.join(args.outdir,foldername+'.h5')
-    
-    '''create save'''
-    pathlib.Path(pth_out).mkdir(parents=True,exist_ok=True)
     
     '''load'''
     pth_filtered = os.path.join(cfg.data.path,'filtered_scans_detection_%s.h5' % (args.mode))
@@ -63,13 +55,21 @@ if __name__ == '__main__':
     
     '''image encoder'''
     logger_py.info('create image encoder')
-    # feature_type = cfg.model.image_encoder.backend
+    feature_type = cfg.model.image_encoder.backend
     cfg.data.use_precompute_img_feature = False # force to set to false to enable backend precompute
     img_encoder = ssg.models.node_encoder_list['roi_extractor'](cfg,cfg.model.image_encoder.backend,cfg.DEVICE)
     img_encoder = img_encoder.eval()
     for param in img_encoder.parameters(): param.requires_grad = False
     img_encoder = img_encoder.to(cfg.DEVICE)
     
+    
+    '''create folder'''
+    foldername = args.folder_name
+    # pattern = '{}/*.h5'.format(foldername)
+    pth_link = os.path.join(args.outdir,foldername+'.h5')
+    pth_out = os.path.join(args.outdir,foldername,feature_type)# '/media/sc/SSD1TB/dataset/3RScan/roi_images/'
+    pathlib.Path(pth_out).mkdir(parents=True,exist_ok=True)
+
     '''transform'''
     if cfg.data.img_size > 0:
         transform = transforms.Compose([
@@ -104,8 +104,6 @@ if __name__ == '__main__':
             images=list()
             for fid in kf_indices:
                 pth_rgb = os.path.join(cfg.data.path_3rscan,scan_id,'sequence', define.RGB_NAME_FORMAT.format(int(fid)))
-                logger_py.info(cfg.data.path_3rscan)
-                logger_py.info(pth_rgb)
                 img_data = Image.open(pth_rgb)
                 img_data = np.rot90(img_data,3)# Rotate image
                 img_data = torch.as_tensor(img_data.copy()).permute(2,0,1)
@@ -135,7 +133,7 @@ if __name__ == '__main__':
             os.remove(filepath)
             logger_py.error('error occur. delete unfinished file at {}'.format(filepath))
             raise RuntimeError()
-        # break
+    #     break
             
     '''create a link h5 db'''
     if os.path.exists(pth_link):
@@ -143,10 +141,19 @@ if __name__ == '__main__':
     logger_py.info('create a link h5 library at {}'.format(pth_link))
     fbase = args.outdir
     if fbase[-1] != '/': fbase+='/'
+    
+    
+    
+    base = os.path.join(fbase,foldername)
     with h5py.File(pth_link, 'w') as h5f:
-        for path in glob.glob(os.path.join(fbase,pattern)):
-            # name = path.split('/')[-1]
-            name = path[len(fbase):]
-            scan_id = path.split('/')[-1].split('.')[0]
-            h5f[scan_id] = h5py.ExternalLink(name, './')
+        for root, subdirs, files in os.walk(base):
+            print(root, subdirs,files)
+            if root == base: continue
+            feature_type = root[len(os.path.join(fbase,foldername)):]
+            feature_type = feature_type.replace('/','')
+            h5g = h5f.create_group(feature_type)
+            for filename in files:
+                name = os.path.join(root,filename)[len(fbase):]
+                scan_id = filename.split('.')[0]
+                h5g[scan_id] = h5py.ExternalLink(name, './')
     logger_py.info('done')
