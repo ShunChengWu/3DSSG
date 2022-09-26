@@ -39,6 +39,7 @@ if __name__ == '__main__':
     '''load config'''
     args = Parser().parse_args()
     cfg = ssg.load_config(args)
+    logger_py.info(cfg)
     
     '''Logging'''
     logger_py.info('args:\n{}'.format(args.__dict__))
