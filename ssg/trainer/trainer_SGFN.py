@@ -190,8 +190,8 @@ class Trainer_SGFN(BaseTrainer, EvalInst):
         data['node_edges'] = data['node_edges'].t().contiguous()
         
         # check input valid
-        if node_edges_ori.ndim==1:
-            return {}
+        # if node_edges_ori.ndim==1:
+        #     return {}
         
         # print('')
         # print('gt_rel.sum():',gt_rel.sum())

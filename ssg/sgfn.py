@@ -184,6 +184,10 @@ class SGFN(nn.Module):
             print(name,pytorch_count_params(model))
         print('')
     def forward(self, node_edges, **args):
+        """reshape node edges if needed"""
+        if node_edges.shape[0] != 2:
+            node_edges = node_edges.t().contiguous()
+        
         if self.with_pts_encoder:
             obj_points = args['obj_points']
             # logger_py.debug('len(nodes), len(edges): {} {} '.format(len(obj_points), node_edges.shape))
