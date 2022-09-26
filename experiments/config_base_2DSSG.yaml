@@ -1,0 +1,40 @@
+model:
+ method: sgfn
+ multi_rel: false # multiple relationship 
+ use_rgb: false
+ use_normal: false
+ use_spatial: true
+ img_feature_dim: 256
+ num_points_union: 512 # for 3DSSG
+ node_feature_dim: 256
+ edge_feature_dim: 256
+ spatial_encoder:
+  method: fc #[none,fc]
+  dim: 128
+ node_encoder:
+  method: none #[none, basic]
+ image_encoder:
+  method: mvcnn_res18 #[none,mvcnn,mean,mvcnn_res18]
+  backend: res18 #[vgg16,res18]
+  img_batch_size: 8 # this is the batch processing limit. if input is larger, the maximum batch process will still be 4.
+  backend_finetune: false # only works for the standard backend
+  use_global: false
+  roi_region: [3,3]
+  aggr: max # aggrigation method [mean, max, sum]
+  with_bn: false
+  hidden: 1024
+  drop_out: 0.3
+  local_feature_dim: 64
+ edge_encoder:
+  method: 2dssg # [basic,sgfn,2dssg, 2dssg_1]
+  with_bn: false
+ gnn:
+  method: fan # [none, fan, triplet]
+  hidden_dim: 256
+  num_layers: 2
+  num_heads: 8
+  drop_out: 0.3
+  node_from_gnn: true
+ node_classifier:
+  with_bn: false
+  dropout: 0.3
