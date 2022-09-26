@@ -1,0 +1,10 @@
+inherit_from: experiments/config_3RScan_IMP_base.yaml
+name: 'IMP_FULL_l160_3'
+model:
+ multi_rel: true # multiple relationship 
+data:
+ path: "./data/3RScan_3RScan160/"
+ path_gt: "./data/3RScan_3RScan160/"
+wandb:
+ dry_run: false
+ tags: ["ssg", "2dssg", "imp",'full','l160']

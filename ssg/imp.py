@@ -116,10 +116,12 @@ class IMP(nn.Module):
         # nn.Module.eval(self)
         super().train(mode=False)
         self.roi_extractor.with_precompute=True
+        # self.roi_extractor.with_precompute=False
     def train(self):
         # nn.Module.train(self)
         super().train(mode=True)
         self.roi_extractor.with_precompute=False
+        # self.roi_extractor.with_precompute=True
         
     def forward(self, images, image_boxes,image_node_edges, **args):
         '''compute image feature'''

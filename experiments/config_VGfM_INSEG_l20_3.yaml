@@ -1,0 +1,109 @@
+inherit_from: experiments/config_default.yaml
+VERBOSE: true
+GPU: [0]
+name: 'VGfM_INSEG_l20_3'
+training:
+ batch: 1
+ data_workers: 4
+ patient: 30
+ optimizer: 'adamw'
+ amsgrad: true
+ lambda_mode: dynamic # [constant, dynamic]. dynamic will calculate the ratio of the number of node and edge.
+ lambda_node: 1.0 # learning rate ratio
+ lambda_edge: 1.0 # learning rate ratio
+ scheduler:
+  method: reduceluronplateau # [none, multisteplr, reduceluronplateau]
+  args: {
+    mode: max, 
+    verbose: true,
+    milestones: [750, 1000],
+    gamma: 0.5,
+    factor: 0.9,
+  }
+ out_dir: experiments/
+ model_selection_metric: iou_node_cls
+ model_selection_mode: maximize # can be maximize or minimize. e.g. if it's "loss", should "minimize", if it's accuracy, should "maximize"
+ metric_smoothing:
+  method: ema #[none,ema,ma]
+  args: {
+   alpha: 0.8,
+   correction: true,
+  }
+ max_epoch: 500
+ validate_every: 10
+eval: #evaluation
+ mode: instance #eval on [segment, instance].  
+ data_workers: 8
+ topK: 10
+ ignore_missing: false
+model:
+ method: imp
+ multi_rel: false # multiple relationship 
+ use_rgb: false
+ use_normal: false
+ use_spatial: true
+ img_feature_dim: 256
+ num_points_union: 512 # for 3DSSG
+ node_feature_dim: 256
+ edge_feature_dim: 256
+ spatial_encoder:
+  method: fc #[none,fc]
+  dim: 128
+ image_encoder:
+  method: mvcnn_res18 #[none,mvcnn,mean,mvcnn_res18]
+  backend: res18 #[vgg16,res18]
+  img_batch_size: 8 # this is the batch processing limit. if input is larger, the maximum batch process will still be 4.
+  backend_finetune: false # only works for the standard backend
+  use_global: true
+  roi_region: [3,3]
+  aggr: max # aggrigation method [mean, max, sum]
+  with_bn: false
+  hidden: 1024
+  drop_out: 0.3
+  local_feature_dim: 64
+ edge_encoder:
+  method: 2dssg # [basic,sgfn,2dssg]
+  with_bn: false
+ gnn:
+  method: vgfm # [none, fan, triplet]
+  hidden_dim: 512
+  num_layers: 2
+  aggr: mean
+ node_classifier:
+  with_bn: false
+  dropout: 0.3
+data:
+ input_type: sgfn #[3RScan, graph, sgfn, sgpn]
+ path: "./data/3RScan_ScanNet20/"
+ path_gt: "./data/3RScan_ScanNet20_gt/"
+ roi_img_path: "/media/sc/SSD4TB/roi_inseg/roi_images.h5"
+ sample_in_runtime: true
+ is_roi_img: false
+ load_images: true
+ load_points: false
+ load_cache: false
+ img_desc_6_pts: true # return 6 extreme points 
+ sample_num_nn: 1
+ sample_num_seed: 2
+ drop_img_edge: 256 # if is int and >0, select given number. if is float/double, select percentage between [1-x,1]
+ drop_img_edge_eval: 0
+ drop_edge: 0.5 # if is int and >0, select given number. if is float/double, select percentage between [1-x,1]
+ drop_edge_eval: 0 # if is int and >0, select given number. if is float/double, select percentage between [1-x,1]
+ normalize_weight: true 
+ max_num_node: 64 # maximum number of nodes for training (memory)
+ max_num_edge: 128 # maximum number of edges for training (to save memory)
+ max_num_edge: -1 # maximum number of edges for training (to save memory)
+ full_edge: false # connect all selected nodes
+ img_size: -1 # minimum image edge will be resize to this. (-1: keep origianl)
+ roi_img_size: [256,256]
+ use_precompute_img_feature: false
+ bbox_aug_ratio: 0.3 # [0.,1.]. 0: no aug. 
+logging:
+ method: wandb # [tensorboard, wandb, none]
+ log_grad_freq: 1000 
+ log_graph: False
+wandb:
+ dry_run: false
+ entity: 'shunchengwu'
+ project: "ssg"
+ tags: ["ssg",'vgfm',"inseg",'l20']

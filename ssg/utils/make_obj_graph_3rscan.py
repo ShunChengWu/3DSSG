@@ -25,6 +25,7 @@ from collections import defaultdict
 # from tqdm.contrib.concurrent import process_map 
 from ssg import define
 from ssg.utils import util_label
+from ssg.utils import util_3rscan
 from ssg.utils.util_3rscan import load_semseg
 # from collections import defaultdict
 from codeLib.torch.visualization import show_tensor_images
@@ -260,6 +261,10 @@ if __name__ == '__main__':
         mapping = load_semseg(pth_semseg,label_name_mapping)
         mapping[0] = 'none'
         
+        # load image info
+        info_3rscan = util_3rscan.read_3rscan_info(os.path.join(fdata,scan_id,define.IMG_FOLDER_NAME,define.INFO_NAME))
+        img_w,img_h = int(info_3rscan['m_colorWidth']), int(info_3rscan['m_colorHeight'])
+        
         '''load 2dgt'''
         gt2d_file = gt2d_dir+'/'+scan_id+'.2dgt'
         if not os.path.isfile(gt2d_file):
@@ -294,7 +299,7 @@ if __name__ == '__main__':
             if 'occlution' not in kf: kf['occlution'] = dict()
             for oid,olabel,oc,x1,y1,x2,y2 in seq:
                 if str(oid) in kf['bboxes']: raise RuntimeError('exist')
-                kf['bboxes'][str(oid)] = [x1,y1,x2,y2]
+                kf['bboxes'][str(oid)] = [x1/width,y1/height,x2/width,y2/height]
                 kf['occlution'][str(oid)] = oc
                 
                 if str(oid) not in objects:

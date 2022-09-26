@@ -105,11 +105,14 @@ def main():
         logger_py.info('save time profile to {}'.format(os.path.join(out_dir,'tp_train.dmp')))
         pr.dump_stats(os.path.join(out_dir,'tp_train.dmp'))
     elif cfg.MODE == 'eval':
+        '''use CPU for memory issue'''
+        # cfg.DEVICE = torch.device("cpu")      
+        
         cfg.data.load_cache=False
         eval_mode = cfg.eval.mode
         assert eval_mode in ['segment','instance']
         if eval_mode == 'segment':
-            dataset_test  = config.get_dataset(cfg,'test')
+            dataset_test  = config.get_dataset(cfg,'train')
             val_loader = torch.utils.data.DataLoader(
                 dataset_test, batch_size=1, num_workers=cfg['eval']['data_workers'],
                 shuffle=False, drop_last=False,

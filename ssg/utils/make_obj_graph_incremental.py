@@ -172,7 +172,8 @@ if __name__ == '__main__':
             
             # print('kfid',kf_['id'])
             
-            scale = [kf_['rgb_dims'][0]/kf_['mask_dims'][0],kf_['rgb_dims'][1]/kf_['mask_dims'][1] ]
+            # scale = [kf_['rgb_dims'][0]/kf_['mask_dims'][0],kf_['rgb_dims'][1]/kf_['mask_dims'][1] ]
+            scale = [1/kf_['mask_dims'][0],1/kf_['mask_dims'][1] ] #NOTE: normalize. 
             for oid in bboxes:
                 if int(oid) == 0: continue
                 # print('oid',oid)

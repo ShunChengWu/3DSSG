@@ -1,0 +1,11 @@
+inherit_from: experiments/config_3RScan_IMP_base.yaml
+name: 'IMP_full_l20_4'
+model:
+ multi_rel: false # multiple relationship 
+data:
+ path: "./data/3RScan_ScanNet20_gt/"
+ path_gt: "./data/3RScan_ScanNet20_gt/"
+ full_edge: false # connect all selected nodes
+wandb:
+ dry_run: false
+ tags: ["ssg", "2dssg", "imp",'full','l20']

@@ -59,7 +59,7 @@ class SGFNDataset (data.Dataset):
         image_feature_folder_name =define.NAME_IMAGE_FEAUTRE_FORMAT.format(segment_type,label_type)
         self.path_img_feature = os.path.join(self.cfg.data.path_image_feature,image_feature_folder_name+'.h5')
         
-        selected_scans = set()
+        # selected_scans = set()
         self.w_cls_obj=self.w_cls_rel=None
         self.multi_rel_outputs = multi_rel_outputs = config.model.multi_rel
         self.shuffle_objs = False
@@ -77,7 +77,7 @@ class SGFNDataset (data.Dataset):
         ''' read classes '''
         pth_classes = os.path.join(path,'classes.txt')
         pth_relationships = os.path.join(path,'relationships.txt')      
-        selected_scans = read_txt_to_list(os.path.join(path,'%s_scans.txt' % (mode)))
+        # selected_scans = read_txt_to_list(os.path.join(path,'%s_scans.txt' % (mode)))
         
         names_classes = read_txt_to_list(pth_classes)
         names_relationships = read_txt_to_list(pth_relationships)
@@ -110,9 +110,11 @@ class SGFNDataset (data.Dataset):
                     if config.data.img_size > 0:
                         self.transform = transforms.Compose([
                                     transforms.Resize(config.data.img_size),
+                                    cltransform.TrivialAugmentWide(),
                                 ])
                     else:
                         self.transform = transforms.Compose([
+                                    cltransform.TrivialAugmentWide(),
                                 ])
                 else:
                     self.transform = transforms.Compose([
@@ -145,6 +147,13 @@ class SGFNDataset (data.Dataset):
                     if scan_id not in self.image_feature:
                         should_compute_image_feature=True
                         break
+                    else:
+                        try:
+                            self.image_feature[scan_id]
+                        except:
+                            should_compute_image_feature=True
+                            break
+                            
             
             if should_compute_image_feature:
                 # Try to generate
@@ -233,10 +242,7 @@ class SGFNDataset (data.Dataset):
             if self.mconfig.is_roi_img:
                 self.open_img()
                 roi_imgs = self.roi_imgs[scan_id]
-            else:
-                self.open_filtered()
-                if self.for_eval:
-                    self.open_image_feature()
+                
             
             '''filter'''
             mv_node_ids = [int(x) for x in mv_data['nodes'].keys()]
@@ -328,10 +334,8 @@ class SGFNDataset (data.Dataset):
         if self.mconfig.load_images:
             if self.mconfig.is_roi_img:
                 del self.roi_imgs
-            else:
-                del self.filtered_data
-                if self.for_eval:
-                    del self.image_feature
+            # else:
+                # del self.filtered_data
             del self.mv_data
         
         output = dict()
@@ -895,6 +899,11 @@ class SGFNDataset (data.Dataset):
     
     def __load_full_images(self, scan_id, idx2oid:dict, cat:list, 
                            scan_data:dict, mv_data:dict):
+        self.open_filtered()
+        # if self.for_eval:
+            # self.open_image_feature()
+        self.open_image_feature()
+        
         images=list()
         bounding_boxes = list() # bounding_boxes[node_id]{kf_id: [boxes]}
         bbox_cat=list()
@@ -930,11 +939,11 @@ class SGFNDataset (data.Dataset):
         
         # drop images for memory sack 
         fids = list(fids)
-        if not self.for_eval:
-            fids = random_drop(fids, self.mconfig.drop_img_edge, replace=True)
-        else:
-            fids = random_drop(fids, self.mconfig.drop_img_edge_eval)
-        # print(len(fids))        
+        # if not self.for_eval:
+        #     fids = random_drop(fids, self.mconfig.drop_img_edge, replace=True)
+        # else:
+        #     fids = random_drop(fids, self.mconfig.drop_img_edge_eval)
+        fids = random_drop(fids, self.mconfig.drop_img_edge, replace=True)
         
         '''load'''
         for mid, fid in enumerate(fids):
@@ -961,7 +970,8 @@ class SGFNDataset (data.Dataset):
                 img_data = torch.as_tensor(img_data.copy()).permute(2,0,1)
                 img_data = self.transform(img_data)
                 img_data= normalize_imagenet(img_data.float()/255.0)
-            width,height = img_data.shape[-1],img_data.shape[-2]
+                
+            # width,height = img_data.shape[-1],img_data.shape[-2]
             images.append(img_data)
             
             '''collecting info for temporal edge'''            
@@ -974,10 +984,10 @@ class SGFNDataset (data.Dataset):
             per_frame_indices = list()
             for kf_oid, kf_idx in filtered_kf_oid2idx.items():
                 box = kfdata[kf_idx][:4] 
-                box[0]/=width
-                box[1]/=height
-                box[2]/=width
-                box[3]/=height
+                # box[0]/=width #NOTE: already scaled in make_obj_graph_3rscan
+                # box[1]/=height
+                # box[2]/=width
+                # box[3]/=height
                 box = np.concatenate(([mid], box)).tolist() # ROIAlign format
                 
                 om_id = len(bbox_cat)
@@ -1029,7 +1039,10 @@ class SGFNDataset (data.Dataset):
         # if DRAW_BBOX_IMAGE:
         # t_img = torch.stack(images,dim=0)
         # show_tensor_images(t_img.float()/255, '-')
-            
+        if hasattr(self,'filtered_data'):
+            del self.filtered_data
+        if hasattr(self,'image_feature'):
+            del self.image_feature
         return images, bounding_boxes, bbox_cat, node_descriptor_for_image, \
             image_edge_indices, img_idx2oid, temporal_node_graph, temporal_edge_graph
 
@@ -1082,51 +1095,51 @@ def load_mesh(path,label_file,use_rgb,use_normal):
     return result
 
 def read_relationship_json(data, selected_scans:list, classNames:dict, isV2:bool=True):
-        rel = dict()
-        objs = dict()
-        scans = list()
-        nns = None
-        
-        if 'neighbors' in data:
-            nns = data['neighbors']
-        for scan in data['scans']:
-            if scan["scan"] == 'fa79392f-7766-2d5c-869a-f5d6cfb62fc6':
-                if isV2 == "labels.instances.align.annotated.v2.ply":
-                    '''
-                    In the 3RScanV2, the segments on the semseg file and its ply file mismatch. 
-                    This causes error in loading data.
-                    To verify this, run check_seg.py
-                    '''
-                    continue
-            if scan['scan'] not in selected_scans:
+    rel = dict()
+    objs = dict()
+    scans = list()
+    nns = None
+    
+    if 'neighbors' in data:
+        nns = data['neighbors']
+    for scan in data['scans']:
+        if scan["scan"] == 'fa79392f-7766-2d5c-869a-f5d6cfb62fc6':
+            if isV2 == "labels.instances.align.annotated.v2.ply":
+                '''
+                In the 3RScanV2, the segments on the semseg file and its ply file mismatch. 
+                This causes error in loading data.
+                To verify this, run check_seg.py
+                '''
                 continue
-                
-            relationships = []
-            for realationship in scan["relationships"]:
-                relationships.append(realationship)
-                
-            objects = {}
-            for k, v in scan["objects"].items():
-                objects[int(k)] = v
-                
-            # filter scans that doesn't have the classes we care
-            instances_id = list(objects.keys())
-            valid_counter = 0
-            for instance_id in instances_id:
-                instance_labelName = objects[instance_id]
-                if instance_labelName in classNames: # is it a class we care about?
-                    valid_counter+=1
-                    # break
-            if valid_counter < 2: # need at least two nodes
-                continue
-
-            rel[scan["scan"] + "_" + str(scan["split"])] = relationships
-            scans.append(scan["scan"] + "_" + str(scan["split"]))
-
+        if scan['scan'] not in selected_scans:
+            continue
             
-            objs[scan["scan"]+"_"+str(scan['split'])] = objects
+        relationships = []
+        for realationship in scan["relationships"]:
+            relationships.append(realationship)
+            
+        objects = {}
+        for k, v in scan["objects"].items():
+            objects[int(k)] = v
+            
+        # filter scans that doesn't have the classes we care
+        instances_id = list(objects.keys())
+        valid_counter = 0
+        for instance_id in instances_id:
+            instance_labelName = objects[instance_id]
+            if instance_labelName in classNames: # is it a class we care about?
+                valid_counter+=1
+                # break
+        if valid_counter < 2: # need at least two nodes
+            continue
 
-        return rel, objs, scans, nns
+        rel[scan["scan"] + "_" + str(scan["split"])] = relationships
+        scans.append(scan["scan"] + "_" + str(scan["split"]))
+
+        
+        objs[scan["scan"]+"_"+str(scan['split'])] = objects
+
+    return rel, objs, scans, nns
 
 def dataset_loading_3RScan(root:str, pth_selection:str,mode:str,class_choice:list=None):
     

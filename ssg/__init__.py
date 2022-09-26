@@ -21,17 +21,15 @@ __all__ = ['SSG3D','SGFN', 'SGPN','dataset','Trainer','MVEnc','SVEnc','IMP']
 # __all__ = ['define', 'Trainer', 'dataset_dict', 'SSG2D','SGFN',
 #            'DestCmp']
 
-def Parse():
-    r"""loads model config
-
-    """
+def default_parser():
     parser = argparse.ArgumentParser(formatter_class=argparse.ArgumentDefaultsHelpFormatter)
     parser.add_argument('--config', type=str, default='./configs/default.yaml', help='configuration file name. Relative path under given path (default: config.yml)')
-    parser.add_argument('--mode', type=str, choices=['train','trace','eval','sample','trace'], default='train', help='mode. can be [train,trace,eval]',required=False)
+    parser.add_argument('--mode', type=str, choices=['train','validation','trace','eval','sample','trace'], default='train', help='mode. can be [train,trace,eval]',required=False)
     parser.add_argument('--loadbest', type=int, default=0,choices=[0,1], help='1: load best model or 0: load checkpoints. Only works in non training mode.')
     parser.add_argument('--log', type=str, default='DEBUG',choices=['DEBUG','INFO','WARNING','CRITICAL'], help='')
-    args = parser.parse_args()
-    
+    return parser
+
+def load_config(args):
     config_path = os.path.abspath(args.config)
     if not os.path.exists(config_path):
         raise RuntimeError('Targer config file does not exist. {}' & config_path)
@@ -62,3 +60,11 @@ def Parse():
     # logging.basicConfig(level=config.log_level)
     # logging.setLevel(config.log_level)
     return config
+
+def Parse():
+    r"""loads model config
+
+    """
+    args = default_parser().parse_args()
+    return load_config(args)
+    
