@@ -19,4 +19,5 @@ trainer_dict = {
     'mv': Trainer_MVENC,
     'sv' : Trainer_SVENC,
     'imp': Trainer_IMP,
+    'jointsg': Trainer_SGFN,
     }

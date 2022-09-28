@@ -1,6 +1,6 @@
 import os,copy,logging
 import ssg
-from ssg import SSG3D, SGFN, SGPN, MVEnc, SVEnc, IMP#, DestCmp
+from ssg import SSG3D, SGFN, SGPN, MVEnc, SVEnc, IMP, JointSG#, DestCmp
 from torch.utils.tensorboard import SummaryWriter
 from codeLib.loggers import WandbLogger
 from codeLib.common import filter_args_create
@@ -19,6 +19,7 @@ method_dict = {
     'mv': MVEnc,
     'sv': SVEnc,
     'imp': IMP,
+    'jointsg': JointSG,
 }
 
 optimizer_dict = {
@@ -83,7 +84,7 @@ def get_model(cfg, num_obj_cls,num_rel_cls):
         device (device): pytorch device
         dataset (dataset): dataset
     '''
-    if cfg.model.method == 'sgfn' or cfg.model.method =='sgpn':
+    if cfg.model.method == 'sgfn' or cfg.model.method =='sgpn' or cfg.model.method == 'jointsg':
         return method_dict[cfg.model.method](
             cfg=cfg,
             num_obj_cls = num_obj_cls,

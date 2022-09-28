@@ -21,6 +21,8 @@ import logging
 from PIL import Image
 from codeLib.common import run
 
+from torch_geometric.data import HeteroData
+
 logger_py = logging.getLogger(__name__)
 
 DRAW_BBOX_IMAGE=True
@@ -302,8 +304,9 @@ class SGFNDataset (data.Dataset):
         if self.mconfig.load_images:
             '''load images'''
             if self.mconfig.is_roi_img:
-                roi_images, node_descriptor_for_image = self.__load_roi_images(cat,idx2oid,mv_nodes,roi_imgs,
-                                       object_data,filtered_instances)
+                roi_images, node_descriptor_for_image, edge_indices_img_to_obj = \
+                    self.__load_roi_images(cat,idx2oid,mv_nodes,roi_imgs,
+                                           object_data,filtered_instances)
             else:
                 images, img_bounding_boxes, bbox_cat, node_descriptor_for_image, \
                     image_edge_indices, img_idx2oid, temporal_node_graph, temporal_edge_graph = \
@@ -328,6 +331,9 @@ class SGFNDataset (data.Dataset):
         ''' to tensor '''
         gt_class_3D = torch.from_numpy(np.array(cat))
         edge_indices_3D = torch.tensor(edge_indices_3D,dtype=torch.long)
+        idx2iid = torch.LongTensor([seg2inst[oid] if oid in seg2inst else oid for oid in idx2oid.values() ]) # mask idx to instance idx
+        idx2oid = torch.LongTensor([oid for oid in idx2oid.values()]) # mask idx to seg idx (instance idx)
+        
         
         '''release'''
         del self.sg_data
@@ -338,23 +344,33 @@ class SGFNDataset (data.Dataset):
                 # del self.filtered_data
             del self.mv_data
         
-        output = dict()
+        output = HeteroData()
+        # output = dict()
         output['scan_id'] = scan_id # str
-        output['gt_rel'] = gt_rels_3D
-        output['gt_cls'] = gt_class_3D # tensor
-        output['node_edges'] = edge_indices_3D # tensor
-        output['mask2instance'] = idx2oid
-        output['seg2inst'] = seg2inst
         
+        output['node'].x = torch.zeros([gt_class_3D.shape[0],1]) # dummy
+        output['edge'].x = torch.zeros([gt_rels_3D.shape[0],1])
+        
+        output['node'].y = gt_class_3D
+        output['edge'].y = gt_rels_3D
+        output['node','to','node'].edge_index = edge_indices_3D.t().contiguous()
+        
+        output['node'].idx2oid = idx2oid
+        output['node'].idx2iid = idx2iid
+
         if self.mconfig.load_points:
-            output['obj_points'] = obj_points
-            output['descriptor'] = descriptor #tensor
+            output['node'].pts = obj_points
+            output['node'].desp = descriptor
             if self.mconfig.rel_data_type == 'points':
-                output['rel_points'] = rel_points
+                output['edge'].pts = rel_points
+                
         if self.mconfig.load_images:
             if self.mconfig.is_roi_img:
-                output['roi_imgs'] = roi_images #list
+                output['roi'].x = torch.zeros([roi_images.size(0),1])
+                output['roi'].img = roi_images
+                output['roi','sees','node'].edge_index = edge_indices_img_to_obj
             else:
+                raise NotImplementedError
                 output['images'] = images
                 output['image_boxes'] = img_bounding_boxes
                 output['temporal_node_graph'] = temporal_node_graph
@@ -364,8 +380,9 @@ class SGFNDataset (data.Dataset):
                 output['image_gt_cls'] = gt_class_image
                 output['image_gt_rel'] = gt_rels_2D
                 output['image_mask2instance'] = img_idx2oid
-                
-            output['node_descriptor_8'] = node_descriptor_for_image
+            if not self.mconfig.load_points:
+                output['node'].desp = node_descriptor_for_image
+            # output['node_descriptor_8'] = node_descriptor_for_image
 
         return output
         
@@ -841,6 +858,7 @@ class SGFNDataset (data.Dataset):
         
         roi_images = list()
         node_descriptor_for_image = torch.zeros([len(cat), len(descriptor_generator)])
+        edge_indices_img_to_obj = []
         
         '''get roi images'''
         for idx in range(len(cat)):
@@ -848,28 +866,56 @@ class SGFNDataset (data.Dataset):
             node = mv_nodes[oid]
             cls_label = node.attrs['label']
             if cls_label == 'unknown':
-                cls_label = self.classNames[cat[idx]]
+                cls_label = self.classNames[cat[idx]] 
                 
             img_ids=range(len(roi_imgs[oid]))
-            
             if not self.for_eval:
                 img_ids = random_drop(img_ids, self.mconfig.drop_img_edge, replace=True)
             if self.for_eval :
                 img_ids = random_drop(img_ids, self.mconfig.drop_img_edge_eval)
                 
-            img = [roi_imgs[oid][x] for x in img_ids]
-            # else:
-            #     kf_indices = [idx for idx in range(img.shape[0])]
+            for img_id in img_ids:
+                img = roi_imgs[oid][img_id]
+                img = torch.as_tensor(np.array(img))
+                img = torch.clamp((img*255).byte(),0,255).byte()
+                img = self.transform(img)
+                roi_images.append(img)
+                edge_indices_img_to_obj.append([len(roi_images)-1, idx])
+                
+        # images = torch.as_tensor(np.array(images))#.clone()
+        # images = torch.clamp((images*255).byte(),0,255).byte()
+        # images = torch.stack([self.transform(x) for x in images],dim=0)
+        roi_images = torch.stack(roi_images,dim=0)
+        roi_images= normalize_imagenet(roi_images.float()/255.0)
+        
+        edge_indices_img_to_obj = torch.LongTensor(edge_indices_img_to_obj).t().contiguous()
+        
+        # for idx in range(len(cat)):
+        #     oid = str(idx2oid[idx])
+        #     node = mv_nodes[oid]
+        #     cls_label = node.attrs['label']
+        #     if cls_label == 'unknown':
+        #         cls_label = self.classNames[cat[idx]]
+                
+        #     img_ids=range(len(roi_imgs[oid]))
             
-            img = torch.as_tensor(np.array(img))#.clone()
-            img = torch.clamp((img*255).byte(),0,255).byte()
-            t_img = torch.stack([self.transform(x) for x in img],dim=0)
-            if DRAW_BBOX_IMAGE:
-                show_tensor_images(t_img.float()/255, cls_label)
-            t_img= normalize_imagenet(t_img.float()/255.0)
-            roi_images.append( t_img)
+        #     if not self.for_eval:
+        #         img_ids = random_drop(img_ids, self.mconfig.drop_img_edge, replace=True)
+        #     if self.for_eval :
+        #         img_ids = random_drop(img_ids, self.mconfig.drop_img_edge_eval)
+                
+        #     img = [roi_imgs[oid][x] for x in img_ids]
+        #     # else:
+        #     #     kf_indices = [idx for idx in range(img.shape[0])]
             
-            #TODO: add temporal graph
+        #     img = torch.as_tensor(np.array(img))#.clone()
+        #     img = torch.clamp((img*255).byte(),0,255).byte()
+        #     t_img = torch.stack([self.transform(x) for x in img],dim=0)
+        #     if DRAW_BBOX_IMAGE:
+        #         show_tensor_images(t_img.float()/255, cls_label)
+        #     t_img= normalize_imagenet(t_img.float()/255.0)
+            
+        #     roi_images.append( t_img)
             
         '''compute node description'''
         for i in range(len(filtered_instances)):
@@ -895,7 +941,7 @@ class SGFNDataset (data.Dataset):
                 obj['dimension'] = dim.tolist()
             node_descriptor_for_image[i] = descriptor_generator(obj)
             
-        return roi_images, node_descriptor_for_image
+        return roi_images, node_descriptor_for_image, edge_indices_img_to_obj
     
     def __load_full_images(self, scan_id, idx2oid:dict, cat:list, 
                            scan_data:dict, mv_data:dict):

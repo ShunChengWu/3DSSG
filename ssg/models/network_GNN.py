@@ -2,7 +2,9 @@
 # -*- coding: utf-8 -*-
 # Some codes here are modified from SuperGluePretrainedNetwork https://github.com/magicleap/SuperGluePretrainedNetwork/blob/master/models/superglue.py
 #
+import math
 import torch
+import torch_geometric
 from .network_util import build_mlp, Gen_Index, Aggre_Index, MLP
 from .networks_base import BaseNetwork
 import inspect
@@ -15,7 +17,7 @@ import torch.nn as nn
 from typing import Optional
 from copy import deepcopy
 from torch_scatter import scatter
-from codeLib.common import reset_parameters_with_activation
+from codeLib.common import filter_args_create, reset_parameters_with_activation
 import ssg#.models import edge_encoder_list
 
 class TripletEdgeNet(torch.nn.Module):
@@ -471,6 +473,181 @@ class TripletVGfM(torch.nn.Module):
             x = self.node_gru(node_msg,x)
             edge_feature = self.edge_gru(edge_msg,edge_feature)
         return x, edge_feature
+    
+class MSG_MV(MessagePassing):
+    def __init__(self, dim_node:int,dim_image:int, num_heads:int):
+        super().__init__(aggr='add',flow='source_to_target')
+        assert dim_node % num_heads == 0 
+        self.num_heads = num_heads
+        self.d_k = dim_node // num_heads
+        self.sqrt_dk = math.sqrt(dim_node)
+        
+        self.proj_q = build_mlp([dim_node,dim_node])
+        self.proj_k = build_mlp([dim_image,dim_node])
+        self.proj_v = build_mlp([dim_image,dim_node])
+        pass
+    def forward(self,node,image,edge_index):
+        # source_to_target (j,i) # target_to_source
+        x = (image, node)
+        return self.propagate(edge_index, x=x)
+        
+    def message(self, x_i: Tensor, x_j: Tensor) -> Tensor:
+        """
+        Given image and node features, 
+        this layer estimates 
+
+        Args:
+            x_i (Tensor): object nodes
+            x_j (Tensor): image nodes
+        """
+        #TODO: may need to deal with multimodality
+        N = x_i.shape[0]
+        # n_obj = x_i.shape[0]
+        # n_img = x_j.shape[0]
+        
+        # proj
+        q_mat = self.proj_q(x_i).view(N, self.num_heads, self.d_k)
+        k_mat = self.proj_k(x_j).view(N, self.num_heads, self.d_k)
+        v_mat = self.proj_v(x_j).view(N, self.num_heads, self.d_k)
+        # dot product
+        att = torch.einsum('nhk,mhk->nhm',q_mat,k_mat)  / self.sqrt_dk
+        att = torch.nn.functional.softmax(att,dim=-1)
+        
+        y = torch.einsum('nhm,mhk->nhk',att,v_mat)
+        y = y.reshape(N,-1)
+        return y
+    
+class MSG_FAN(MessagePassing):
+    def __init__(self,
+                 dim_node:int,dim_edge:int,dim_atten:int,
+                 num_heads:int,
+                 use_bn:bool,
+                 aggr='sum',
+                 flow:str='target_to_source'):
+        super().__init__(aggr=aggr,flow=flow)
+        assert dim_node % num_heads == 0
+        assert dim_edge % num_heads == 0
+        assert dim_atten % num_heads == 0
+        self.dim_node_proj = dim_node // num_heads
+        self.dim_edge_proj = dim_edge // num_heads
+        self.dim_value_proj = dim_atten // num_heads
+        self.num_head = num_heads
+        self.temperature = math.sqrt(self.dim_edge_proj)
+        self.nn_att = MLP([self.dim_node_proj+self.dim_edge_proj,self.dim_node_proj+self.dim_edge_proj,
+                           self.dim_edge_proj])
+        
+        self.proj_q = build_mlp([dim_node,dim_node])
+        self.proj_k = build_mlp([dim_edge,dim_edge])
+        self.proj_v = build_mlp([dim_node,dim_atten])
+        
+        self.nn_edge = build_mlp([dim_node*2+dim_edge,(dim_node+dim_edge),dim_edge],
+                          do_bn= use_bn, on_last=False)
+        
+        '''update'''
+        self.update_node = build_mlp([dim_node+dim_atten, dim_node+dim_atten, dim_node],
+                             do_bn= use_bn, on_last=False)
+    def forward(self, x, edge_feature, edge_index):
+        return self.propagate(edge_index,x=x,edge_feature=edge_feature, x_ori=x)
+    def message(self, x_i: Tensor, x_j:Tensor, edge_feature:Tensor) -> Tensor:
+        '''
+        x_i [N, D_N]
+        x_j [N, D_N]
+        '''
+        num_node = x_i.size(0)
+
+        '''triplet'''
+        triplet_feature = torch.cat([x_i, edge_feature,x_j],dim=1)
+        triplet_feature = self.nn_edge(triplet_feature)
+        
+        '''FAN'''
+        # proj
+        x_i = self.proj_q(x_i).view(num_node,self.dim_node_proj,self.num_head) # [N,D,H]
+        edge = self.proj_k(edge_feature).view(num_node,self.dim_edge_proj,self.num_head) #[M,D,H]
+        x_j = self.proj_v(x_j)
+        # est attention
+        att = self.nn_att(torch.cat([x_i,edge],dim=1)) # N, D, H
+        prob = torch.nn.functional.softmax(att/self.temperature, dim=1)
+        value = prob.reshape_as(x_j)*x_j
+        
+        return [value,triplet_feature,prob]
+    
+    def aggregate(self, inputs: Tensor, index: Tensor, ptr: Optional[Tensor] = None, 
+                  dim_size: Optional[int] = None) -> Tensor:
+        inputs[0] = scatter(inputs[0],index,dim=self.node_dim,dim_size=dim_size,reduce=self.aggr)
+        return inputs
+    
+    
+    def update(self,x, x_ori):
+        x[0] = self.update_node(torch.cat([x_ori,x[0]],dim=1))
+        return x
+    
+class JoingGNN_(torch.nn.Module):
+    def __init__(self, **args):
+        super().__init__()
+        self.msg_fan = filter_args_create(MSG_FAN,args)
+        self.msg_img = filter_args_create(MSG_MV,args)
+        
+        dim_node  = args['dim_node'] 
+        dim_atten = args['dim_atten']
+        use_bn = args['use_bn']
+        
+        nn.GRUCell(input_size=dim_node, hidden_size=dim_node)
+        
+        
+    def forward(self, node,image,edge,edge_index_node_2_node,edge_index_image_2_ndoe):
+        '''message passing between image and nodes'''
+        node_to_node_msg, edge_feature_msg, prob = self.msg_fan(x=node,edge_feature=edge,edge_index=edge_index_node_2_node)
+        
+        '''message passing between nodes and ndoes'''
+        image_msg = self.msg_img(node,image,edge_index_image_2_ndoe)
+        
+        
+        return node,edge, prob
+    
+class JointGNN(torch.nn.Module):
+    def __init__(self, **kwargs):
+        super().__init__()
+        self.num_layers = kwargs['num_layers']
+        self.num_heads = kwargs['num_heads']
+        self.drop_out = kwargs['drop_out']
+        self.gconvs = torch.nn.ModuleList()
+        
+        self.drop_out = None 
+        if 'DROP_OUT_ATTEN' in kwargs:
+            self.drop_out = torch.nn.Dropout(kwargs['DROP_OUT_ATTEN'])
+        
+        for _ in range(self.num_layers):
+            self.gconvs.append(JoingGNN_(**kwargs))
+            # self.gconvs.append(GraphEdgeAttenNetwork(num_heads,dim_node,dim_edge,dim_atten,aggr, **kwargs))
+
+    def forward(self, data):
+        probs = list()
+        node = data['node'].x
+        image = data['roi'].x
+        edge = data['edge'].x
+        edge_index_node_2_node = data['node','to','node'].edge_index
+        edge_index_image_2_ndoe = data['roi','sees','node'].edge_index
+        
+        #TODO: use GRU?
+        for i in range(self.num_layers):
+            gconv = self.gconvs[i]
+            node, edge, prob = gconv(node,image,edge,edge_index_node_2_node,edge_index_image_2_ndoe)
+            
+            if i < (self.num_layers-1) or self.num_layers==1:
+                node = torch.nn.functional.relu(node)
+                edge = torch.nn.functional.relu(edge)
+                
+                if self.drop_out:
+                    node = self.drop_out(node)
+                    edge = self.drop_out(edge)
+                
+            if prob is not None:
+                probs.append(prob.cpu().detach())
+            else:
+                probs.append(None)
+        return node, edge, probs
+
+    
 
 if __name__ == '__main__':
     TEST_FORWARD=True

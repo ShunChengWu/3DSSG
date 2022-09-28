@@ -25,6 +25,8 @@ logger_py = logging.getLogger(__name__)
 # logging.basicConfig()
 # logger_py.setLevel(logging.DEBUG)
 
+import torch_geometric
+
 def main():
     cfg = ssg.Parse()
     
@@ -45,16 +47,20 @@ def main():
     # import sys
     # sys.exit()
     
+    
     if cfg.MODE == 'train':
         logger_py.info('train')
         n_workers = cfg['training']['data_workers']
         ''' create dataset and loaders '''
         dataset_train = config.get_dataset(cfg,'train')
-        train_loader = torch.utils.data.DataLoader(
-            dataset_train, batch_size=cfg['training']['batch'], num_workers=n_workers, shuffle=True,
-            pin_memory=True,
-            collate_fn=graph_collate,
-        )
+        # train_loader = torch.utils.data.DataLoader(
+        #     dataset_train, batch_size=cfg['training']['batch'], num_workers=n_workers, shuffle=True,
+        #     pin_memory=True,
+        #     collate_fn=graph_collate,
+        # )
+        
+        train_loader = torch_geometric.loader.DataLoader(dataset_train,batch_size=1,num_workers=0)
+        
         dataset_val  = config.get_dataset(cfg,'validation')
         val_loader = torch.utils.data.DataLoader(
             dataset_val, batch_size=1, num_workers=n_workers,
@@ -63,8 +69,11 @@ def main():
             pin_memory=True,
             collate_fn=graph_collate,
         )
+        
         # try to load one data
         dataset_train.__getitem__(0)
+        for data in train_loader:
+            break
         
         # Get logger
         logger = config.get_logger(cfg)

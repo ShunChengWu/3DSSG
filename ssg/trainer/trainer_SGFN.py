@@ -179,15 +179,16 @@ class Trainer_SGFN(BaseTrainer, EvalInst):
         logs = {}
         
         # Process data dictionary
-        data = self.process_data_dict(data)
+        data = data.to(self._device)
+        # data = self.process_data_dict(data)
         
         # Shortcuts
         scan_id = data['scan_id']
-        gt_cls = data['gt_cls']
-        gt_rel = data['gt_rel']
-        mask2instance = data['mask2instance']
-        node_edges_ori = data['node_edges']
-        data['node_edges'] = data['node_edges'].t().contiguous()
+        # gt_cls = data['gt_cls']
+        # gt_rel = data['gt_rel']
+        # mask2instance = data['mask2instance']
+        # node_edges_ori = data['node_edges']
+        # data['node_edges'] = data['node_edges'].t().contiguous()
         
         # check input valid
         # if node_edges_ori.ndim==1:
@@ -197,7 +198,7 @@ class Trainer_SGFN(BaseTrainer, EvalInst):
         # print('gt_rel.sum():',gt_rel.sum())
         
         ''' make forward pass through the network '''
-        node_cls, edge_cls = self.model(**data)
+        node_cls, edge_cls = self.model(data)
         
         
         ''' calculate loss '''
