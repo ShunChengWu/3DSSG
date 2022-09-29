@@ -994,6 +994,12 @@ class SGFNDataset (data.Dataset):
                 cls_label = self.classNames[cat[idx]]
                 
             kf_indices = np.asarray(mv_node)
+            
+            if not self.for_eval:
+                kf_indices = random_drop(kf_indices, self.mconfig.drop_img_edge, replace=True)
+            else:
+                kf_indices = random_drop(kf_indices, self.mconfig.drop_img_edge_eval)
+            
             fids = fids.union(kf_indices)
         
         filtered_kf_indices = self.filtered_data[scan_id]
@@ -1005,7 +1011,7 @@ class SGFNDataset (data.Dataset):
         #     fids = random_drop(fids, self.mconfig.drop_img_edge, replace=True)
         # else:
         #     fids = random_drop(fids, self.mconfig.drop_img_edge_eval)
-        fids = random_drop(fids, self.mconfig.drop_img_edge, replace=True)
+        # fids = random_drop(fids, self.mconfig.drop_img_edge, replace=True)
         
         '''load'''
         for mid, fid in enumerate(fids):
