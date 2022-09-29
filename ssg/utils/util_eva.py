@@ -907,6 +907,8 @@ class EvalSceneGraph():
             # print('')
             # print('bedge_indices.shape',bedge_indices.shape)
             if bedge_indices.ndim>1:
+                if bedge_indices.size(0) == 2:
+                    bedge_indices = bedge_indices.t().contiguous()
                 edge_indices_ = torch.where((bedge_indices[:,0]<=max(indices)) & (bedge_indices[:,0]>=min(indices)) )[0]
                 edge_indices = bedge_indices[edge_indices_]
                 r_pd = r_pds[edge_indices_]

@@ -59,7 +59,7 @@ def main():
         #     collate_fn=graph_collate,
         # )
         
-        train_loader = torch_geometric.loader.DataLoader(dataset_train,batch_size=1,num_workers=0)
+        train_loader = torch_geometric.loader.DataLoader(dataset_train,batch_size=cfg.training.batch,num_workers=0)
         
         dataset_val  = config.get_dataset(cfg,'validation')
         val_loader = torch.utils.data.DataLoader(

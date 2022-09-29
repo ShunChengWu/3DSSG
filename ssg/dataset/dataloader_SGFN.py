@@ -331,8 +331,9 @@ class SGFNDataset (data.Dataset):
         ''' to tensor '''
         gt_class_3D = torch.from_numpy(np.array(cat))
         edge_indices_3D = torch.tensor(edge_indices_3D,dtype=torch.long)
-        idx2iid = torch.LongTensor([seg2inst[oid] if oid in seg2inst else oid for oid in idx2oid.values() ]) # mask idx to instance idx
-        idx2oid = torch.LongTensor([oid for oid in idx2oid.values()]) # mask idx to seg idx (instance idx)
+        idx2iid = seg2inst
+        # idx2iid = torch.LongTensor([seg2inst[oid] if oid in seg2inst else oid for oid in idx2oid.values() ]) # mask idx to instance idx
+        # idx2oid = torch.LongTensor([oid for oid in idx2oid.values()]) # mask idx to seg idx (instance idx)
         
         
         '''release'''
@@ -355,8 +356,9 @@ class SGFNDataset (data.Dataset):
         output['edge'].y = gt_rels_3D
         output['node','to','node'].edge_index = edge_indices_3D.t().contiguous()
         
-        output['node'].idx2oid = idx2oid
-        output['node'].idx2iid = idx2iid
+        output['node'].idx2oid = [idx2oid]
+        output['node'].idx2iid = [idx2iid]
+        # print(output['node'].idx2iid)
 
         if self.mconfig.load_points:
             output['node'].pts = obj_points

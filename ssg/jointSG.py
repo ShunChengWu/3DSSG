@@ -200,54 +200,10 @@ class JointSG(nn.Module):
         # Node
         node_cls = self.obj_predictor(nodes_feature)
         # Edge
-        if len(node_edges)>0:
+        if len(edge_indices_node_to_node)>0:
             edge_cls = self.rel_predictor(edges_feature)
         else:
             edge_cls = None
-        return node_cls, edge_cls
-
-        if self.with_img_encoder:
-            nodes_img_feature= self.img_encoder(args['roi_imgs'])
-            nodes_feature = nodes_img_feature['nodes_feature']
-            descriptor = args['node_descriptor_8']
-            if self.use_spatial:
-                # in R5            
-                tmp = descriptor[:,3:8].clone()
-                # log on volume and length
-                tmp[:,3:]=tmp[:,3:].log()
-                # x,y ratio in R1
-                xy_ratio = tmp[:,0].log() - tmp[:,1].log() # in log space for stability
-                xy_ratio = xy_ratio.view(-1,1)
-                
-                # [:, 6] -> [:, N]
-                embed_desc = self.spatial_encoder(torch.cat([tmp,xy_ratio],dim=1))
-                # learnable positional encoding
-                nodes_feature = torch.cat([nodes_feature, embed_desc],dim=1)
-            
-        ''' Create edge feature '''
-        # with torch.no_grad():
-        #     edge_feature = op_utils.Gen_edge_descriptor(flow=self.flow)(descriptor,node_edges)
-        if len(node_edges)>0:
-            edges_feature = self.rel_encoder(descriptor,node_edges)
-                    
-            ''' GNN '''
-            probs=None
-            if hasattr(self, 'gnn') and self.gnn is not None:
-                gnn_nodes_feature, gnn_edges_feature, probs = self.gnn(nodes_feature, edges_feature, node_edges)
-
-                if self.cfg.model.gnn.node_from_gnn:
-                    nodes_feature = gnn_nodes_feature
-                edges_feature = gnn_edges_feature
-        
-        '''1. Node '''
-        node_cls = self.obj_predictor(nodes_feature)
-        '''2.Edge'''
-        # edge_cls=None
-        if len(node_edges)>0:
-            edge_cls = self.rel_predictor(edges_feature)
-        else:
-            edge_cls = None
-            
         return node_cls, edge_cls
     
     def calculate_metrics(self, **args):

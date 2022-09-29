@@ -588,22 +588,24 @@ class JoingGNN_(torch.nn.Module):
         self.msg_img = filter_args_create(MSG_MV,args)
         
         dim_node  = args['dim_node'] 
-        dim_atten = args['dim_atten']
-        use_bn = args['use_bn']
+        # dim_atten = args['dim_atten']
+        # use_bn = args['use_bn']
         
-        self.node_gru = nn.GRUCell(input_size=dim_node, hidden_size=dim_node)
-        
+        # self.node_gru = nn.GRUCell(input_size=dim_node, hidden_size=dim_node)
+        self.nn = build_mlp([dim_node*2,dim_node])
         
     def forward(self, node,image,edge,edge_index_node_2_node,edge_index_image_2_ndoe):
-        node_gru = self.node_gru (node)
+        # node_gru = self.node_gru (node)
         '''message passing between image and nodes'''
         node_to_node_msg, edge_feature_msg, prob = self.msg_fan(x=node,edge_feature=edge,edge_index=edge_index_node_2_node)
         
         '''message passing between nodes and ndoes'''
         image_msg = self.msg_img(node,image,edge_index_image_2_ndoe)
         
+        '''merge'''
+        node_update = self.nn(torch.cat([node_to_node_msg,image_msg],dim=1))
         
-        return node,edge, prob
+        return node_update, edge_feature_msg, prob
     
 class JointGNN(torch.nn.Module):
     def __init__(self, **kwargs):

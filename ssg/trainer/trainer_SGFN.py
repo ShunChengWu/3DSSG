@@ -184,6 +184,10 @@ class Trainer_SGFN(BaseTrainer, EvalInst):
         
         # Shortcuts
         scan_id = data['scan_id']
+        gt_node = data['node'].y
+        gt_edge = data['edge'].y
+        mask2instance = data['node'].idx2oid[0]
+        edge_indices_node_to_node = data['node','to','node'].edge_index
         # gt_cls = data['gt_cls']
         # gt_rel = data['gt_rel']
         # mask2instance = data['mask2instance']
@@ -200,7 +204,6 @@ class Trainer_SGFN(BaseTrainer, EvalInst):
         ''' make forward pass through the network '''
         node_cls, edge_cls = self.model(data)
         
-        
         ''' calculate loss '''
         logs['loss'] = 0
         
@@ -214,17 +217,17 @@ class Trainer_SGFN(BaseTrainer, EvalInst):
             
         
         ''' 1. node class loss'''
-        self.calc_node_loss(logs, node_cls, gt_cls, self.w_node_cls)
+        self.calc_node_loss(logs, node_cls, gt_node, self.w_node_cls)
         
         ''' 2. edge class loss '''
-        self.calc_edge_loss(logs, edge_cls, gt_rel, self.w_edge_cls)
+        self.calc_edge_loss(logs, edge_cls, gt_edge, self.w_edge_cls)
         
         '''3. get metrics'''
         metrics = self.model.calculate_metrics(
             node_cls_pred=node_cls,
-            node_cls_gt=gt_cls,
+            node_cls_gt=gt_node,
             edge_cls_pred=edge_cls,
-            edge_cls_gt=gt_rel
+            edge_cls_gt=gt_edge
         )
         for k,v in metrics.items():
             logs[k]=v
@@ -234,9 +237,10 @@ class Trainer_SGFN(BaseTrainer, EvalInst):
             node_cls = torch.softmax(node_cls.detach(),dim=1)
             edge_cls = torch.sigmoid(edge_cls.detach())
             eval_tool.add(scan_id, 
-                          node_cls,gt_cls, 
-                          edge_cls,gt_rel,
-                          mask2instance,node_edges_ori)
+                          node_cls,gt_node, 
+                          edge_cls,gt_edge,
+                          mask2instance,
+                          edge_indices_node_to_node)
         return logs
         # return loss if eval_mode else loss['loss']
 

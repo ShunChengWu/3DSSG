@@ -1,7 +1,8 @@
 inherit_from: [experiments/config_base_3RScan_full_l20.yaml, experiments/config_base_JointSSG.yaml]
 name: 'JointSSG_full_l20_0'
 training:
- data_workers: 0
+ batch: 1
+ data_workers: 4
 eval: #evaluation
  mode: instance #eval on [segment, instance].  
 data:
