@@ -1,3 +1,4 @@
+from copy import copy
 import os
 import numpy as np
 from tqdm import tqdm, tnrange
@@ -202,6 +203,7 @@ class Trainer():
                 logger.add_scalar('val/%s' % k, v,it)
         
         metric_val_smoothed = self.smoother(metric_val)
+        old = copy(self.metric_val_best)
         if self.metric_sign * (metric_val - self.metric_val_best) > 0:
             self.metric_val_best = metric_val
             self.patient = 0
@@ -212,7 +214,7 @@ class Trainer():
                               loss_val_best=metric_val,
                               patient=self.patient)
         
-        if self.metric_sign * (metric_val_smoothed - self.metric_val_best) <= 0:
+        if self.metric_sign * (metric_val_smoothed - old) <= 0:
             logger_py.info('new val metric is worse (%.4f %.4f).increase patient to %d (max patient %d)' % \
                            (metric_val_smoothed, self.metric_val_best,self.patient, self.cfg['training']['patient']))
             self.patient += 1
