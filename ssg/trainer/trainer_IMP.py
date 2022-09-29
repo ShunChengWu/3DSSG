@@ -119,17 +119,22 @@ class Trainer_IMP(BaseTrainer, EvalInst):
         logs = {}
         
         # Process data dictionary
-        data = self.process_data_dict(data)
+        data.to(self._device)
+        # data = self.process_data_dict(data)
         
         # Shortcuts
         scan_id = data['scan_id']
-        gt_cls = data['image_gt_cls']
-        gt_rel = data['image_gt_rel']
-        mask2instance = data['image_mask2instance']
-        node_edges_ori = data['image_node_edges']
-        data['image_node_edges'] = data['image_node_edges'].t().contiguous()
-        if 'temporal_node_graph' in data: data['temporal_node_graph']=data['temporal_node_graph'].t().contiguous()
-        if 'temporal_edge_graph' in data: data['temporal_edge_graph']=data['temporal_edge_graph'].t().contiguous()
+        gt_cls  = data['roi'].y
+        gt_rel = data['edge2D'].y
+        mask2instance = data['roi'].idx2oid[0]
+        edge_index = data['roi','to','roi'].edge_index
+        # gt_cls = data['image_gt_cls']
+        # gt_rel = data['image_gt_rel']
+        # mask2instance = data['image_mask2instance']
+        # node_edges_ori = data['image_node_edges']
+        # data['image_node_edges'] = data['image_node_edges'].t().contiguous()
+        # if 'temporal_node_graph' in data: data['temporal_node_graph']=data['temporal_node_graph'].t().contiguous()
+        # if 'temporal_edge_graph' in data: data['temporal_edge_graph']=data['temporal_edge_graph'].t().contiguous()
         
         # check input valid
         # if node_edges_ori.ndim==1: return {}
@@ -138,7 +143,7 @@ class Trainer_IMP(BaseTrainer, EvalInst):
         # print('gt_rel.sum():',gt_rel.sum())
         
         ''' make forward pass through the network '''
-        node_cls, edge_cls = self.model(**data)
+        node_cls, edge_cls = self.model(data)
         
         ''' calculate loss '''
         logs['loss'] = 0
@@ -173,7 +178,7 @@ class Trainer_IMP(BaseTrainer, EvalInst):
             eval_tool.add(scan_id, 
                           node_cls,gt_cls, 
                           edge_cls,gt_rel,
-                          mask2instance,node_edges_ori)
+                          mask2instance,edge_index)
         return logs
         # return loss if eval_mode else loss['loss']
 
@@ -196,37 +201,13 @@ class Trainer_IMP(BaseTrainer, EvalInst):
             logs['loss_rel'] = 0
             return
         if self.cfg.model.multi_rel:
-            # batch_mean = torch.sum(edge_cls_gt, dim=(0))
-            # zeros = (edge_cls_gt ==0).sum().unsqueeze(0)
-            # batch_mean = torch.cat([zeros,batch_mean],dim=0)
-            # weight = torch.abs(1.0 / (torch.log(batch_mean+1)+1)) # +1 to prevent 1 /log(1) = inf                
-            # weight[torch.where(weight==0)] = weight[0].clone()
-            # weight = weight[1:]
-            # pass
             loss_rel = self.loss_rel_cls(edge_cls_pred, edge_cls_gt)
         else:
             loss_rel = self.loss_rel_cls(edge_cls_pred, edge_cls_gt)
-            # loss_rel = F.binary_cross_entropy(edge_cls_pred, edge_cls_gt, weight=weights)
-        # else:
-            # loss_rel = self.loss_rel_cls(edge_cls_pred,edge_cls_gt)
-            # loss_rel = F.nll_loss(edge_cls_pred, edge_cls_gt, weight = weights)
+            
         logs['loss'] += self.cfg.training.lambda_edge * loss_rel
         logs['loss_rel'] = loss_rel
-    # def convert_metrics_to_log(self, metrics, eval_mode=False):
-    #     tmp = dict()
-    #     mode = 'train_' if eval_mode == False else 'valid_'
-    #     for metric_name, dic in metrics.items():
-    #         for sub, value in dic.items():
-    #             tmp[metric_name+'/'+mode+sub] = value
-    #     return tmp
-    # def calc_node_metric(self, logs, node_cls_pred, node_cls_gt):
-    #     cls_pred = node_cls_pred.detach()
-    #     pred_cls = torch.max(cls_pred,1)[1]
-    #     acc_cls = (node_cls_gt == pred_cls).sum().item() / node_cls_gt.nelement()
-    #     logs['acc_node_cls'] = acc_cls
-        
     
-        
     def visualize(self,eval_tool=None):
         if eval_tool is None: eval_tool = self.eva_tool
         node_confusion_matrix, edge_confusion_matrix = eval_tool.draw(

@@ -18,6 +18,10 @@ remember to change drop_img_edge
 - [ ] VGFM_ORBSLAM3_l20_4
 
 
+Test new loader
+- [ ] config_SGFN_full_l20_0.yaml
+
+
 ## 3RScan160, Multiple Predicates
 | method            | Trip      | Obj       | Pred      | mRecall_O | mRecall_P |
 | ----------------- | --------- | --------- | --------- | --------- | --------- |

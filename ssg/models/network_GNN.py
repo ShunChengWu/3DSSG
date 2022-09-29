@@ -388,7 +388,13 @@ class TripletIMP(torch.nn.Module):
     def reset_parameter(self):
         pass
     
-    def forward(self, x, edge_feature, edge_index, **kwargs):
+    def forward(self, data):
+        '''shortcut'''
+        x = data['roi'].x
+        edge_feature = data['edge2D'].x
+        edge_index = data['roi','to','roi'].edge_index
+        
+        '''process'''
         x = self.node_gru(x)
         edge_feature = self.node_gru(edge_feature)
         for i in range(self.num_layers):
@@ -420,7 +426,16 @@ class TripletVGfM(torch.nn.Module):
         # reset_parameters_with_activation(self.nn1[3], 'relu')
         # reset_parameters_with_activation(self.nn2[0], 'relu')
         
-    def forward(self, x, edge_feature, edge_index, geo_feature, temporal_node_graph, temporal_edge_graph, **args):
+    def forward(self, data):
+        '''shortcut'''
+        x = data['roi'].x
+        edge_feature = data['edge2D'].x
+        edge_index = data['roi','to','roi'].edge_index
+        geo_feature = data['roi'].desp
+        temporal_node_graph = data['roi','temporal','roi'].edge_index
+        temporal_edge_graph = data['edge2D','temporal','edge2D'].edge_index
+        
+        '''process'''
         x = self.node_gru(x)
         edge_feature = self.node_gru(edge_feature)
         extended_geo_feature = self.edge_encoder(geo_feature,edge_index)
@@ -434,6 +449,7 @@ class TripletVGfM(torch.nn.Module):
                 edge_msg += temporal_edge_msg
             x = self.node_gru(node_msg,x)
             edge_feature = self.edge_gru(edge_msg,edge_feature)
+            
         return x, edge_feature
     
 class MSG_MV(MessagePassing):

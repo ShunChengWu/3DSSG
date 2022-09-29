@@ -1,0 +1,14 @@
+inherit_from: [experiments/config_base_3RScan_full_l20.yaml,experiments/config_base_VGfM.yaml]
+name: 'VGfM_full_l20_4_test'
+training:
+ data_workers: 0
+model:
+ multi_rel: false # multiple relationship 
+data:
+ path: "./data/3RScan_ScanNet20_gt_10/"
+ path_gt: "./data/3RScan_ScanNet20_gt_10/"
+eval: #evaluation
+ mode: instance #eval on [segment, instance].  
+wandb:
+ dry_run: true
+ tags: ["ssg", "2dssg", "vgfm",'full','l20']

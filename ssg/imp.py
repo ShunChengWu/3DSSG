@@ -123,25 +123,26 @@ class IMP(nn.Module):
         self.roi_extractor.with_precompute=False
         # self.roi_extractor.with_precompute=True
         
-    def forward(self, images, image_boxes,image_node_edges, **args):
+    def forward(self, data):
+        images = data['roi'].img
+        image_boxes = data['roi'].box
+        image_node_edges = data['roi','to','roi'].edge_index
+        
         '''compute image feature'''
-        node_features, edge_features = self.roi_extractor(images, image_boxes,image_node_edges)
+        data['roi'].x, data['edge2D'].x = self.roi_extractor(images, image_boxes,image_node_edges)
         
-        node_features = self.obj_embedding(node_features)
-        if len(edge_features)>0:
-            edge_features = self.pred_embedding(edge_features)
+        data['roi'].x = self.obj_embedding(data['roi'].x)
+        if len(data['edge2D'].x)>0:
+            data['edge2D'].x = self.pred_embedding(data['edge2D'].x)
         
-        if hasattr(self, 'gnn') and self.gnn is not None and len(edge_features)>0 and len(node_features)>0:
-            if self.cfg.model.gnn.method == 'vgfm':
-                node_features,edge_features = self.gnn(node_features,edge_features,image_node_edges,geo_feature=args['node_descriptor_8'],**args)
-            else:
-                node_features,edge_features = self.gnn(node_features,edge_features,image_node_edges,**args)
+        if hasattr(self, 'gnn') and self.gnn is not None and len(data['edge2D'].x)>0 and len(data['roi'].x)>0:
+            data['roi'].x, data['edge2D'].x = self.gnn(data)
         
-        obj_class_logits = self.obj_predictor(node_features)
-        if len(edge_features)>0:
-            rel_class_logits = self.rel_predictor(edge_features)
+        obj_class_logits = self.obj_predictor(data['roi'].x)
+        if len(data['edge2D'].x)>0:
+            rel_class_logits = self.rel_predictor(data['edge2D'].x)
         else:
-            rel_class_logits = edge_features
+            rel_class_logits = data['edge2D'].x
         return obj_class_logits, rel_class_logits
     
     def calculate_metrics(self, **args):

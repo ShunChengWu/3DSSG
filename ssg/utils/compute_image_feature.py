@@ -130,7 +130,8 @@ if __name__ == '__main__':
                     img_data = torch.from_numpy(img_data)
                     assert torch.equal(img_data,img_features[idx])
         except:
-            os.remove(filepath)
+            if os.path.exists(filepath):
+                os.remove(filepath)
             logger_py.error('error occur. delete unfinished file at {}'.format(filepath))
             raise RuntimeError()
     #     break

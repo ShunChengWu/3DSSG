@@ -371,19 +371,32 @@ class SGFNDataset (data.Dataset):
                 output['roi'].x = torch.zeros([roi_images.size(0),1])
                 output['roi'].img = roi_images
                 output['roi','sees','node'].edge_index = edge_indices_img_to_obj
+                if not self.mconfig.load_points:
+                    output['node'].desp = node_descriptor_for_image
             else:
-                raise NotImplementedError
-                output['images'] = images
-                output['image_boxes'] = img_bounding_boxes
-                output['temporal_node_graph'] = temporal_node_graph
-                output['temporal_edge_graph'] = temporal_edge_graph
-                output['image_node_edges'] = image_edge_indices
+                output['roi'].x = torch.zeros([len(img_bounding_boxes),1])
+                output['roi'].y = gt_class_image
+                output['roi'].box = img_bounding_boxes
+                output['roi'].img = images
+                output['roi'].desp = node_descriptor_for_image
+                output['roi'].idx2oid = [img_idx2oid]
+                output['edge2D'].x = torch.zeros([gt_rels_2D.size(0),1])
+                output['edge2D'].y = gt_rels_2D
                 
-                output['image_gt_cls'] = gt_class_image
-                output['image_gt_rel'] = gt_rels_2D
-                output['image_mask2instance'] = img_idx2oid
-            if not self.mconfig.load_points:
-                output['node'].desp = node_descriptor_for_image
+                output['roi','to','roi'].edge_index = image_edge_indices.t().contiguous()
+                output['roi','temporal','roi'].edge_index = temporal_node_graph.t().contiguous()
+                output['edge2D','temporal','edge2D'].edge_index = temporal_edge_graph.t().contiguous()
+                # raise NotImplementedError
+                # output['images'] = images
+                # output['image_boxes'] = img_bounding_boxes
+                # output['temporal_node_graph'] = temporal_node_graph
+                # output['temporal_edge_graph'] = temporal_edge_graph
+                # output['image_node_edges'] = image_edge_indices
+                
+                # output['image_gt_cls'] = gt_class_image
+                # output['image_gt_rel'] = gt_rels_2D
+                # output['image_mask2instance'] = img_idx2oid
+            
             # output['node_descriptor_8'] = node_descriptor_for_image
 
         return output
