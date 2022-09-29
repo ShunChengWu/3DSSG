@@ -229,43 +229,6 @@ class GraphEdgeAttenNetwork(BaseNetwork):
         names[name]['prop'] = names_nn
         return names
     
-class GraphEdgeAttenNetworkLayers(torch.nn.Module):
-    """ A sequence of scene graph convolution layers  """
-    def __init__(self, dim_node, dim_edge, dim_atten, num_layers, num_heads=1, aggr= 'max', **kwargs):
-        super().__init__()
-        self.num_layers = num_layers
-        self.num_heads = num_heads
-        self.gconvs = torch.nn.ModuleList()
-        
-        self.drop_out = None 
-        if 'DROP_OUT_ATTEN' in kwargs:
-            self.drop_out = torch.nn.Dropout(kwargs['DROP_OUT_ATTEN'])
-        
-        for _ in range(self.num_layers):
-            self.gconvs.append(GraphEdgeAttenNetwork(num_heads,dim_node,dim_edge,dim_atten,aggr, **kwargs))
-
-    def forward(self, node_feature, edge_feature, edges_indices):
-        probs = list()
-        for i in range(self.num_layers):
-            gconv = self.gconvs[i]
-            node_feature, edge_feature, prob = gconv(node_feature, edge_feature, edges_indices)
-            
-            if i < (self.num_layers-1) or self.num_layers==1:
-                node_feature = torch.nn.functional.relu(node_feature)
-                edge_feature = torch.nn.functional.relu(edge_feature)
-                
-                if self.drop_out:
-                    node_feature = self.drop_out(node_feature)
-                    edge_feature = self.drop_out(edge_feature)
-                
-                
-            if prob is not None:
-                probs.append(prob.cpu().detach())
-            else:
-                probs.append(None)
-        return node_feature, edge_feature, probs
-    
-    
 class TripletGCN(MessagePassing):
     def __init__(self, dim_node, dim_edge, dim_hidden, aggr= 'mean', with_bn=True):
         super().__init__(aggr=aggr)
@@ -411,8 +374,7 @@ class MessagePassing_Gate(MessagePassing):
     def message(self,x_i,x_j):
         x_i = self.temporal_gate(torch.cat([x_i,x_j],dim=1)) * x_i
         return x_i
-    
-    
+        
 class TripletIMP(torch.nn.Module):
     def __init__(self, dim_node, num_layers, aggr= 'mean', **kwargs):
         super().__init__()
@@ -523,6 +485,7 @@ class MSG_FAN(MessagePassing):
                  num_heads:int,
                  use_bn:bool,
                  aggr='sum',
+                 attn_dropout:float = 0.5,
                  flow:str='target_to_source'):
         super().__init__(aggr=aggr,flow=flow)
         assert dim_node % num_heads == 0
@@ -533,6 +496,7 @@ class MSG_FAN(MessagePassing):
         self.dim_value_proj = dim_atten // num_heads
         self.num_head = num_heads
         self.temperature = math.sqrt(self.dim_edge_proj)
+        
         self.nn_att = MLP([self.dim_node_proj+self.dim_edge_proj,self.dim_node_proj+self.dim_edge_proj,
                            self.dim_edge_proj])
         
@@ -542,6 +506,8 @@ class MSG_FAN(MessagePassing):
         
         self.nn_edge = build_mlp([dim_node*2+dim_edge,(dim_node+dim_edge),dim_edge],
                           do_bn= use_bn, on_last=False)
+        
+        self.dropout = torch.nn.Dropout(attn_dropout) if attn_dropout > 0 else torch.nn.Identity()
         
         '''update'''
         self.update_node = build_mlp([dim_node+dim_atten, dim_node+dim_atten, dim_node],
@@ -567,6 +533,7 @@ class MSG_FAN(MessagePassing):
         # est attention
         att = self.nn_att(torch.cat([x_i,edge],dim=1)) # N, D, H
         prob = torch.nn.functional.softmax(att/self.temperature, dim=1)
+        prob = self.dropout(prob)
         value = prob.reshape_as(x_j)*x_j
         
         return [value,triplet_feature,prob]
@@ -649,8 +616,43 @@ class JointGNN(torch.nn.Module):
             else:
                 probs.append(None)
         return node, edge, probs
-
     
+class GraphEdgeAttenNetworkLayers(torch.nn.Module):
+    """ A sequence of scene graph convolution layers  """
+    def __init__(self, **kwargs):
+        super().__init__()
+        self.num_layers = kwargs['num_layers']
+        
+        self.gconvs = torch.nn.ModuleList()
+        self.drop_out = None 
+        if 'DROP_OUT_ATTEN' in kwargs:
+            self.drop_out = torch.nn.Dropout(kwargs['DROP_OUT_ATTEN'])
+        
+        for _ in range(self.num_layers):
+            self.gconvs.append(filter_args_create(MSG_FAN,kwargs))
+
+    def forward(self, data):
+        probs = list()
+        node_feature = data['node'].x
+        edge_feature = data['edge'].x
+        edges_indices = data['node','to','node'].edge_index
+        for i in range(self.num_layers):
+            gconv = self.gconvs[i]
+            node_feature, edge_feature, prob = gconv(node_feature, edge_feature, edges_indices)
+            
+            if i < (self.num_layers-1) or self.num_layers==1:
+                node_feature = torch.nn.functional.relu(node_feature)
+                edge_feature = torch.nn.functional.relu(edge_feature)
+                
+                if self.drop_out:
+                    node_feature = self.drop_out(node_feature)
+                    edge_feature = self.drop_out(edge_feature)
+                
+            if prob is not None:
+                probs.append(prob.cpu().detach())
+            else:
+                probs.append(None)
+        return node_feature, edge_feature, probs
 
 if __name__ == '__main__':
     TEST_FORWARD=True

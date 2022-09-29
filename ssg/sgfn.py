@@ -129,7 +129,8 @@ class SGFN(nn.Module):
                 num_layers=cfg.model.gnn.num_layers,
                 num_heads=cfg.model.gnn.num_heads,
                 aggr='max',
-                DROP_OUT_ATTEN=cfg.model.gnn.drop_out
+                DROP_OUT_ATTEN=cfg.model.gnn.drop_out,
+                use_bn=False
                 )
         
         '''build classifier'''
@@ -183,29 +184,27 @@ class SGFN(nn.Module):
             params += list(model.parameters())
             print(name,pytorch_count_params(model))
         print('')
-    def forward(self, node_edges, **args):
+    def forward(self, data):
+        '''shortcut'''
+        descriptor =  data['node'].desp
+        edge_indices_node_to_node = data['node','to','node'].edge_index
+        
         """reshape node edges if needed"""
-        if node_edges.shape[0] != 2:
-            node_edges = node_edges.t().contiguous()
+        if edge_indices_node_to_node.shape[0] != 2:
+            edge_indices_node_to_node = edge_indices_node_to_node.t().contiguous()
         
         if self.with_pts_encoder:
-            obj_points = args['obj_points']
-            # logger_py.debug('len(nodes), len(edges): {} {} '.format(len(obj_points), node_edges.shape))
-            nodes_pts_feature = self.obj_encoder(obj_points)
-            nodes_feature = nodes_pts_feature 
-            descriptor = args['descriptor']
+            data['node'].x = self.obj_encoder(data['node'].pts)
+            
+        if self.with_img_encoder:
+            data['node'].x = self.img_encoder(data['roi'].img)
+            
+        if self.use_spatial:
             if self.use_spatial:
                 tmp = descriptor[:,3:].clone()
                 tmp[:,6:] = tmp[:,6:].log() # only log on volume and length
-                
                 tmp = self.spatial_encoder(tmp)
-                nodes_feature = torch.cat([nodes_pts_feature, tmp],dim=1)
-            
-        if self.with_img_encoder:
-            nodes_img_feature= self.img_encoder(args['roi_imgs'])
-            nodes_feature = nodes_img_feature['nodes_feature']
-            descriptor = args['node_descriptor_8']
-            if self.use_spatial:
+            else:
                 # in R5            
                 tmp = descriptor[:,3:8].clone()
                 # log on volume and length
@@ -213,36 +212,35 @@ class SGFN(nn.Module):
                 # x,y ratio in R1
                 xy_ratio = tmp[:,0].log() - tmp[:,1].log() # in log space for stability
                 xy_ratio = xy_ratio.view(-1,1)
-                
                 # [:, 6] -> [:, N]
-                embed_desc = self.spatial_encoder(torch.cat([tmp,xy_ratio],dim=1))
-                # learnable positional encoding
-                nodes_feature = torch.cat([nodes_feature, embed_desc],dim=1)
+                tmp = self.spatial_encoder(torch.cat([tmp,xy_ratio],dim=1))
+                
+            data['node'].x = torch.cat([data['node'].x, tmp],dim=1)
             
         ''' Create edge feature '''
-        # with torch.no_grad():
-        #     edge_feature = op_utils.Gen_edge_descriptor(flow=self.flow)(descriptor,node_edges)
-        if len(node_edges)>0:
-            edges_feature = self.rel_encoder(descriptor,node_edges)
-                    
+        if len(edge_indices_node_to_node)>0:
+            data['edge'].x = self.rel_encoder(descriptor,edge_indices_node_to_node)
+            
+        '''Messsage Passing'''
+        if len(edge_indices_node_to_node)>0:
             ''' GNN '''
             probs=None
             if hasattr(self, 'gnn') and self.gnn is not None:
-                gnn_nodes_feature, gnn_edges_feature, probs = self.gnn(nodes_feature, edges_feature, node_edges)
+                gnn_nodes_feature, gnn_edges_feature, probs = \
+                    self.gnn(data)
 
                 if self.cfg.model.gnn.node_from_gnn:
-                    nodes_feature = gnn_nodes_feature
-                edges_feature = gnn_edges_feature
+                    data['node'].x = gnn_nodes_feature
+                data['edge'].x = gnn_edges_feature
         
-        '''1. Node '''
-        node_cls = self.obj_predictor(nodes_feature)
-        '''2.Edge'''
-        # edge_cls=None
-        if len(node_edges)>0:
-            edge_cls = self.rel_predictor(edges_feature)
+        '''Classification'''
+        # Node
+        node_cls = self.obj_predictor(data['node'].x)
+        # Edge
+        if len(edge_indices_node_to_node)>0:
+            edge_cls = self.rel_predictor(data['edge'].x)
         else:
             edge_cls = None
-            
         return node_cls, edge_cls
     
     def calculate_metrics(self, **args):

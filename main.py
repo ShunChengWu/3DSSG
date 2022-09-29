@@ -59,15 +59,15 @@ def main():
         #     collate_fn=graph_collate,
         # )
         
-        train_loader = torch_geometric.loader.DataLoader(dataset_train,batch_size=cfg.training.batch,num_workers=0)
+        train_loader = torch_geometric.loader.DataLoader(dataset_train,batch_size=cfg.training.batch,num_workers=n_workers)
         
         dataset_val  = config.get_dataset(cfg,'validation')
-        val_loader = torch.utils.data.DataLoader(
+        val_loader = torch_geometric.loader.DataLoader(
             dataset_val, batch_size=1, num_workers=n_workers,
             shuffle=False,
             drop_last=False,
             pin_memory=True,
-            collate_fn=graph_collate,
+            # collate_fn=graph_collate,
         )
         
         # try to load one data
@@ -122,11 +122,11 @@ def main():
         assert eval_mode in ['segment','instance']
         if eval_mode == 'segment':
             dataset_test  = config.get_dataset(cfg,'train')
-            val_loader = torch.utils.data.DataLoader(
+            val_loader = torch_geometric.loader.DataLoader(
                 dataset_test, batch_size=1, num_workers=cfg['eval']['data_workers'],
                 shuffle=False, drop_last=False,
                 pin_memory=True,
-                collate_fn=graph_collate,
+                # collate_fn=graph_collate,
             )
             dataset_test.__getitem__(0)
             
@@ -236,7 +236,7 @@ def main():
             
     elif cfg.MODE == 'sample':
         dataset_test  = config.get_dataset(cfg,'test')
-        val_loader = torch.utils.data.DataLoader(
+        val_loader = torch_geometric.loader.DataLoader(
             dataset_test, batch_size=1, num_workers=0,
             shuffle=False, drop_last=False,
             pin_memory=True,

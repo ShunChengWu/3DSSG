@@ -193,15 +193,15 @@ class JointSG(nn.Module):
                 gnn_nodes_feature, gnn_edges_feature, probs = self.gnn(data)
 
                 if self.cfg.model.gnn.node_from_gnn:
-                    nodes_feature = gnn_nodes_feature
-                edges_feature = gnn_edges_feature
+                    data['node'].x = gnn_nodes_feature
+                data['edge'].x = gnn_edges_feature
         
         '''Classification'''
         # Node
-        node_cls = self.obj_predictor(nodes_feature)
+        node_cls = self.obj_predictor(data['node'].xature)
         # Edge
         if len(edge_indices_node_to_node)>0:
-            edge_cls = self.rel_predictor(edges_feature)
+            edge_cls = self.rel_predictor(data['edge'].x)
         else:
             edge_cls = None
         return node_cls, edge_cls

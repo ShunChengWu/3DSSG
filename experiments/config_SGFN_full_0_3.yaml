@@ -64,7 +64,7 @@ data:
  is_roi_img: true
  load_images: false
  load_points: truse
- load_cache: true
+ load_cache: false
  sample_num_nn: 2
  sample_num_seed: 4
  drop_img_edge: 4 # if is int and >0, select given number. if is float/double, select percentage between [1-x,1]
