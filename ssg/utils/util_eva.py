@@ -911,10 +911,10 @@ class EvalSceneGraph():
                     bedge_indices = bedge_indices.t().contiguous()
                 edge_indices_ = torch.where((bedge_indices[:,0]<=max(indices)) & (bedge_indices[:,0]>=min(indices)) )[0]
                 edge_indices = bedge_indices[edge_indices_]
-                r_pd = r_pds[edge_indices_]
                 rel_gts = brel_gts[edge_indices_]
                 
-                if rel_pds is not None and rel_pds.shape[0] > 0:
+                if len(rel_pds)>0 and rel_pds is not None and rel_pds.shape[0] > 0:
+                    r_pd = r_pds[edge_indices_]
                     if self.multi_rel_prediction:
                         assert self.multi_rel_threshold>0
                         pd['edges'] = build_edge2name(r_pd,    edge_indices, mask2inst, self.rel_class_names)
