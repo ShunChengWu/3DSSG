@@ -100,6 +100,7 @@ if __name__ == '__main__':
                 
         logger_py.info('create file')
         try:
+            torch.cuda.empty_cache()
             logger_py.info('get image list')
             images=list()
             for fid in kf_indices:
@@ -129,6 +130,7 @@ if __name__ == '__main__':
                     img_data = np.asarray(h5f[str(fid)]).copy()
                     img_data = torch.from_numpy(img_data)
                     assert torch.equal(img_data,img_features[idx])
+            del images, img_features
         except:
             if os.path.exists(filepath):
                 os.remove(filepath)
