@@ -61,7 +61,6 @@ class Trainer_SGFN(BaseTrainer, EvalInst):
             eval_step_dict = self.eval_step(data,eval_tool=eval_tool)
             
             for k, v in eval_step_dict.items():
-                print(k,v)
                 eval_list[k].update(v)
             # break
         eval_dict = dict()
