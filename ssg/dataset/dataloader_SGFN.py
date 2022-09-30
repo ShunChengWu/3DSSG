@@ -597,7 +597,7 @@ class SGFNDataset (data.Dataset):
                     filtered_sg_data[scan_id]['relationships'] = c_sg_data[scan_id]['relationships']
                 c_sg_data = filtered_sg_data
                 
-                if config.data.full_edge:
+                if self.full_edge:
                     edge_mode='fully_connected'
                 else:
                     edge_mode='nn'

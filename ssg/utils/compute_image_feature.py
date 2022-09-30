@@ -102,40 +102,52 @@ if __name__ == '__main__':
         try:
             torch.cuda.empty_cache()
             logger_py.info('get image list')
-            images=list()
-            for fid in kf_indices:
-                pth_rgb = os.path.join(cfg.data.path_3rscan,scan_id,'sequence', define.RGB_NAME_FORMAT.format(int(fid)))
-                img_data = Image.open(pth_rgb)
-                img_data = np.rot90(img_data,3)# Rotate image
-                img_data = torch.as_tensor(img_data.copy()).permute(2,0,1)
-                img_data = transform(img_data)
-                img_data= normalize_imagenet(img_data.float()/255.0)
-                images.append(img_data)
-            images = torch.stack(images)
+            # images=list()
+            # for fid in kf_indices:
+            #     pth_rgb = os.path.join(cfg.data.path_3rscan,scan_id,'sequence', define.RGB_NAME_FORMAT.format(int(fid)))
+            #     img_data = Image.open(pth_rgb)
+            #     img_data = np.rot90(img_data,3)# Rotate image
+            #     img_data = torch.as_tensor(img_data.copy()).permute(2,0,1)
+            #     img_data = transform(img_data)
+            #     img_data= normalize_imagenet(img_data.float()/255.0)
+            #     images.append(img_data)
+            # images = torch.stack(images)
             
-            logger_py.info('compute feature')
-            with torch.no_grad():
-                img_features=[]
-                for p_split in torch.split(images,int(8), dim=0):
-                    torch.cuda.empty_cache()
-                    img_features.append(img_encoder.preprocess(p_split.to(cfg.DEVICE)).cpu())
-                img_features = torch.cat(img_features,dim=0)    
+            # logger_py.info('compute feature')
+            # with torch.no_grad():
+            #     img_features=[]
+            #     for p_split in torch.split(images,int(8), dim=0):
+            #         torch.cuda.empty_cache()
+            #         img_features.append(img_encoder.preprocess(p_split.to(cfg.DEVICE)).cpu())
+            #     img_features = torch.cat(img_features,dim=0)    
                 # img_features = torch.cat([ img_encoder.preprocess(p_split.to(cfg.DEVICE)).cpu()  for p_split in torch.split(images,int(4), dim=0) ], dim=0)
             
             logger_py.info('save')
             with h5py.File(filepath,'w') as h5f:
-                for idx,fid in enumerate(kf_indices):
-                    # if feature_type in h5g: del h5g[feature_type]
-                    h5f.create_dataset(str(fid),data=img_features[idx].numpy())    
+                for idx, fid in enumerate(kf_indices):
+                    pth_rgb = os.path.join(cfg.data.path_3rscan,scan_id,'sequence', define.RGB_NAME_FORMAT.format(int(fid)))
+                    img_data = Image.open(pth_rgb)
+                    img_data = np.rot90(img_data,3)# Rotate image
+                    img_data = torch.as_tensor(img_data.copy()).permute(2,0,1)
+                    img_data = transform(img_data)
+                    img_data= normalize_imagenet(img_data.float()/255.0).unsqueeze(0)
+                    with torch.no_grad():
+                        img_feature = img_encoder.preprocess(img_data.to(cfg.DEVICE)).cpu()[0].numpy()
+
+                    h5f.create_dataset(str(fid),data=img_feature)    
+                
+                # for idx,fid in enumerate(kf_indices):
+                #     # if feature_type in h5g: del h5g[feature_type]
+                #     h5f.create_dataset(str(fid),data=img_features[idx].numpy())    
                 logger_py.info('close')
                 
-            '''check '''
-            with h5py.File(filepath,'r') as h5f:
-                for idx,fid in enumerate(kf_indices):
-                    img_data = np.asarray(h5f[str(fid)]).copy()
-                    img_data = torch.from_numpy(img_data)
-                    assert torch.equal(img_data,img_features[idx])
-            del images, img_features
+            # '''check '''
+            # with h5py.File(filepath,'r') as h5f:
+            #     for idx,fid in enumerate(kf_indices):
+            #         img_data = np.asarray(h5f[str(fid)]).copy()
+            #         img_data = torch.from_numpy(img_data)
+            #         assert torch.equal(img_data,img_features[idx])
+            # del images, img_features
         except:
             if os.path.exists(filepath):
                 os.remove(filepath)
