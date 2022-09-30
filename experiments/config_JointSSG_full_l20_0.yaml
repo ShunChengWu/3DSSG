@@ -9,10 +9,10 @@ data:
  is_roi_img: true
  load_images: true
  load_points: true
- load_cache: false
+ load_cache: true
  img_desc_6_pts: false # return 6 extreme points 
  drop_img_edge: 4 # if is int and >0, select given number. if is float/double, select percentage between [1-x,1]
  use_precompute_img_feature: false
 wandb:
- dry_run: true
+ dry_run: false
  tags: ["ssg", "jointSSG",'full','l20']

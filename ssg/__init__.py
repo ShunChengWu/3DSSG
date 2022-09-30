@@ -29,6 +29,7 @@ def default_parser():
     parser.add_argument('--loadbest', type=int, default=0,choices=[0,1], help='1: load best model or 0: load checkpoints. Only works in non training mode.')
     parser.add_argument('--log', type=str, default='DEBUG',choices=['DEBUG','INFO','WARNING','CRITICAL'], help='')
     parser.add_argument('-o','--out_dir', type=str, default='', help='overwrite output directory given in the config file.')
+    parser.add_argument('--dry_run', action='store_true', help='disable logging in wandb (if that is the logger).')
     return parser
 
 def load_config(args):
@@ -38,12 +39,14 @@ def load_config(args):
         
     # load config file
     config = codeLib.Config(config_path)
-    # return config
+    # configure config based on the input arguments
     config.LOADBEST = args.loadbest
     config.MODE = args.mode
-    
     if len(args.out_dir) > 0:
         config.training.out_dir = args.out_dir
+    if args.dry_run:
+        config.wandb.dry_run = True
+        
     
     # check if name exist
     if 'name' not in config:

@@ -1,18 +1,19 @@
 model:
  method: jointsg
  multi_rel: false # multiple relationship 
- use_rgb: false
- use_normal: false
+ use_rgb: true
+ use_normal: true
  use_spatial: true
  img_feature_dim: 256
- num_points_union: 512 # for 3DSSG
  node_feature_dim: 256
  edge_feature_dim: 256
+ edge_descriptor_dim: 11
  spatial_encoder:
   method: identity #[identity,fc]
-  dim: 128
  node_encoder:
   method: sgfn #[none, basic]
+ edge_encoder:
+  method: sgfn #
  image_encoder:
   method: mvcnn_res18 #[none,mvcnn,mean,mvcnn_res18]
   backend: res18 #[vgg16,res18]
@@ -25,9 +26,6 @@ model:
   hidden: 1024
   drop_out: 0.3
   local_feature_dim: 64
- edge_encoder:
-  method: sgfn # [basic,sgfn,2dssg, 2dssg_1]
-  with_bn: false
  gnn:
   method: jointgnn # [none, fan, triplet]
   hidden_dim: 256
@@ -38,3 +36,6 @@ model:
  node_classifier:
   with_bn: false
   dropout: 0.3
+data:
+ load_images: true
+ load_points: true

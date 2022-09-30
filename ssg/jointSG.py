@@ -198,7 +198,7 @@ class JointSG(nn.Module):
         
         '''Classification'''
         # Node
-        node_cls = self.obj_predictor(data['node'].xature)
+        node_cls = self.obj_predictor(data['node'].x)
         # Edge
         if len(edge_indices_node_to_node)>0:
             edge_cls = self.rel_predictor(data['edge'].x)

@@ -22,6 +22,5 @@ model:
   node_from_gnn: true
 data:
  load_images: false
- load_points: truse
- load_cache: false
+ load_points: true
  full_edge: false # connect all selected nodes
