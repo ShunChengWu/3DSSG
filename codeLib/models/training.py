@@ -2,6 +2,13 @@ import numpy as np
 from collections import defaultdict
 from tqdm import tqdm
 import torch
+import importlib
+
+# try to import pytorch_geometric
+has_pyg = importlib.util.find_spec('torch_geometric') is not None
+if has_pyg:
+    import torch_geometric
+
 class BaseTrainer(object):
     '''
     Base trainer for all networks.
@@ -71,6 +78,9 @@ class BaseTrainer(object):
             data (dictionary): data dictionary
         '''
         if data is None: return data
+        if has_pyg and isinstance(data,torch_geometric.data.hetero_data.HeteroData):
+            return data.to(self._device)
+        
         try:
             data =  dict(zip(data.keys(), self.toDevice(*data.values()) ))
         except:

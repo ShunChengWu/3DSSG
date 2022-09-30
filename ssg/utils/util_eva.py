@@ -1114,7 +1114,8 @@ class EvalUpperBound():
             # seg_gt_cls = data_seg['image_gt_cls']
             # mask2seg = data_seg['image_mask2instance']
             # seg_node_edges = data_seg['image_node_edges']
-        
+        if seg2inst is not None:
+            seg2inst=seg2inst[0]
             
         
         

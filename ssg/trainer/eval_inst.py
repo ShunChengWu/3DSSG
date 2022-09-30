@@ -50,31 +50,20 @@ class EvalInst(object):
         '''start eval'''
         self.model.eval()
         for index in tqdm(range(len(dataset_inst))):
-            # if index>10: break
-        # for data_inst in seg_dataloader:
             data_inst = dataset_inst.__getitem__(index)                
             scan_id_inst = data_inst['scan_id']
-            # print('scan_id_inst',scan_id_inst)
             
             if scan_id_inst not in scanid2idx_seg:
-                #TODO: what should we do if missing scans?
-                # raise RuntimeError('')
-                # continue
                 data_seg = None
             else:
                 index_seg = scanid2idx_seg[scan_id_inst]
                 data_seg  = dataset_seg.__getitem__(index_seg)
                 assert data_seg['scan_id'] == data_inst['scan_id']
-                
-            # data_seg = None
-
+            
             '''process seg'''
             eval_dict={}
             with torch.no_grad():
                 logs = {}
-        
-                # Process data dictionary
-                #TODO: need to differentiate IMP,VGfM and SGFN,3DSSG
                 data_seg = self.process_data_dict(data_seg)
                 data_inst = self.process_data_dict(data_inst)
                 # record in eval_UB
@@ -83,11 +72,10 @@ class EvalInst(object):
                 
                 # Shortcuts
                 scan_id = data_inst['scan_id']
-                inst_mask2instance = data_inst['mask2instance']
-                inst_gt_cls = data_inst['gt_cls']
-                inst_gt_rel = data_inst['gt_rel']
-                inst_node_edges_ori = data_inst['node_edges']
-                data_inst['node_edges'] = data_inst['node_edges'].t().contiguous()
+                inst_mask2instance = data_inst['node'].idx2oid[0]#data_inst['mask2instance']
+                inst_gt_cls = data_inst['node'].y#data_inst['gt_cls']
+                inst_gt_rel = data_inst['edge'].y#data_inst['seg_gt_rel']
+                inst_node_edges = data_inst['node','to','node'].edge_index#data_inst['node_edges']
                 
                 if data_seg is None:
                     node_pred = torch.zeros_like(torch.nn.functional.one_hot(inst_gt_cls, len(node_cls_names))).float()
@@ -105,41 +93,38 @@ class EvalInst(object):
                           edge_pred,
                           inst_gt_rel,
                           [inst_mask2instance],
-                          inst_node_edges_ori)
+                          inst_node_edges)
                     continue
-                    #TODO: build empty prediction
-                    # raise NotImplementedError()
                 
-                # gt_cls = data_seg['gt_cls']
                 if not is_eval_image:
-                    gt_rel = data_seg['gt_rel']
-                    mask2seg = data_seg['mask2instance']
+                    seg_gt_cls = data_seg['node'].y
+                    seg_gt_rel = data_seg['edge'].y
+                    mask2seg   = data_seg['node'].idx2oid[0]
+                    seg_node_edges = data_seg['node','to','node'].edge_index
+                    seg2inst = data_seg['node'].get('idx2iid',None)
                     
-                    data_seg['node_edges'] = data_seg['node_edges'].t().contiguous()
-                    node_edges = data_seg['node_edges']
+                    
+                    # seg_gt_rel = data_seg['seg_gt_rel']
+                    # mask2seg = data_seg['mask2instance']
+                    # data_seg['node_edges'] = data_seg['node_edges'].t().contiguous()
+                    # node_edges = data_seg['node_edges']
                 else:
-                # node_edges_ori = data_seg['node_edges']
-                    mask2seg = data_seg['image_mask2instance']
-                    gt_rel = data_seg['image_gt_rel']
-                    data_seg['image_node_edges'] = data_seg['image_node_edges'].t().contiguous()
-                    node_edges = data_seg['image_node_edges']
-                seg2inst = data_seg.get('seg2inst',None)
-                
-                
-                
-                # print(scan_id, inst_gt_cls.shape, inst_gt_rel.shape)
-                # continue
-                # import sys
-                # sys.exit()
-                
-                # check input valid
-                # if node_edges_ori.ndim==1: 
-                    # print('hallo')
-                #     raise RuntimeError('')
-                #     continue
+                    seg_gt_cls = data_seg['roi'].y
+                    seg_gt_rel = data_seg['edge2D'].y
+                    mask2seg = data_seg['roi'].idx2oid[0]
+                    seg_node_edges = data_seg['roi','to','roi'].edge_index
+                    seg2inst = data_seg['roi'].get('idx2iid',None)
+                    
+                    # node_edges_ori = data_seg['node_edges']
+                    # mask2seg = data_seg['image_mask2instance']
+                    # seg_gt_rel = data_seg['image_gt_rel']
+                    # data_seg['image_node_edges'] = data_seg['image_node_edges'].t().contiguous()
+                    # node_edges = data_seg['image_node_edges']
+                if seg2inst is not None:
+                    seg2inst=seg2inst[0]
                 
                 ''' make forward pass through the network '''
-                node_cls, edge_cls = self.model(**data_seg)
+                node_cls, edge_cls = self.model(data_seg)
                 
                 '''merge prediction from seg to instance (in case of "same part")'''
                 inst2masks = defaultdict(list)                
@@ -197,15 +182,16 @@ class EvalInst(object):
                 inst_gt_pairs = set() # 
                 inst_gt_rel_dict = dict() # This collects "from" and "to" instances pair as key  -> predicate label
                 for idx in range(len(inst_gt_rel)):
-                    src_idx, tgt_idx = data_inst['node_edges'][0,idx].item(),data_inst['node_edges'][1,idx].item()
+                    
+                    src_idx, tgt_idx = inst_node_edges[0,idx].item(),inst_node_edges[1,idx].item()
                     src_inst_idx, tgt_inst_idx = inst_mask2inst[src_idx], inst_mask2inst[tgt_idx]
                     inst_gt_pairs.add((src_inst_idx, tgt_inst_idx))
                     inst_gt_rel_dict[(src_inst_idx, tgt_inst_idx)] = inst_gt_rel[idx]
                
                 merged_edge_cls_dict = defaultdict(list) # map edge predictions on the same pair of instances.
-                for idx in range(len(gt_rel)):
-                    src_idx, tgt_idx = node_edges[0,idx].item(), node_edges[1,idx].item()
-                    # relname = self.edge_cls_names[gt_rel[idx].item()]
+                for idx in range(len(seg_gt_rel)):
+                    src_idx, tgt_idx = seg_node_edges[0,idx].item(), seg_node_edges[1,idx].item()
+                    # relname = self.edge_cls_names[seg_gt_rel[idx].item()]
                     
                     src_seg_idx = mask2seg[src_idx]
                     src_inst_idx = seg2inst[src_seg_idx] if seg2inst is not None else src_seg_idx
