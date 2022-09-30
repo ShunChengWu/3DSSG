@@ -72,7 +72,8 @@ def main():
         
         # try to load one data
         dataset_train.__getitem__(0)
-        for data in train_loader:
+        for i,data in enumerate(train_loader):
+            # print(i)
             break
         
         # Get logger

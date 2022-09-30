@@ -24,10 +24,11 @@ __all__ = ['SSG3D','SGFN', 'SGPN','dataset','Trainer','MVEnc','SVEnc','IMP', 'Jo
 
 def default_parser():
     parser = argparse.ArgumentParser(formatter_class=argparse.ArgumentDefaultsHelpFormatter)
-    parser.add_argument('--config', type=str, default='./configs/default.yaml', help='configuration file name. Relative path under given path (default: config.yml)')
-    parser.add_argument('--mode', type=str, choices=['train','validation','trace','eval','sample','trace'], default='train', help='mode. can be [train,trace,eval]',required=False)
+    parser.add_argument('-c','--config', type=str, default='./configs/default.yaml', help='configuration file name. Relative path under given path (default: config.yml)')
+    parser.add_argument('-m','--mode', type=str, choices=['train','validation','trace','eval','sample','trace'], default='train', help='mode. can be [train,trace,eval]',required=False)
     parser.add_argument('--loadbest', type=int, default=0,choices=[0,1], help='1: load best model or 0: load checkpoints. Only works in non training mode.')
     parser.add_argument('--log', type=str, default='DEBUG',choices=['DEBUG','INFO','WARNING','CRITICAL'], help='')
+    parser.add_argument('-o','--out_dir', type=str, default='', help='overwrite output directory given in the config file.')
     return parser
 
 def load_config(args):
@@ -40,6 +41,9 @@ def load_config(args):
     # return config
     config.LOADBEST = args.loadbest
     config.MODE = args.mode
+    
+    if len(args.out_dir) > 0:
+        config.training.out_dir = args.out_dir
     
     # check if name exist
     if 'name' not in config:

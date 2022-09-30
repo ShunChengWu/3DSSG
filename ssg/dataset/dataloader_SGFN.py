@@ -144,14 +144,16 @@ class SGFNDataset (data.Dataset):
             if not os.path.exists(self.path_img_feature):
                 should_compute_image_feature=True
             else:
+                feature_type = self.cfg.model.image_encoder.backend
                 self.open_image_feature()
+                image_feature = self.image_feature[feature_type]
                 for scan_id in self.filtered_data:
-                    if scan_id not in self.image_feature:
+                    if scan_id not in image_feature:
                         should_compute_image_feature=True
                         break
                     else:
                         try:
-                            self.image_feature[scan_id]
+                            image_feature[scan_id]
                         except:
                             should_compute_image_feature=True
                             break

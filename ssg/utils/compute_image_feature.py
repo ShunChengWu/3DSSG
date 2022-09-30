@@ -31,7 +31,7 @@ def Parser():
         parents=[ssg.default_parser()],
         add_help=False)
     parser.add_argument('-n','--folder_name',type=str,default='image_features', help='folder name which will be created at outdir',required=True)
-    parser.add_argument('-o','--outdir',default='/media/sc/SSD1TB/dataset/3RScan/', help='where to store all image features.',required=True)
+    # parser.add_argument('-o','--outdir',default='/media/sc/SSD1TB/dataset/3RScan/', help='where to store all image features.',required=True)
     parser.add_argument('--overwrite', type=int, default=0, help='overwrite existing file.')
     return parser
 
@@ -66,8 +66,8 @@ if __name__ == '__main__':
     '''create folder'''
     foldername = args.folder_name
     # pattern = '{}/*.h5'.format(foldername)
-    pth_link = os.path.join(args.outdir,foldername+'.h5')
-    pth_out = os.path.join(args.outdir,foldername,feature_type)# '/media/sc/SSD1TB/dataset/3RScan/roi_images/'
+    pth_link = os.path.join(args.out_dir,foldername+'.h5')
+    pth_out = os.path.join(args.out_dir,foldername,feature_type)# '/media/sc/SSD1TB/dataset/3RScan/roi_images/'
     pathlib.Path(pth_out).mkdir(parents=True,exist_ok=True)
 
     '''transform'''
