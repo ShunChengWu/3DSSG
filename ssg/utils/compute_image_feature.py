@@ -119,7 +119,7 @@ if __name__ == '__main__':
                 for p_split in torch.split(images,int(4), dim=0):
                     torch.cuda.empty_cache()
                     img_features.append(img_encoder.preprocess(p_split.to(cfg.DEVICE)).cpu())
-                img_features = torch.cat(img_features,dim, dim=0)    
+                img_features = torch.cat(img_features, dim=0)    
                 # img_features = torch.cat([ img_encoder.preprocess(p_split.to(cfg.DEVICE)).cpu()  for p_split in torch.split(images,int(4), dim=0) ], dim=0)
             
             logger_py.info('save')
