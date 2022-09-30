@@ -116,10 +116,10 @@ if __name__ == '__main__':
             logger_py.info('compute feature')
             with torch.no_grad():
                 img_features=[]
-                for p_split in torch.split(images,int(4), dim=0):
+                for p_split in torch.split(images,int(8), dim=0):
                     torch.cuda.empty_cache()
                     img_features.append(img_encoder.preprocess(p_split.to(cfg.DEVICE)).cpu())
-                img_features = torch.cat(img_features, dim=0)    
+                img_features = torch.cat(img_features,dim=0)    
                 # img_features = torch.cat([ img_encoder.preprocess(p_split.to(cfg.DEVICE)).cpu()  for p_split in torch.split(images,int(4), dim=0) ], dim=0)
             
             logger_py.info('save')
