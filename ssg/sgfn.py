@@ -226,14 +226,17 @@ class SGFN(nn.Module):
         if len(edge_indices_node_to_node)>0:
             ''' GNN '''
             probs=None
+            node_feature_ori = None
+            if not self.cfg.model.gnn.node_from_gnn:
+                node_feature_ori = data['node'].x
             if hasattr(self, 'gnn') and self.gnn is not None:
                 gnn_nodes_feature, gnn_edges_feature, probs = \
                     self.gnn(data)
 
-                if self.cfg.model.gnn.node_from_gnn:
-                    data['node'].x = gnn_nodes_feature
+                data['node'].x = gnn_nodes_feature
                 data['edge'].x = gnn_edges_feature
-        
+            if not self.cfg.model.gnn.node_from_gnn:
+                data['node'].x = node_feature_ori
         '''Classification'''
         # Node
         node_cls = self.obj_predictor(data['node'].x)

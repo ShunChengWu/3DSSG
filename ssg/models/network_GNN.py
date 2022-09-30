@@ -229,6 +229,48 @@ class GraphEdgeAttenNetwork(BaseNetwork):
         names[name]['prop'] = names_nn
         return names
     
+# class GraphEdgeAttenNetworkLayers(torch.nn.Module):
+#     """ A sequence of scene graph convolution layers  """
+#     def __init__(self, **kwargs):
+#         super().__init__()
+#         self.num_layers = kwargs['num_layers']
+#         self.num_heads = kwargs['num_heads']
+#         self.gconvs = torch.nn.ModuleList()
+        
+#         self.drop_out = None 
+#         if 'DROP_OUT_ATTEN' in kwargs:
+#             self.drop_out = torch.nn.Dropout(kwargs['DROP_OUT_ATTEN'])
+        
+#         # for _ in range(self.num_layers):
+#         #     self.gconvs.append(GraphEdgeAttenNetwork(**kwargs))
+#         for _ in range(self.num_layers):
+#             self.gconvs.append(filter_args_create(GraphEdgeAttenNetwork,kwargs))
+
+#     def forward(self, data):
+#         probs = list()
+#         node_feature = data['node'].x
+#         edge_feature = data['edge'].x
+#         edges_indices = data['node','to','node'].edge_index
+        
+#         probs = list()
+#         for i in range(self.num_layers):
+#             gconv = self.gconvs[i]
+#             node_feature, edge_feature, prob = gconv(node_feature, edge_feature, edges_indices)
+            
+#             if i < (self.num_layers-1) or self.num_layers==1:
+#                 node_feature = torch.nn.functional.relu(node_feature)
+#                 edge_feature = torch.nn.functional.relu(edge_feature)
+                
+#                 if self.drop_out:
+#                     node_feature = self.drop_out(node_feature)
+#                     edge_feature = self.drop_out(edge_feature)
+                
+                
+#             if prob is not None:
+#                 probs.append(prob.cpu().detach())
+#             else:
+#                 probs.append(None)
+#         return node_feature, edge_feature, probs
 class TripletGCN(MessagePassing):
     def __init__(self, dim_node, dim_edge, dim_hidden, aggr= 'mean', with_bn=True):
         super().__init__(aggr=aggr)

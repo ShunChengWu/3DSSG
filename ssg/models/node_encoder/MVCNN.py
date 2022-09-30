@@ -32,16 +32,33 @@ class MVCNN(NodeEncoderBase):
     def reset_parameters(self):
         pass
     def forward(self, images, **args):
-        if not self.input_is_roi:
-            bboxes = args['bboxes']
+        # if not self.input_is_roi:
+        #     bboxes = args['bboxes']
         edge_index = args['edge_index']
             
         '''get image features'''
         images = self.preprocess(images)
         
         '''agg'''
-        msg = self.mv_msg(images,edge_index)
+        nodes_feature = self.mv_msg(images,edge_index)
         
+        # node_indices = edge_index[1]
+        # n_nodes = node_indices.max()+1
+        # nodes_feature = torch.zeros([n_nodes,self.node_feature_dim]).to(images)
+        # for node_idx in range(n_nodes):
+        #     image_indices = torch.where(node_indices==node_idx)
+            
+        #     image_features = images[image_indices]
+        #     if self.global_pooling_method == 'max':
+        #         image_features = torch.max(image_features,0,keepdim=True)[0]
+        #     elif self.global_pooling_method == 'mean':
+        #         image_features = torch.mean(image_features,0)
+        #     elif self.global_pooling_method == 'sum':
+        #         image_features = torch.sum(image_features,0)
+        #     else:
+        #         raise RuntimeError('unknown global pooling method')
+            
+        #     nodes_feature[node_idx] = image_features
         
         # '''compute node feature base on the given edges'''
         # n_nodes = len(images) if self.input_is_roi else len(bboxes)
@@ -65,7 +82,7 @@ class MVCNN(NodeEncoderBase):
         #         raise RuntimeError('unknown global pooling method')
         #     nodes_feature[node_idx] = roi_features.flatten()
         outputs=dict()
-        outputs['nodes_feature']=msg
+        outputs['nodes_feature']=nodes_feature
         return outputs
     
 if __name__ == '__main__':
