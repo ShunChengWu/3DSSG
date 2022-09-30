@@ -111,11 +111,16 @@ if __name__ == '__main__':
                 img_data = transform(img_data)
                 img_data= normalize_imagenet(img_data.float()/255.0)
                 images.append(img_data)
-            images = torch.stack(images).to(cfg.DEVICE)
+            images = torch.stack(images)
             
             logger_py.info('compute feature')
             with torch.no_grad():
-                img_features = torch.cat([ img_encoder.preprocess(p_split).cpu()  for p_split in torch.split(images,int(4), dim=0) ], dim=0)
+                img_features=[]
+                for p_split in torch.split(images,int(4), dim=0):
+                    torch.cuda.empty_cache()
+                    img_features.append(img_encoder.preprocess(p_split.to(cfg.DEVICE)).cpu())
+                img_features = torch.cat(img_features,dim, dim=0)    
+                # img_features = torch.cat([ img_encoder.preprocess(p_split.to(cfg.DEVICE)).cpu()  for p_split in torch.split(images,int(4), dim=0) ], dim=0)
             
             logger_py.info('save')
             with h5py.File(filepath,'w') as h5f:
