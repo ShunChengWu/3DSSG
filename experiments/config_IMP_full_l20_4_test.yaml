@@ -1,5 +1,5 @@
 inherit_from: [experiments/config_base_3RScan_full_l20.yaml,experiments/config_base_IMP.yaml]
-name: 'VGfM_full_l20_4_test'
+name: 'IMP_full_l20_4_test'
 training:
  data_workers: 8
 model:
