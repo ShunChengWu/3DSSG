@@ -11,5 +11,5 @@ data:
  drop_img_edge: 4 # if is int and >0, select given number. if is float/double, select percentage between [1-x,1]
  use_precompute_img_feature: false
 wandb:
- dry_run: true
+ dry_run: false
  tags: ["ssg", "2dssg",'full','l20']
