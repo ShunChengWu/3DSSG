@@ -19,7 +19,7 @@ remember to change drop_img_edge
 
 
 Test new loader
-- [ ] config_SGFN_full_l20_0.yaml
+- [x] config_SGFN_full_l20_0.yaml
 
 
 ## 3RScan160, Multiple Predicates
@@ -39,6 +39,7 @@ Test new loader
 | 3DSSG_full_l20_2 | 10.9/100  | 35.1/100  | 88.1/100  | 17.3/100  | 28.3/100  |
 | SGFN_full_0_3    | 35.6/100  | 59.8/100  | 89.3/100  | 53.0/100  | 66.1/100  |
 | 2DSSG_full_l20_2 | 61.3/97.4 | 76.6/97.9 | 95.6/99.9 | 79.1/98.1 | 70.5/98.5 |
+| SGFN_full_l20_0  | 42.7/100  | 62.9/100  | 67.6/100  | 55.4/100  | 57.1/100  |
 
 ## ScanNet20, Single Predicate, inseg
 | method            | Trip      | Obj       | Pred      | mRecall_O | mRecall_P |
