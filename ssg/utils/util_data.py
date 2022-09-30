@@ -613,10 +613,8 @@ def match_class_info_from_two(dataset_seg,dataset_inst, multi_rel:bool):
         if define.NAME_NONE in dataset_seg.relationNames:
             edge_cls_names.remove(define.NAME_NONE)
             noneidx_edge_cls = edge_cls_names.index(define.NAME_NONE)
-            
     
     noneidx_node_cls = node_cls_names.index(define.NAME_NONE)
-    
     
     '''
     Find index mapping. Ignore NONE for nodes since it is used for mapping missing instance.

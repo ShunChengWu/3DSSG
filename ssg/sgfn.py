@@ -197,10 +197,11 @@ class SGFN(nn.Module):
             data['node'].x = self.obj_encoder(data['node'].pts)
             
         if self.with_img_encoder:
-            data['node'].x = self.img_encoder(data['roi'].img)
+            img_dict = self.img_encoder(data['roi'].img, edge_index =data['roi','sees','node'].edge_index)
+            data['node'].x = img_dict['nodes_feature'] 
             
         if self.use_spatial:
-            if self.use_spatial:
+            if self.with_pts_encoder:
                 tmp = descriptor[:,3:].clone()
                 tmp[:,6:] = tmp[:,6:].log() # only log on volume and length
                 tmp = self.spatial_encoder(tmp)

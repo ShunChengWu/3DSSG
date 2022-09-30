@@ -454,7 +454,7 @@ class TripletVGfM(torch.nn.Module):
     
 class MSG_MV(MessagePassing):
     def __init__(self, dim_node:int,dim_image:int, num_heads:int):
-        super().__init__(aggr='add',flow='source_to_target')
+        super().__init__(aggr='add',flow='source_to_target') # edges: [img_idx, obj_idx]
         assert dim_node % num_heads == 0 
         self.num_heads = num_heads
         self.d_k = dim_node // num_heads

@@ -14,11 +14,13 @@ def calculate(args:codeLib.Config, topK:int=10):
     return upperbound of triplet Recall, object recalls and predicate recalls
     '''
     ''' Get segment dataset '''
+    is_eval_image = args.model.method in ['imp']
+    
     dataset_seg  = config.get_dataset(cfg,'test')
     ''' Get instance dataset'''
     dataset_inst = config.get_dataset_inst(cfg,'test')
     
-    (scanid2idx_seg, node_cls_names, edge_cls_names,noneidx_node_cls,noneidx_edge_cls,
+    (scanid2idx_seg, scanid2idx_inst, node_cls_names, edge_cls_names,noneidx_node_cls,noneidx_edge_cls,
             seg_valid_node_cls_indices,inst_valid_node_cls_indices,
             seg_valid_edge_cls_indices,inst_valid_edge_cls_indices) = \
         ssg.utils.util_data.match_class_info_from_two(dataset_seg,dataset_inst,multi_rel=args.model.multi_rel)
@@ -35,7 +37,7 @@ def calculate(args:codeLib.Config, topK:int=10):
         data_seg  = dataset_seg.__getitem__(index_seg)
         
         
-        eval_UB(data_seg,data_inst)
+        eval_UB(data_seg,data_inst,is_eval_image)
     return eval_UB.eval_tool
 
 if __name__ == '__main__':

@@ -111,7 +111,8 @@ class NodeEncoderBase(nn.Module):
             raise RuntimeError('unknown')
     def preprocess(self, images):
         if self.input_is_roi:
-            return images
+            x = torch.cat([ self.nn_enc(p_split)  for p_split in torch.split(images,int(self.img_batch_size), dim=0) ], dim=0)
+            return self.nn_post(x).flatten(1)
         
         if self.with_precompute:
             return images # use precomputed image feautre to save time        
@@ -161,9 +162,9 @@ class NodeEncoderBase(nn.Module):
                     img_features[i] = x
                 return img_features
         else:
-            x = torch.cat([ self.nn_enc(p_split)  for p_split in torch.split(images,int(self.img_batch_size), dim=0) ], dim=0)
-            x = self.nn_post(x)
-            return x
+            # x = torch.cat([ self.nn_enc(p_split)  for p_split in torch.split(images,int(self.img_batch_size), dim=0) ], dim=0)
+            # x = self.nn_post(images)
+            return images
         
     def trace(self, pth = './tmp', name_prefix=''):
         # params = inspect.signature(self.forward).parameters

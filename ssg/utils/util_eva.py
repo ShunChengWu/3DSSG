@@ -1074,10 +1074,10 @@ class EvalUpperBound():
     def __call__(self,data_seg,data_inst, is_eval_image:bool):
         # Shortcuts
         scan_id = data_inst['scan_id']
-        inst_mask2instance = data_inst['mask2instance']
-        inst_gt_cls = data_inst['gt_cls']
-        inst_gt_rel = data_inst['gt_rel']
-        inst_node_edges = data_inst['node_edges']
+        inst_mask2instance = data_inst['node'].idx2oid[0]#data_inst['mask2instance']
+        inst_gt_cls = data_inst['node'].y#data_inst['gt_cls']
+        inst_gt_rel = data_inst['edge'].y#data_inst['gt_rel']
+        inst_node_edges = data_inst['node','to','node'].edge_index#data_inst['node_edges']
         
         if data_seg is None:
             node_pred = torch.zeros_like(torch.nn.functional.one_hot(inst_gt_cls, len(self.node_cls_names))).float()
@@ -1095,17 +1095,26 @@ class EvalUpperBound():
                           edge_pred,
                           inst_gt_rel,
                           [inst_mask2instance],
-                          data_inst['node_edges'])
+                          inst_node_edges)
             return 
         if not is_eval_image:
-            seg_gt_cls= data_seg['gt_cls']
-            mask2seg = data_seg['mask2instance']
-            seg_node_edges = data_seg['node_edges']
+            seg_gt_cls = data_seg['node'].y
+            mask2seg   = data_seg['node'].idx2oid[0]
+            seg_node_edges = data_seg['node','to','node'].edge_index
+            seg2inst = data_seg['node'].get('idx2iid',None)
+            
+            # seg_gt_cls= data_seg['gt_cls']
+            # mask2seg = data_seg['mask2instance']
+            # seg_node_edges = data_seg['node_edges']
         else:
-            seg_gt_cls = data_seg['image_gt_cls']
-            mask2seg = data_seg['image_mask2instance']
-            seg_node_edges = data_seg['image_node_edges']
-        seg2inst = data_seg.get('seg2inst',None)
+            seg_gt_cls = data_seg['roi'].y
+            mask2seg = data_seg['roi'].idx2oid[0]
+            seg_node_edges = data_seg['roi','to','roi'].edge_index
+            seg2inst = data_seg['roi'].get('idx2iid',None)
+            # seg_gt_cls = data_seg['image_gt_cls']
+            # mask2seg = data_seg['image_mask2instance']
+            # seg_node_edges = data_seg['image_node_edges']
+        
             
         
         
@@ -1164,7 +1173,7 @@ class EvalUpperBound():
                           edge_pred,
                           inst_gt_rel,
                           [inst_mask2instance],
-                          data_inst['node_edges'])
+                          inst_node_edges)
         
         return len(missing_nodes)/len(seg_instance_set), len(missing_edges)/len(inst_gt_rel)
 
