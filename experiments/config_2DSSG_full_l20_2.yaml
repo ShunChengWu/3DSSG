@@ -2,6 +2,8 @@ inherit_from: [experiments/config_base_3RScan_full_l20.yaml, experiments/config_
 name: '2DSSG_full_l20_2'
 eval: #evaluation
  mode: instance #eval on [segment, instance].  
+model:
+ multi_rel: false
 data:
  is_roi_img: true
  load_images: true

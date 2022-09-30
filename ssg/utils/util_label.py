@@ -156,7 +156,7 @@ def getLabelNameMapping(path):
     toNameRIO27=dict()
     toNameRIO7 =dict()
     with open(path, newline='') as csvfile:
-        spamreader = csv.reader(csvfile, delimiter=',', quotechar='|')
+        spamreader = csv.reader(csvfile, delimiter=',', quotechar='"')
         for row in spamreader:
             if not row[0].isnumeric():
                 continue

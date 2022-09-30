@@ -1,50 +1,16 @@
-import os,copy
+import os,copy,torch,time,logging,ssg,time
 import numpy as np
 from tqdm import tqdm, tnrange
 from collections import defaultdict
 from codeLib.models import BaseTrainer
 from codeLib.common import check_weights, check_valid, convert_torch_to_scalar
-import torch
-import torch.nn.functional as F
-from ssg.utils.util_eva import EvalSceneGraph, EvalUpperBound, plot_confusion_matrix
-import time
-import logging
-from ssg.checkpoints import CheckpointIO
-import torch.optim as optim
+from ssg.utils.util_eva import EvalSceneGraph
 import codeLib.utils.moving_average as moving_average 
 from codeLib.models import BaseTrainer
-from codeLib.common import check_weights, check_valid, convert_torch_to_scalar
-import torch
-import torchvision
-import torch, os
-from collections import defaultdict
 from tqdm import tqdm
-import numpy as np
-from codeLib.models import BaseTrainer
-import ssg
-# from ssg.utils.util_eva import EvaClassificationSimple
-import codeLib.utils.moving_average as moving_average 
-import time
-from codeLib.common import check_weights, convert_torch_to_scalar
-# from models.otk.utils import normalize
-from codeLib.torch.visualization import show_tensor_images, save_tensor_images
-# import torchvision
-import matplotlib.pyplot as plt
-import numpy as np
-from codeLib.common import denormalize_imagenet, create_folder
-from codeLib.torch.visualization import  show_tensor_images, save_tensor_images
 import codeLib.utils.string_numpy as snp
-import logging
-from ssg.utils.util_data import match_class_info_from_two, merge_batch_mask2inst
+from ssg.utils.util_data import merge_batch_mask2inst
 from ssg import define
-from ssg.data.collate import graph_collate#, batch_graph_collate
-
-import graphviz
-import operator
-from ssg.utils import util_label, util_merge_same_part
-from ssg.utils.util_data import raw_to_data, cvt_all_to_dict_from_h5
-from codeLib.common import rgb_2_hex
-from codeLib.common import rand_24_bit, color_rgb
 from ssg.utils.graph_vis import DrawSceneGraph
 from ssg.trainer.eval_inst import EvalInst
 
@@ -90,11 +56,12 @@ class Trainer_SGFN(BaseTrainer, EvalInst):
                                    none_name=define.NAME_NONE) 
         eval_list = defaultdict(moving_average.MA)
 
-        time.sleep(2)# Prevent possible deadlock during epoch transition
+        # time.sleep(2)# Prevent possible deadlock during epoch transition
         for data in tqdm(it_dataset,leave=False):
             eval_step_dict = self.eval_step(data,eval_tool=eval_tool)
             
             for k, v in eval_step_dict.items():
+                print(k,v)
                 eval_list[k].update(v)
             # break
         eval_dict = dict()
@@ -142,30 +109,6 @@ class Trainer_SGFN(BaseTrainer, EvalInst):
         # for (k, v) in eval_dict.items():
         #     eval_dict[k] = v.item()
         return eval_dict
-    
-    # def process_data_dict(self, data):
-    #     ''' Processes the data dictionary and returns respective tensors
-
-    #     Args:
-    #         data (dictionary): data dictionary
-    #     '''
-    #     data =  dict(zip(data.keys(), self.toDevice(*data.values()) ))
-    #     return data
-        # scan_id = data.get('scan_id')
-        # gt_rel = data.get('gt_rel')
-        # gt_cls = data.get('gt_cls')
-        # obj_points = data.get('obj_points')
-        # descriptor = data.get('descriptor')
-        # node_edges = data.get('node_edges')
-        # instance2mask = data.get('instance2mask')
-        
-        # # print(gt_rel.shape)
-        # # self.toDevice(*(gt_rel))
-        
-        # flatten = (scan_id, gt_cls, gt_rel, obj_points, descriptor, node_edges, instance2mask)
-        # flatten = self.toDevice(*flatten)
-        # # check_valid(*flatten)
-        # return flatten
     
     def compute_loss(self,data,eval_mode=False,it=None, eval_tool=None):
         ''' Compute the loss.
@@ -220,7 +163,8 @@ class Trainer_SGFN(BaseTrainer, EvalInst):
         self.calc_node_loss(logs, node_cls, gt_node, self.w_node_cls)
         
         ''' 2. edge class loss '''
-        self.calc_edge_loss(logs, edge_cls, gt_edge, self.w_edge_cls)
+        if gt_edge.nelement() > 0:
+            self.calc_edge_loss(logs, edge_cls, gt_edge, self.w_edge_cls)
         
         '''3. get metrics'''
         metrics = self.model.calculate_metrics(
@@ -241,6 +185,10 @@ class Trainer_SGFN(BaseTrainer, EvalInst):
                           edge_cls,gt_edge,
                           mask2instance,
                           edge_indices_node_to_node)
+            
+        if check_valid(logs):
+            raise RuntimeWarning()
+            print('has nan')
         return logs
         # return loss if eval_mode else loss['loss']
 
@@ -259,36 +207,11 @@ class Trainer_SGFN(BaseTrainer, EvalInst):
         
     def calc_edge_loss(self, logs, edge_cls_pred, edge_cls_gt, weights=None):
         if self.cfg.model.multi_rel:
-            # batch_mean = torch.sum(edge_cls_gt, dim=(0))
-            # zeros = (edge_cls_gt ==0).sum().unsqueeze(0)
-            # batch_mean = torch.cat([zeros,batch_mean],dim=0)
-            # weight = torch.abs(1.0 / (torch.log(batch_mean+1)+1)) # +1 to prevent 1 /log(1) = inf                
-            # weight[torch.where(weight==0)] = weight[0].clone()
-            # weight = weight[1:]
-            # pass
             loss_rel = self.loss_rel_cls(edge_cls_pred, edge_cls_gt)
         else:
             loss_rel = self.loss_rel_cls(edge_cls_pred, edge_cls_gt)
-            # loss_rel = F.binary_cross_entropy(edge_cls_pred, edge_cls_gt, weight=weights)
-        # else:
-            # loss_rel = self.loss_rel_cls(edge_cls_pred,edge_cls_gt)
-            # loss_rel = F.nll_loss(edge_cls_pred, edge_cls_gt, weight = weights)
         logs['loss'] += self.cfg.training.lambda_edge * loss_rel
         logs['loss_rel'] = loss_rel
-    # def convert_metrics_to_log(self, metrics, eval_mode=False):
-    #     tmp = dict()
-    #     mode = 'train_' if eval_mode == False else 'valid_'
-    #     for metric_name, dic in metrics.items():
-    #         for sub, value in dic.items():
-    #             tmp[metric_name+'/'+mode+sub] = value
-    #     return tmp
-    # def calc_node_metric(self, logs, node_cls_pred, node_cls_gt):
-    #     cls_pred = node_cls_pred.detach()
-    #     pred_cls = torch.max(cls_pred,1)[1]
-    #     acc_cls = (node_cls_gt == pred_cls).sum().item() / node_cls_gt.nelement()
-    #     logs['acc_node_cls'] = acc_cls
-        
-    
         
     def visualize(self,eval_tool=None):
         if eval_tool is None: eval_tool = self.eva_tool

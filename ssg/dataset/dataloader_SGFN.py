@@ -230,7 +230,7 @@ class SGFNDataset (data.Dataset):
            
     def __getitem__(self, index):
         scan_id = snp.unpack(self.scans,index)# self.scans[idx]
-        
+        # if self.for_eval: scan_id = '6bde6041-9162-246f-8e57-11444a314136'
         self.open_data()
         
         scan_data_raw = self.sg_data[scan_id]
@@ -357,6 +357,10 @@ class SGFNDataset (data.Dataset):
         
         output['node'].y = gt_class_3D
         output['edge'].y = gt_rels_3D
+        
+        # if output['edge'].y.nelement()==0:
+        #     print('debug')
+        
         output['node','to','node'].edge_index = edge_indices_3D.t().contiguous()
         
         output['node'].idx2oid = [idx2oid]
