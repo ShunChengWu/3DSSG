@@ -52,16 +52,17 @@ def main():
         logger_py.info('train')
         n_workers = cfg['training']['data_workers']
         ''' create dataset and loaders '''
+        logger_py.info('get dataset')
         dataset_train = config.get_dataset(cfg,'train')
+        dataset_val  = config.get_dataset(cfg,'validation')
         # train_loader = torch.utils.data.DataLoader(
         #     dataset_train, batch_size=cfg['training']['batch'], num_workers=n_workers, shuffle=True,
         #     pin_memory=True,
         #     collate_fn=graph_collate,
         # )
         
+        logger_py.info('create loader')
         train_loader = torch_geometric.loader.DataLoader(dataset_train,batch_size=cfg.training.batch,num_workers=n_workers)
-        
-        dataset_val  = config.get_dataset(cfg,'validation')
         val_loader = torch_geometric.loader.DataLoader(
             dataset_val, batch_size=1, num_workers=n_workers,
             shuffle=False,
@@ -71,16 +72,19 @@ def main():
         )
         
         # try to load one data
+        logger_py.info('test loader')
         dataset_train.__getitem__(0)
         for i,data in enumerate(train_loader):
             # print(i)
             break
         
         # Get logger
+        logger_py.info('get logger')
         logger = config.get_logger(cfg)
         if logger is not None: logger, _ = logger
         
         ''' Create model '''
+        logger_py.info('create model')
         relationNames = dataset_train.relationNames
         classNames = dataset_train.classNames
         num_obj_cls = len(dataset_train.classNames)
@@ -91,15 +95,13 @@ def main():
         if cfg.VERBOSE:
             print(model)
         
-        # crreate optimizer    
-        # trainable_params = filter(lambda p: p.requires_grad, model.parameters())
-        # optimizer = config.get_optimizer(cfg, trainable_params)
-        
         # trainer
+        logger_py.info('get trainner')
         model_trainer = config.get_trainer(cfg, model, classNames, relationNames,
                                            w_node_cls=dataset_train.w_node_cls,
                                            w_edge_cls=dataset_train.w_edge_cls)
         
+        logger_py.info('setup training')
         trainer = ssg.Trainer(
             cfg = cfg, 
             model_trainer = model_trainer, 
@@ -108,10 +110,12 @@ def main():
             logger=logger,
             )
         
+        logger_py.info('start training')
         pr = cProfile.Profile()
         pr.enable()
         trainer.fit(train_loader=train_loader,val_loader=val_loader)
         pr.disable()
+        logger_py.info('traning finished')
         logger_py.info('save time profile to {}'.format(os.path.join(out_dir,'tp_train.dmp')))
         pr.dump_stats(os.path.join(out_dir,'tp_train.dmp'))
     elif cfg.MODE == 'eval':
