@@ -1030,7 +1030,8 @@ class SGFNDataset (data.Dataset):
             if len(filtered_kf_oid2idx)==0:continue
             
             '''load image'''
-            if self.for_eval:
+            if self.cfg.data.use_precompute_img_feature:
+            # if self.for_eval:
                 img_data = self.image_feature[feature_type][scan_id][str(fid)]
                 img_data = np.asarray(img_data).copy()
                 img_data = torch.from_numpy(img_data)

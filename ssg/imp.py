@@ -47,7 +47,6 @@ class IMP(nn.Module):
         self.update_step = 2
         self.avgpool = nn.AdaptiveAvgPool2d(1)
         
-        
         logger_py.info('use offical setup')
         self.cfg.model.image_encoder.update({
             'backend':"vgg16",
@@ -114,12 +113,12 @@ class IMP(nn.Module):
     def eval(self):
         # nn.Module.eval(self)
         super().train(mode=False)
-        self.roi_extractor.with_precompute=True
+        # self.roi_extractor.with_precompute=True
         # self.roi_extractor.with_precompute=False
     def train(self):
         # nn.Module.train(self)
         super().train(mode=True)
-        self.roi_extractor.with_precompute=False
+        # self.roi_extractor.with_precompute=False
         # self.roi_extractor.with_precompute=True
         
     def forward(self, data):

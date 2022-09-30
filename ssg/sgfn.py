@@ -244,12 +244,14 @@ class SGFN(nn.Module):
         return node_cls, edge_cls
     
     def calculate_metrics(self, **args):
+        outputs={}
         if 'node_cls_pred' in args and 'node_cls_gt' in args:
             node_cls_pred = args['node_cls_pred'].detach()
             node_cls_pred = torch.softmax(node_cls_pred, dim=1)
             node_cls_gt   = args['node_cls_gt']
             node_cls_pred = torch.max(node_cls_pred,1)[1]
             acc_node_cls = (node_cls_gt == node_cls_pred).sum().item() / node_cls_gt.nelement()
+            outputs['acc_node_cls'] = acc_node_cls
         
         if 'edge_cls_pred' in args and 'edge_cls_gt' in args and \
             args['edge_cls_pred'].nelement()>0:
@@ -262,10 +264,10 @@ class SGFN(nn.Module):
                 edge_cls_pred = torch.softmax(edge_cls_pred, dim=1)
                 edge_cls_pred = torch.max(edge_cls_pred,1)[1]
             acc_edgee_cls = (edge_cls_gt==edge_cls_pred).sum().item() / edge_cls_gt.nelement()
-        return {
-            'acc_node_cls': acc_node_cls,
-            'acc_edgee_cls': acc_edgee_cls,
-        }
+            
+            outputs['acc_edgee_cls'] = acc_edgee_cls
+        return outputs
+    
     def trace(self, path):
         path = os.path.join(path,'traced')
         if not os.path.exists(path): os.makedirs(path)
