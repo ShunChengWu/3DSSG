@@ -251,7 +251,8 @@ class SGFN(nn.Module):
             node_cls_pred = torch.max(node_cls_pred,1)[1]
             acc_node_cls = (node_cls_gt == node_cls_pred).sum().item() / node_cls_gt.nelement()
         
-        if 'edge_cls_pred' in args and 'edge_cls_gt' in args:
+        if 'edge_cls_pred' in args and 'edge_cls_gt' in args and \
+            args['edge_cls_pred'].nelement()>0:
             edge_cls_pred = args['edge_cls_pred'].detach()
             edge_cls_gt   = args['edge_cls_gt']
             if self.cfg.model.multi_rel:

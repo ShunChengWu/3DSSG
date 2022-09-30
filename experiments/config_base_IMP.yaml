@@ -21,6 +21,7 @@ model:
   num_layers: 2
   aggr: sum
 data:
+ use_precompute_img_feature: true
  is_roi_img: false
  load_images: true
  load_points: false

@@ -54,7 +54,6 @@ class IMP(nn.Module):
             'backend_finetune':False,
             'use_global': True,
         })
-        self.cfg.data.use_precompute_img_feature = False
         self.cfg.model.gnn.update({
             "hidden_dim":512,
             "num_layers":2,

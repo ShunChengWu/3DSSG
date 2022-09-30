@@ -138,7 +138,8 @@ class SGFNDataset (data.Dataset):
         self.size = len(self.filtered_data)
             
         '''check if pre-computed global image featur eexist'''
-        if self.for_eval and not self.mconfig.is_roi_img and self.mconfig.load_images: # train mode can't use precmopute feature. need to do img. aug.
+        # if self.for_eval and not self.mconfig.is_roi_img and self.mconfig.load_images: # train mode can't use precmopute feature. need to do img. aug.
+        if not self.mconfig.is_roi_img and self.mconfig.load_images: # loading and memory issue. try to use precomputed
             # self.open_filtered()
             should_compute_image_feature=False
             if not os.path.exists(self.path_img_feature):
