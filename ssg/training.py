@@ -5,14 +5,14 @@ from tqdm import tqdm, tnrange
 from collections import defaultdict
 import ssg
 from codeLib.models import BaseTrainer
-from codeLib.common import check_weights, check_valid, convert_torch_to_scalar
+# from codeLib.common import check_weights, check_valid, convert_torch_to_scalar
 import torch
-import torch.nn.functional as F
-from ssg.utils.util_eva import EvalSceneGraph, plot_confusion_matrix
+# import torch.nn.functional as F
+# from ssg.utils.util_eva import plot_confusion_matrix
 import time
 import logging
 from ssg.checkpoints import CheckpointIO
-import torch.optim as optim
+# import torch.optim as optim
 import codeLib.utils.moving_average as moving_average 
 import torch.multiprocessing
 logger_py = logging.getLogger(__name__)

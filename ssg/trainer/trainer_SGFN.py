@@ -1,10 +1,10 @@
 import os,copy,torch,time,logging,ssg,time
 import numpy as np
-from tqdm import tqdm, tnrange
+from tqdm import tqdm#, tnrange
 from collections import defaultdict
 from codeLib.models import BaseTrainer
 from codeLib.common import check_weights, check_valid, convert_torch_to_scalar
-from ssg.utils.util_eva import EvalSceneGraph
+from ssg.utils.util_eva import EvalSceneGraphBatch#EvalSceneGraph, 
 import codeLib.utils.moving_average as moving_average 
 from codeLib.models import BaseTrainer
 from tqdm import tqdm
@@ -40,7 +40,11 @@ class Trainer_SGFN(BaseTrainer, EvalInst):
             self.w_edge_cls= self.w_edge_cls.to(self._device)
         
         
-        self.eva_tool = EvalSceneGraph(self.node_cls_names, self.edge_cls_names,multi_rel_prediction=self.cfg.model.multi_rel,k=0,none_name=define.NAME_NONE) # do not calculate topK in training mode        
+        self.eva_tool = EvalSceneGraphBatch(
+            self.node_cls_names, self.edge_cls_names,
+            save_prediction=True,
+            multi_rel_prediction=self.cfg.model.multi_rel,
+            k=1,none_name=define.NAME_NONE) # do not calculate topK in training mode        
         self.loss_node_cls = torch.nn.CrossEntropyLoss(weight=self.w_node_cls)
         if self.cfg.model.multi_rel:
             self.loss_rel_cls = torch.nn.BCEWithLogitsLoss(pos_weight=self.w_edge_cls)
@@ -52,7 +56,7 @@ class Trainer_SGFN(BaseTrainer, EvalInst):
         
     def evaluate(self, val_loader, topk):
         it_dataset = val_loader.__iter__()
-        eval_tool = EvalSceneGraph(self.node_cls_names, self.edge_cls_names,multi_rel_prediction=self.cfg.model.multi_rel,k=topk,save_prediction=True,
+        eval_tool = EvalSceneGraphBatch(self.node_cls_names, self.edge_cls_names,multi_rel_prediction=self.cfg.model.multi_rel,k=topk,save_prediction=True,
                                    none_name=define.NAME_NONE) 
         eval_list = defaultdict(moving_average.MA)
 
@@ -225,23 +229,7 @@ class Trainer_SGFN(BaseTrainer, EvalInst):
             'node_confusion_matrix': node_confusion_matrix,
             'edge_confusion_matrix': edge_confusion_matrix
         }
-    
-    def toDevice(self, *args):
-        output = list()
-        for item in args:
-            if isinstance(item,  torch.Tensor):
-                output.append(item.to(self._device))
-            elif isinstance(item,  dict):
-                ks = item.keys()
-                vs = self.toDevice(*item.values())
-                item = dict(zip(ks, vs))
-                output.append(item)
-            elif isinstance(item, list):
-                output.append(self.toDevice(*item))
-            else:
-                output.append(item)
-        return output
-    
+
     def get_log_metrics(self):
         output = dict()
         obj_, edge_ = self.eva_tool.get_mean_metrics()
@@ -294,7 +282,7 @@ class Trainer_SGFN(BaseTrainer, EvalInst):
             inst_valid_edge_cls_indices.append(idx)
         
         
-        eval_tool = EvalSceneGraph(node_cls_names, edge_cls_names,multi_rel_prediction=self.cfg.model.multi_rel,k=topk,save_prediction=True,
+        eval_tool = EvalSceneGraphBatch(node_cls_names, edge_cls_names,multi_rel_prediction=self.cfg.model.multi_rel,k=topk,save_prediction=True,
                                    none_name=define.NAME_NONE) 
         eval_list = defaultdict(moving_average.MA)
         
@@ -647,7 +635,7 @@ class Trainer_SGFN(BaseTrainer, EvalInst):
             inst_valid_edge_cls_indices.append(idx)
         
         
-        eval_tool = EvalSceneGraph(node_cls_names, edge_cls_names,multi_rel_prediction=self.cfg.model.multi_rel,k=topk,save_prediction=True,
+        eval_tool = EvalSceneGraphBatch(node_cls_names, edge_cls_names,multi_rel_prediction=self.cfg.model.multi_rel,k=topk,save_prediction=True,
                                    none_name=define.NAME_NONE) 
         eval_list = defaultdict(moving_average.MA)
         

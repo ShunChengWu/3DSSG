@@ -3,6 +3,7 @@ import numpy as np
 # import ssg
 from codeLib.utils.plot_confusion_matrix import plot_confusion_matrix
 from collections import defaultdict
+from torch import Tensor
 # from utils.plot_confusion_matrix import plot_confusion_matrix
 
 def get_metrics(label_id, confusion, VALID_CLASS_IDS:list=None):
@@ -28,13 +29,13 @@ def get_metrics(label_id, confusion, VALID_CLASS_IDS:list=None):
     recall = float('nan') if (tp+fn)==0 else (float(tp) / (tp+fn),tp,tp+fn)
     return iou,precision,recall
 
-def evaluate_topk_object(objs_target, objs_pred, k=-1):
+def evaluate_topk_single_prediction(gts, pds, k=-1):
     top_k=list()
-    objs_pred = objs_pred.detach().cpu()
-    size_o = len(objs_pred)
+    pds = pds.detach().cpu()
+    size_o = len(pds)
     for obj in range(size_o):
-        obj_pred = objs_pred[obj]
-        sorted_conf, sorted_args = torch.sort(obj_pred, descending=True) # 1D
+        pd = pds[obj]
+        sorted_conf, sorted_args = torch.sort(pd, descending=True) # 1D
         if k<1:
             maxk=len(sorted_conf)
             maxk=min(len(sorted_conf),maxk)
@@ -43,13 +44,43 @@ def evaluate_topk_object(objs_target, objs_pred, k=-1):
         # sorted_conf=sorted_conf[:maxk]
         sorted_args=sorted_args[:maxk]
         
-        gt = objs_target[obj].cpu()
+        gt = gts[obj].cpu()
         if gt in sorted_args:
             index = sorted(torch.where(sorted_args == gt)[0])[0].item()+1
         else:
             index = maxk+1
         top_k.append(index)
 
+    return top_k
+
+def evaluate_topk_multi_prediction(gts, pds, k=-1):
+    top_k=list()
+    pds = pds.detach().cpu()
+    gts = gts.detach().cpu()
+    size_o = len(pds)
+    for obj in range(size_o):
+        gt = gts[obj]
+        
+        if gt.sum() == 0:#happens when use multi-rel. nothing to match. skip
+            continue
+        
+        pd = pds[obj]
+        sorted_conf, sorted_args = torch.sort(pd, descending=True) # 1D
+        if k<1:
+            maxk=len(sorted_conf)
+            maxk=min(len(sorted_conf),maxk)
+        else:
+            maxk=k
+        # sorted_conf=sorted_conf[:maxk]
+        sorted_args=sorted_args[:maxk]
+        
+        indices = torch.where(gt>0)[0].tolist()
+        for index in indices:
+            if index in sorted_args:
+                index = sorted(torch.where(sorted_args == index)[0])[0].item()+1
+            else:
+                index = maxk+1
+            top_k.append(index)
     return top_k
 
 def evaluate_topk_predicate(gt_edges, rels_pred, threshold=0.5,k=-1):
@@ -140,6 +171,27 @@ def get_gt(objs_target, rels_target, edges, mask2inst,multiple_prediction:bool):
                 target_rel.append(rels_target[edge_index].cpu().numpy().item())
         gt_edges.append([target_eo, target_os, target_rel,
                          idx2instance[idx_eo], idx2instance[idx_os]])
+    return gt_edges 
+
+def build_gt_triplet(objs_target, rels_target, edges,multiple_prediction:bool):
+    gt_edges = [] # initialize
+    for edge_index in range(len(edges)):
+        idx_eo = edges[edge_index][0].cpu().numpy().item()
+        idx_os = edges[edge_index][1].cpu().numpy().item()
+
+        target_eo = objs_target[idx_eo].cpu().numpy().item()
+        target_os = objs_target[idx_os].cpu().numpy().item()
+        target_rel = [] # there might be multiple
+        if multiple_prediction:
+            assert rels_target.ndim == 2
+            for i in range(rels_target.size(1)):
+                if rels_target[edge_index, i] == 1:
+                    target_rel.append(i)
+        else:
+            assert rels_target.ndim == 1
+            if rels_target[edge_index] > 0:
+                target_rel.append(rels_target[edge_index].cpu().numpy().item())
+        gt_edges.append([target_eo, target_os, target_rel])
     return gt_edges 
 
 def evaluate_topk(gt_rel, objs_pred, rels_pred, edges, threshold=0.5, k=40):
@@ -255,7 +307,7 @@ def evaluate_topk_recall(
     
     gt_edges = get_gt(objs_target, rels_target, edges, instance2mask)
     top_k += evaluate_topk(gt_edges, objs_pred, rels_pred, edges) # class_labels, relationships_dict)
-    top_k_obj += evaluate_topk_object(objs_target, objs_pred)
+    top_k_obj += evaluate_topk_single_prediction(objs_target, objs_pred)
     top_k_predicate += evaluate_topk_predicate(gt_edges, rels_pred)
     return top_k, top_k_obj, top_k_predicate
 
@@ -535,18 +587,56 @@ class EvaClassificationSimple(object):
         )
         return results
     
+class ConfusionMatrix():
+    def __init__(self, class_names:list):
+        self.class_names = class_names
+        self.c_mat = np.zeros([len(self.class_names),len(self.class_names)], dtype=np.float) # cmat[gt][pd]
+    def get_recall(self):
+        return self.c_mat.diagonal().sum() / self.c_mat.sum()
+    def get_all_metrics(self):
+        return get_metrics_all(self.c_mat, [], self.class_names) 
+    def get_mean_metrics(self):
+        return cal_mean(self.get_all_metrics(), [], self.class_names)
+    def reset(self):
+        self.c_mat = np.zeros([len(self.class_names),len(self.class_names)], dtype=np.float)
+    def draw(self, **args):
+        args['y_labels']=self.class_names
+        args['x_labels']=self.class_names
+        return plot_confusion_matrix(self.c_mat, 
+                          **args)
+    def write_result_file(self, filename, VALID_CLASS_IDS):
+        return write_result_file(self.c_mat, filename, VALID_CLASS_IDS, self.class_names)
     
-class EvaClassification():
+    def __call__(self,*args, **kwards):
+        self.update(*args, **kwards)
+    
+    def update(*args, **kwards):
+        raise NotImplementedError()
+
+class EvaClassificationSimple(ConfusionMatrix):
+    def __init__(self,class_names:list):
+        super().__init__(class_names)
+    def __call__(self,pd_tensor:Tensor, gt_tensor:Tensor):
+        self.update(pd_tensor,gt_tensor)
+    def update(self,pd_tensor:Tensor, gt_tensor:Tensor):
+        assert len(pd_tensor) == len(gt_tensor)
+        for i in range(len(pd_tensor)):
+            pd_idx, gt_idx = pd_tensor[i], gt_tensor[i] 
+            self.c_mat[gt_idx][pd_idx] += 1
+            
+class EvaClassification(ConfusionMatrix):
     def __init__(self,class_names:list, none_name:str = 'UN'):
-        self.none_name = none_name
         '''find if none is already included'''
         if none_name in class_names:
             self.unknown = class_names.index(none_name)#TODO: remove none_name
-            self.class_names = class_names
+            class_names = class_names
         else:
             self.unknown = len(class_names)
-            self.class_names = class_names + [none_name]
-        self.c_mat = np.zeros([len(self.class_names),len(self.class_names)], dtype=np.float) # cmat[gt][pd]
+            class_names = class_names + [none_name]
+        
+        super().__init__(class_names)
+        self.none_name = none_name
+        
     def update(self, pd_indices:dict, gt_indices:dict, gt_only=False, pd_only=False):
         union_indices = set(pd_indices.keys()).union(gt_indices.keys())
         multi_pred = True
@@ -606,32 +696,18 @@ class EvaClassification():
                 elif len(gt_indices_set) == 0:
                     for idx in pd_indices_set:
                         self.c_mat[self.unknown][idx] += 1
-                
-                
-                
-    def get_recall(self):
-        return self.c_mat.diagonal().sum() / self.c_mat.sum()
-    
-    def get_all_metrics(self):
-        return get_metrics_all(self.c_mat, [], self.class_names) 
-    def get_mean_metrics(self):
-        return cal_mean(self.get_all_metrics(), [], self.class_names)
-    def reset(self):
-        self.c_mat = np.zeros([len(self.class_names),len(self.class_names)], dtype=np.float)
-    def draw(self, **args):
-        args['y_labels']=self.class_names
-        args['x_labels']=self.class_names
-        return plot_confusion_matrix(self.c_mat, 
-                          **args)
-    def write_result_file(self, filename, VALID_CLASS_IDS):
-        return write_result_file(self.c_mat, filename, VALID_CLASS_IDS, self.class_names)
-    
+        
 class EvaMultiBinaryClassification(object):
     def __init__(self,class_names:list):
         self.class_names = class_names
         self.reset()
+        
     def reset(self):
         self.c_mat = np.zeros([len(self.class_names),4], dtype=np.int) # cmat[gt][pd]
+        
+    def __call__(self,pds,gts):
+        self.update(pds,gts)
+        
     def update(self, pds, gts):
         '''
 
@@ -798,6 +874,200 @@ class EvaMultiBinaryClassification(object):
         print ('wrote results to', filename)
         return [mean_iou, mean_pre,mean_rec]
     
+class EvalSceneGraphBase():
+    def __init__(self):
+        pass
+        self.eva_o_cls=ConfusionMatrix(['node'])
+        self.eva_p_cls=ConfusionMatrix(['none'])
+        self.top_k_triplet=list()
+        self.top_k_obj=list()
+        self.top_k_rel=list()
+        
+    def get_recall(self):
+        return self.eva_o_cls.get_recall(), self.eva_p_cls.get_recall()
+    
+    def get_mean_metrics(self):
+        return self.eva_o_cls.get_mean_metrics(),self.eva_p_cls.get_mean_metrics()
+        
+    def gen_text(self):
+        c_recall = self.eva_o_cls.get_recall()
+        r_recall = self.eva_p_cls.get_recall()
+        
+        txt = "recall obj cls {}".format(c_recall) +'\n'
+        txt += "recall rel cls {}".format(r_recall) +'\n'
+        if  self.k>0:
+            # print("Recall@k for relationship triplets: ")
+            txt += "Recall@k for relationship triplets: "+'\n'
+            ntop_k = np.asarray(self.top_k_triplet)
+            ks = set([1,2,3,5,10,50,100])
+            for i in [0,0.05,0.1,0.2,0.5,0.9]:
+                ks.add( int(math.ceil(self.k*i+1e-9)) )
+            for k in sorted(ks):
+                R = (ntop_k <= k).sum() / len(ntop_k)
+                # print("top-k R@" + str(k), "\t", R)
+                txt += "top-k R@{}\t {}".format(k,R)+'\n'
+            # print(len(self.top_k_triplet))
+            txt += str(len(self.top_k_triplet)) +'\n'
+
+            # print("Recall@k for objects: ")
+            txt+='Recall@k for objects: \n'
+            ntop_k_obj = np.asarray(self.top_k_obj)
+            ks = set([1,2,3,4,5,10,50,100])
+            for i in [0,0.05,0.1,0.2,0.5]:
+                ks.add( int(math.ceil(len(self.obj_class_names)*i+1e-9)) )
+            for k in sorted(ks):
+                R = (ntop_k_obj <= k).sum() / len(ntop_k_obj)
+                # print("top-k R@" + str(k), "\t", R)
+                txt += "top-k R@{}\t {}".format(k,R)+'\n'
+            # print(len(self.top_k_obj))
+            txt += str(len(self.top_k_obj)) +'\n'
+
+            # print("Recall@k for predicates: ")
+            txt += "Recall@k for predicates: \n"
+            ntop_k_predicate = np.asarray(self.top_k_rel)
+            ks = set([1,2,3,4,5,10])
+            for i in [0,0.05,0.1,0.2,0.5]:
+                ks.add( int(math.ceil(len(self.rel_class_names)*i +1e-9)) )
+            for k in sorted(ks):
+                R = (ntop_k_predicate <= k).sum() / len(ntop_k_predicate)
+                # print("top-k R@" + str(k), "\t", R)
+                txt += "top-k R@{}\t {}".format(k,R)+'\n'
+            # print(len(self.top_k_rel))
+            txt += str(len(self.top_k_rel)) +'\n'
+        return txt
+    
+    def draw(self, **args):
+        fig_o = self.eva_o_cls.draw(
+            title='object confusion matrix',
+            **args
+        )
+        fig_r = self.eva_p_cls.draw(
+            title='predicate confusion matrix',
+            **args
+        )
+        return fig_o,fig_r
+
+    def write(self, path, model_name):
+        pathlib.Path(path).mkdir(parents=True, exist_ok=True)
+        
+        
+        with open(os.path.join(path,'predictions.json'),'w') as f:
+            json.dump(self.predictions,f, indent=4)   
+    
+        obj_results = self.eva_o_cls.write_result_file(os.path.join(path,model_name+'_results_obj.txt'), [])
+        rel_results = self.eva_p_cls.write_result_file(os.path.join(path,model_name+'_results_rel.txt'), [])
+        
+        r_o = {k: v for v, k in zip(obj_results, ['Obj_IOU','Obj_Precision', 'Obj_Recall']) }
+        r_r = {k: v for v, k in zip(rel_results, ['Rel_IOU','Rel_Precision', 'Rel_Recall']) }
+        results = {**r_o, **r_r}
+        
+        self.eva_o_cls.draw(
+            title='object confusion matrix',
+            normalize='log',
+            plot_text=False,
+            plot=False,
+            grid=False,
+            pth_out=os.path.join(path, model_name + "_obj_cmat.png")
+        )
+        self.eva_p_cls.draw(
+            title='predicate confusion matrix',
+            normalize='log',
+            plot_text=False,
+            plot=False,
+            grid=False,
+            pth_out=os.path.join(path, model_name + "_rel_cmat.png")
+        )
+        
+        # if  opt.eval_topk:
+        with open(os.path.join(path, model_name + '_topk.txt'),'w+') as f:
+            f.write(self.gen_text())
+        return results
+    
+class EvalSceneGraphBatch(EvalSceneGraphBase):
+    def __init__(self, obj_class_names:list, rel_class_names:list, multi_rel_threshold:float=0.5, k=100, 
+                 save_prediction:bool=False,
+                 multi_rel_prediction:bool=True, none_name='none'):
+        super().__init__()
+        self.obj_class_names=obj_class_names
+        self.rel_class_names=rel_class_names
+        self.multi_rel_threshold=multi_rel_threshold
+        self.multi_rel_prediction=multi_rel_prediction
+        self.k=k
+        self.none_name=none_name
+        self.save_prediction=save_prediction
+        
+        # object cls
+        self.eva_o_cls = EvaClassificationSimple(obj_class_names)
+        # predicate cls
+        self.eva_p_cls = EvaClassificationSimple(rel_class_names) if not multi_rel_prediction else EvaMultiBinaryClassification(rel_class_names)
+        
+        self.top_k_triplet=list()
+        self.top_k_obj=list()
+        self.top_k_rel=list()
+        self.predictions=dict()
+        
+    def reset(self):
+        self.eva_o_cls.reset()
+        self.eva_p_cls.reset()
+        self.top_k_triplet=list()
+        self.top_k_obj=list()
+        self.top_k_rel=list()
+        self.predictions=dict()
+        
+    def add(self,scan_id:str, obj_pds, bobj_gts, rel_pds, brel_gts, mask2insts:dict, edge_indices):
+        '''
+        obj_pds: [n, n_cls]: softmax
+        obj_gts: [n, 1]: long tensor
+        rel_pds: [m,n_cls]: torch.sigmoid(x) if multi_rel_threshold>0 else softmax
+        rel_gts: [m,n_cls] if multi_rel_threshold>0 else [m,1]
+        '''
+        obj_pds=obj_pds.detach()
+        has_rel = rel_pds is not None and len(rel_pds)>0 and rel_pds.shape[0] > 0
+        if has_rel:
+            rel_pds=rel_pds.detach()
+        
+        # Obj 
+        o_pds = obj_pds.max(1)[1]
+        self.eva_o_cls(o_pds, bobj_gts)
+        
+        # Rel
+        if has_rel:
+            r_pds = rel_pds > self.multi_rel_threshold if self.multi_rel_prediction else rel_pds.max(1)[1]
+            self.eva_p_cls(r_pds, brel_gts)
+            
+        # Topk
+        if self.k>0:
+            self.top_k_obj += evaluate_topk_single_prediction(bobj_gts, obj_pds,k=self.k)
+            
+            if not self.multi_rel_prediction:
+                self.top_k_rel += evaluate_topk_single_prediction(brel_gts,rel_pds,k=self.k)
+            else:
+                self.top_k_rel += evaluate_topk_multi_prediction(brel_gts,rel_pds,k=self.k)
+
+            gt_rel_triplet = build_gt_triplet(bobj_gts, brel_gts, edge_indices, self.multi_rel_prediction)
+            
+            self.top_k_triplet += evaluate_topk(gt_rel_triplet, obj_pds, rel_pds, edge_indices, 
+                                    threshold=self.multi_rel_threshold, k=self.k) # class_labels, relationships_dict)
+            
+        # Write prediction
+        if self.save_prediction:
+            if len(scan_id) != 1:
+                raise RuntimeError('batch size must be 1')
+            scan_id = scan_id[0]
+            mask2insts = mask2insts[0]
+            
+            pd=dict()
+            gt=dict()
+            '''update node'''
+            pd['nodes']=dict()
+            gt['nodes']=dict()
+            pd['nodes'] = build_seg2name(o_pds,   mask2insts,self.obj_class_names)
+            gt['nodes'] = build_seg2name(bobj_gts,mask2insts,self.obj_class_names)
+        
+            self.predictions[scan_id]=dict()
+            self.predictions[scan_id]['pd']=pd
+            self.predictions[scan_id]['gt']=gt
+        
 class EvalSceneGraph():
     def __init__(self, obj_class_names:list, rel_class_names:list, multi_rel_threshold:float=0.5, k=100, multi_rel_prediction:bool=True,
                  save_prediction:bool=False,
@@ -814,8 +1084,6 @@ class EvalSceneGraph():
         # object cls
         self.eva_o_cls = EvaClassification(obj_class_names,none_name=none_name)
         # predicate cls
-        self.eva_p_cls = EvaClassification(rel_class_names,none_name=none_name) if not multi_rel_prediction else EvaMultiBinaryClassification(rel_class_names)
-        # relationship cls
         self.eva_p_cls = EvaClassification(rel_class_names,none_name=none_name) if not multi_rel_prediction else EvaMultiBinaryClassification(rel_class_names)
         
         self.predictions=dict()
@@ -928,7 +1196,7 @@ class EvalSceneGraph():
                         self.eva_p_cls.update(pd['edges'],gt['edges'],False)
             
                 if self.k>0:
-                    self.top_k_obj += evaluate_topk_object(bobj_gts, obj_pds,k=self.k)
+                    self.top_k_obj += evaluate_topk_single_prediction(bobj_gts, obj_pds,k=self.k)
                     
                     if has_rel:
                         gt_edges = get_gt(bobj_gts, rel_gts, edge_indices, mask2inst, self.multi_rel_prediction)
@@ -942,121 +1210,6 @@ class EvalSceneGraph():
                 self.predictions[scan_id]=dict()
                 self.predictions[scan_id]['pd']=pd
                 self.predictions[scan_id]['gt']=gt
-    def get_recall(self):
-        return self.eva_o_cls.get_recall(), self.eva_p_cls.get_recall()
-    
-    def get_mean_metrics(self):
-        return self.eva_o_cls.get_mean_metrics(),self.eva_p_cls.get_mean_metrics()
-        
-    def gen_text(self):
-        c_recall = self.eva_o_cls.get_recall()
-        r_recall = self.eva_p_cls.get_recall()
-        
-        txt = "recall obj cls {}".format(c_recall) +'\n'
-        txt += "recall rel cls {}".format(r_recall) +'\n'
-        if  self.k>0:
-            # print("Recall@k for relationship triplets: ")
-            txt += "Recall@k for relationship triplets: "+'\n'
-            ntop_k = np.asarray(self.top_k_triplet)
-            ks = set([1,2,3,5,10,50,100])
-            for i in [0,0.05,0.1,0.2,0.5,0.9]:
-                ks.add( int(math.ceil(self.k*i+1e-9)) )
-            for k in sorted(ks):
-                R = (ntop_k <= k).sum() / len(ntop_k)
-                # print("top-k R@" + str(k), "\t", R)
-                txt += "top-k R@{}\t {}".format(k,R)+'\n'
-            # print(len(self.top_k_triplet))
-            txt += str(len(self.top_k_triplet)) +'\n'
-
-            # print("Recall@k for objects: ")
-            txt+='Recall@k for objects: \n'
-            ntop_k_obj = np.asarray(self.top_k_obj)
-            ks = set([1,2,3,4,5,10,50,100])
-            for i in [0,0.05,0.1,0.2,0.5]:
-                ks.add( int(math.ceil(len(self.obj_class_names)*i+1e-9)) )
-            for k in sorted(ks):
-                R = (ntop_k_obj <= k).sum() / len(ntop_k_obj)
-                # print("top-k R@" + str(k), "\t", R)
-                txt += "top-k R@{}\t {}".format(k,R)+'\n'
-            # print(len(self.top_k_obj))
-            txt += str(len(self.top_k_obj)) +'\n'
-
-            # print("Recall@k for predicates: ")
-            txt += "Recall@k for predicates: \n"
-            ntop_k_predicate = np.asarray(self.top_k_rel)
-            ks = set([1,2,3,4,5,10])
-            for i in [0,0.05,0.1,0.2,0.5]:
-                ks.add( int(math.ceil(len(self.rel_class_names)*i +1e-9)) )
-            for k in sorted(ks):
-                R = (ntop_k_predicate <= k).sum() / len(ntop_k_predicate)
-                # print("top-k R@" + str(k), "\t", R)
-                txt += "top-k R@{}\t {}".format(k,R)+'\n'
-            # print(len(self.top_k_rel))
-            txt += str(len(self.top_k_rel)) +'\n'
-        return txt
-    
-    def draw(self, **args):
-        fig_o = self.eva_o_cls.draw(
-            title='object confusion matrix',
-            **args
-        )
-        fig_r = self.eva_p_cls.draw(
-            title='predicate confusion matrix',
-            **args
-        )
-        return fig_o,fig_r
-
-    def write(self, path, model_name):
-        pathlib.Path(path).mkdir(parents=True, exist_ok=True)
-        
-        
-        with open(os.path.join(path,'predictions.json'),'w') as f:
-            json.dump(self.predictions,f, indent=4)   
-    
-        obj_results = self.eva_o_cls.write_result_file(os.path.join(path,model_name+'_results_obj.txt'), [])
-        rel_results = self.eva_p_cls.write_result_file(os.path.join(path,model_name+'_results_rel.txt'), [])
-        
-        r_o = {k: v for v, k in zip(obj_results, ['Obj_IOU','Obj_Precision', 'Obj_Recall']) }
-        r_r = {k: v for v, k in zip(rel_results, ['Rel_IOU','Rel_Precision', 'Rel_Recall']) }
-        results = {**r_o, **r_r}
-        
-        self.eva_o_cls.draw(
-            title='object confusion matrix',
-            normalize='log',
-            plot_text=False,
-            plot=False,
-            grid=False,
-            pth_out=os.path.join(path, model_name + "_obj_cmat.png")
-        )
-        self.eva_p_cls.draw(
-            title='predicate confusion matrix',
-            normalize='log',
-            plot_text=False,
-            plot=False,
-            grid=False,
-            pth_out=os.path.join(path, model_name + "_rel_cmat.png")
-        )
-        # plot_confusion_matrix(self.eva_o_cls.c_mat,
-        #                   target_names=self.eva_o_cls.class_names,
-        #                   title='object confusion matrix',
-        #                   normalize=True,
-        #                   plot_text=False,
-        #                   plot=False,
-        #                   grid=False,
-        #                   pth_out=os.path.join(path, model_name + "_obj_cmat.png"))
-        # plot_confusion_matrix(self.eva_p_cls.c_mat,
-        #                   target_names=self.eva_p_cls.class_names,
-        #                   title='predicate confusion matrix',
-        #                   normalize=True,
-        #                   plot_text=False,
-        #                   plot=False,
-        #                   grid=False,
-        #                   pth_out=os.path.join(path, model_name + "_rel_cmat.png"))
-       
-        # if  opt.eval_topk:
-        with open(os.path.join(path, model_name + '_topk.txt'),'w+') as f:
-            f.write(self.gen_text())
-        return results
             
 class EvalUpperBound():
     def __init__(self, node_cls_names, edge_cls_names,noneidx_node_cls,noneidx_edge_cls

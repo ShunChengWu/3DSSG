@@ -20,7 +20,7 @@ remember to change drop_img_edge
 
 Test new loader
 - [x] config_SGFN_full_l20_0.yaml
-
+- [ ] config_2DSSG_full_l20_3_1.yaml
 
 ## 3RScan160, Multiple Predicates
 | method            | Trip      | Obj       | Pred      | mRecall_O | mRecall_P |
