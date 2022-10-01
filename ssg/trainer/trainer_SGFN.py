@@ -149,20 +149,20 @@ class Trainer_SGFN(BaseTrainer, EvalInst):
         ''' calculate loss '''
         logs['loss'] = 0
         
-        
         if self.cfg.training.lambda_mode == 'dynamic':
             # calculate loss ratio base on the number of node and edge
             batch_node = node_cls.shape[0]
-            batch_edge = edge_cls.shape[0]
             self.cfg.training.lambda_node = 1
-            self.cfg.training.lambda_edge = batch_edge / batch_node
             
+            if edge_cls is not None:
+                batch_edge = edge_cls.shape[0]
+                self.cfg.training.lambda_edge = batch_edge / batch_node    
         
         ''' 1. node class loss'''
         self.calc_node_loss(logs, node_cls, gt_node, self.w_node_cls)
         
         ''' 2. edge class loss '''
-        if gt_edge.nelement() > 0:
+        if edge_cls is not None:
             self.calc_edge_loss(logs, edge_cls, gt_edge, self.w_edge_cls)
         
         '''3. get metrics'''
@@ -178,7 +178,8 @@ class Trainer_SGFN(BaseTrainer, EvalInst):
         ''' eval tool '''
         if eval_tool is not None:
             node_cls = torch.softmax(node_cls.detach(),dim=1)
-            edge_cls = torch.sigmoid(edge_cls.detach())
+            if edge_cls is not None:
+                edge_cls = torch.sigmoid(edge_cls.detach())
             eval_tool.add(scan_id, 
                           node_cls,gt_node, 
                           edge_cls,gt_edge,

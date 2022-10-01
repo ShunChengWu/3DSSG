@@ -189,8 +189,9 @@ class SGFN(nn.Module):
         descriptor =  data['node'].desp
         edge_indices_node_to_node = data['node','to','node'].edge_index
         
+        has_edge = edge_indices_node_to_node.nelement()>0
         """reshape node edges if needed"""
-        if edge_indices_node_to_node.shape[0] != 2:
+        if has_edge and edge_indices_node_to_node.shape[0] != 2:
             edge_indices_node_to_node = edge_indices_node_to_node.t().contiguous()
         
         if self.with_pts_encoder:
@@ -219,11 +220,11 @@ class SGFN(nn.Module):
             data['node'].x = torch.cat([data['node'].x, tmp],dim=1)
             
         ''' Create edge feature '''
-        if len(edge_indices_node_to_node)>0:
+        if has_edge:
             data['edge'].x = self.rel_encoder(descriptor,edge_indices_node_to_node)
             
         '''Messsage Passing'''
-        if len(edge_indices_node_to_node)>0:
+        if has_edge:
             ''' GNN '''
             probs=None
             node_feature_ori = None
@@ -241,7 +242,7 @@ class SGFN(nn.Module):
         # Node
         node_cls = self.obj_predictor(data['node'].x)
         # Edge
-        if len(edge_indices_node_to_node)>0:
+        if has_edge:
             edge_cls = self.rel_predictor(data['edge'].x)
         else:
             edge_cls = None
@@ -257,8 +258,7 @@ class SGFN(nn.Module):
             acc_node_cls = (node_cls_gt == node_cls_pred).sum().item() / node_cls_gt.nelement()
             outputs['acc_node_cls'] = acc_node_cls
         
-        if 'edge_cls_pred' in args and 'edge_cls_gt' in args and \
-            args['edge_cls_pred'].nelement()>0:
+        if 'edge_cls_pred' in args and 'edge_cls_gt' in args and args['edge_cls_pred'] is not None and args['edge_cls_pred'].nelement()>0:
             edge_cls_pred = args['edge_cls_pred'].detach()
             edge_cls_gt   = args['edge_cls_gt']
             if self.cfg.model.multi_rel:

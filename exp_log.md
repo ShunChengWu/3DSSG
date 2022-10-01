@@ -9,11 +9,11 @@ Use SGFN loader to train VGfM and IMP.
 Change loader from graph to sgfn.
 remember to change drop_img_edge
 - [ ] IMP_FULL_l160_2  #IMP_FULL_l160_2_33fd851f
-- [ ] IMP_full_l20_4 #3dssg_IMP_l20_1a4d5f39
+- [ ] IMP_full_l20_4  #IMP_full_l20_3_2253353e_2ec2eb12
 - [ ] IMP_INSEG_l20_2
 - [ ] IMP_ORBSLAM3_l20_2
 - [ ] VGfM_FULL_l160_3 #VGfM_FULL_l160_2_d083a247
-- [ ] VGfM_full_l20_6 # 3dssg_VGfM_l20_f2955b5c
+- [ ] VGfM_full_l20_6 # 
 - [ ] VGFM_INSEG_l20_3
 - [ ] VGFM_ORBSLAM3_l20_4
 

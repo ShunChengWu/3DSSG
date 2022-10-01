@@ -838,11 +838,12 @@ class EvalSceneGraph():
         rel_gts: [m,n_cls] if multi_rel_threshold>0 else [m,1]
         '''
         obj_pds=obj_pds.detach()
-        if rel_pds is not None:
+        has_rel = rel_pds is not None and len(rel_pds)>0 and rel_pds.shape[0] > 0
+        if has_rel:
             rel_pds=rel_pds.detach()
             
         o_pds = obj_pds.max(1)[1]
-        if len(rel_pds)>0:
+        if has_rel:
             r_pds = rel_pds > self.multi_rel_threshold if self.multi_rel_prediction else rel_pds.max(1)[1]
         
         '''build idx mapping'''
@@ -906,15 +907,15 @@ class EvalSceneGraph():
             # get relavent edges
             # print('')
             # print('bedge_indices.shape',bedge_indices.shape)
-            if bedge_indices.ndim>1:
-                if bedge_indices.size(0) == 2:
-                    bedge_indices = bedge_indices.t().contiguous()
+            if bedge_indices.nelement()>1:
+                if bedge_indices.shape[0]==2:
+                    bedge_indices=bedge_indices.t().contiguous()
                 edge_indices_ = torch.where((bedge_indices[:,0]<=max(indices)) & (bedge_indices[:,0]>=min(indices)) )[0]
                 edge_indices = bedge_indices[edge_indices_]
+                r_pd = r_pds[edge_indices_]
                 rel_gts = brel_gts[edge_indices_]
                 
-                if len(rel_pds)>0 and rel_pds is not None and rel_pds.shape[0] > 0:
-                    r_pd = r_pds[edge_indices_]
+                if has_rel:
                     if self.multi_rel_prediction:
                         assert self.multi_rel_threshold>0
                         pd['edges'] = build_edge2name(r_pd,    edge_indices, mask2inst, self.rel_class_names)
@@ -929,7 +930,7 @@ class EvalSceneGraph():
                 if self.k>0:
                     self.top_k_obj += evaluate_topk_object(bobj_gts, obj_pds,k=self.k)
                     
-                    if rel_pds is not None:
+                    if has_rel:
                         gt_edges = get_gt(bobj_gts, rel_gts, edge_indices, mask2inst, self.multi_rel_prediction)
                         self.top_k_rel += evaluate_topk_predicate(gt_edges, rel_pds, 
                                                                   threshold=self.multi_rel_threshold, 
