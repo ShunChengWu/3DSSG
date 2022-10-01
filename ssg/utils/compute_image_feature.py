@@ -159,7 +159,7 @@ if __name__ == '__main__':
     if os.path.exists(pth_link):
         os.remove(pth_link) # always remove. in case more scenes are generated
     logger_py.info('create a link h5 library at {}'.format(pth_link))
-    fbase = args.outdir
+    fbase = args.out_dir
     if fbase[-1] != '/': fbase+='/'
     
     
