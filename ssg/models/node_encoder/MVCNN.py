@@ -38,7 +38,7 @@ class MVCNN(NodeEncoderBase):
             
         '''get image features'''
         images = self.preprocess(images)
-        
+        # images = self.postprocess(images,None).flatten(1)
         '''agg'''
         nodes_feature = self.mv_msg(images,edge_index)
         

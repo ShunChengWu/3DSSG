@@ -55,7 +55,7 @@ class NodeEncoderBase(nn.Module):
         self.node_feature_dim = cfg.model.node_feature_dim
         self.roi_region = cfg.model.image_encoder.roi_region
         self.input_is_roi = cfg.data.is_roi_img
-        
+        self.fine_tune = cfg.model.image_encoder.backend_finetune
         # set backend
         # assert self.backbone in ['vgg16','res18']
         
@@ -73,7 +73,7 @@ class NodeEncoderBase(nn.Module):
             if not self.with_precompute:
                 vgg16=models.vgg16(pretrained=True)
                 self.nn_enc = vgg16.features.eval()
-                if not cfg.model.image_encoder.backend_finetune:
+                if not self.fine_tune:
                     logger_py.warning('freeze backend')
                     self.nn_enc.eval()
                     for param in self.nn_enc.parameters(): param.requires_grad = False
@@ -110,9 +110,12 @@ class NodeEncoderBase(nn.Module):
         else:
             raise RuntimeError('unknown')
     def preprocess(self, images):
+        if not self.fine_tune:
+            self.nn_enc.eval()
         if self.input_is_roi:
             x = torch.cat([ self.nn_enc(p_split)  for p_split in torch.split(images,int(self.img_batch_size), dim=0) ], dim=0)
             return self.nn_post(x).flatten(1)
+            return images
         
         if self.with_precompute:
             return images # use precomputed image feautre to save time        
@@ -125,7 +128,8 @@ class NodeEncoderBase(nn.Module):
         else:
             return images
     def postprocess(self, images, kf2box):
-        self.nn_enc.eval()
+        if not self.fine_tune:
+            self.nn_enc.eval()
         width,height = images.shape[-1], images.shape[-2]        
         if not self.input_is_roi:
             kf_indices = list(kf2box.keys())
@@ -162,9 +166,10 @@ class NodeEncoderBase(nn.Module):
                     img_features[i] = x
                 return img_features
         else:
-            # x = torch.cat([ self.nn_enc(p_split)  for p_split in torch.split(images,int(self.img_batch_size), dim=0) ], dim=0)
-            # x = self.nn_post(images)
             return images
+            x = torch.cat([ self.nn_enc(p_split)  for p_split in torch.split(images,int(self.img_batch_size), dim=0) ], dim=0)
+            x = self.nn_post(x)
+            return x
         
     def trace(self, pth = './tmp', name_prefix=''):
         # params = inspect.signature(self.forward).parameters
