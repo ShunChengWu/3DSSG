@@ -67,7 +67,7 @@ def main():
             dataset_val, batch_size=1, num_workers=n_workers,
             shuffle=False,
             drop_last=False,
-            pin_memory=True,
+            pin_memory=False,
             # collate_fn=graph_collate,
         )
         
