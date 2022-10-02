@@ -64,7 +64,7 @@ def main():
         logger_py.info('create loader')
         train_loader = torch_geometric.loader.DataLoader(dataset_train,batch_size=cfg.training.batch,num_workers=n_workers)
         val_loader = torch_geometric.loader.DataLoader(
-            dataset_val, batch_size=1, num_workers=n_workers,
+            dataset_val, batch_size=1, num_workers=0,
             shuffle=False,
             drop_last=False,
             pin_memory=False,
