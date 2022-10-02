@@ -42,9 +42,9 @@ class Trainer_SGFN(BaseTrainer, EvalInst):
         
         self.eva_tool = EvalSceneGraphBatch(
             self.node_cls_names, self.edge_cls_names,
-            save_prediction=True,
+            save_prediction=False,
             multi_rel_prediction=self.cfg.model.multi_rel,
-            k=1,none_name=define.NAME_NONE) # do not calculate topK in training mode        
+            k=0,none_name=define.NAME_NONE) # do not calculate topK in training mode        
         self.loss_node_cls = torch.nn.CrossEntropyLoss(weight=self.w_node_cls)
         if self.cfg.model.multi_rel:
             self.loss_rel_cls = torch.nn.BCEWithLogitsLoss(pos_weight=self.w_edge_cls)
@@ -56,8 +56,10 @@ class Trainer_SGFN(BaseTrainer, EvalInst):
         
     def evaluate(self, val_loader, topk):
         it_dataset = val_loader.__iter__()
-        eval_tool = EvalSceneGraphBatch(self.node_cls_names, self.edge_cls_names,multi_rel_prediction=self.cfg.model.multi_rel,k=topk,save_prediction=True,
-                                   none_name=define.NAME_NONE) 
+        eval_tool = EvalSceneGraphBatch(
+            self.node_cls_names, self.edge_cls_names, 
+            multi_rel_prediction=self.cfg.model.multi_rel,
+            k=topk,save_prediction=True,none_name=define.NAME_NONE) 
         eval_list = defaultdict(moving_average.MA)
 
         # time.sleep(2)# Prevent possible deadlock during epoch transition
@@ -282,8 +284,10 @@ class Trainer_SGFN(BaseTrainer, EvalInst):
             inst_valid_edge_cls_indices.append(idx)
         
         
-        eval_tool = EvalSceneGraphBatch(node_cls_names, edge_cls_names,multi_rel_prediction=self.cfg.model.multi_rel,k=topk,save_prediction=True,
-                                   none_name=define.NAME_NONE) 
+        eval_tool = EvalSceneGraphBatch(
+            node_cls_names, edge_cls_names,
+            multi_rel_prediction=self.cfg.model.multi_rel,k=topk,save_prediction=True,
+            none_name=define.NAME_NONE) 
         eval_list = defaultdict(moving_average.MA)
         
         '''check'''
@@ -635,8 +639,10 @@ class Trainer_SGFN(BaseTrainer, EvalInst):
             inst_valid_edge_cls_indices.append(idx)
         
         
-        eval_tool = EvalSceneGraphBatch(node_cls_names, edge_cls_names,multi_rel_prediction=self.cfg.model.multi_rel,k=topk,save_prediction=True,
-                                   none_name=define.NAME_NONE) 
+        eval_tool = EvalSceneGraphBatch(
+            node_cls_names, edge_cls_names,
+            multi_rel_prediction=self.cfg.model.multi_rel,k=topk,save_prediction=True,
+            none_name=define.NAME_NONE) 
         eval_list = defaultdict(moving_average.MA)
         
         '''check'''

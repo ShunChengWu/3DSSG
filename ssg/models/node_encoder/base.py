@@ -110,7 +110,7 @@ class NodeEncoderBase(nn.Module):
         else:
             raise RuntimeError('unknown')
     def preprocess(self, images):
-        if not self.fine_tune:
+        if not self.with_precompute and not self.fine_tune:
             self.nn_enc.eval()
         if self.input_is_roi:
             x = torch.cat([ self.nn_enc(p_split)  for p_split in torch.split(images,int(self.img_batch_size), dim=0) ], dim=0)
@@ -128,7 +128,7 @@ class NodeEncoderBase(nn.Module):
         else:
             return images
     def postprocess(self, images, kf2box):
-        if not self.fine_tune:
+        if not self.with_precompute and not self.fine_tune:
             self.nn_enc.eval()
         width,height = images.shape[-1], images.shape[-2]        
         if not self.input_is_roi:

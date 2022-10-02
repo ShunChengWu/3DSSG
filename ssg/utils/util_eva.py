@@ -1068,10 +1068,11 @@ class EvalSceneGraphBatch(EvalSceneGraphBase):
             self.predictions[scan_id]['pd']=pd
             self.predictions[scan_id]['gt']=gt
         
-class EvalSceneGraph():
+class EvalSceneGraph(EvalSceneGraphBase):
     def __init__(self, obj_class_names:list, rel_class_names:list, multi_rel_threshold:float=0.5, k=100, multi_rel_prediction:bool=True,
                  save_prediction:bool=False,
                  none_name='none'):
+        super().__init__()
         # params
         self.obj_class_names=obj_class_names
         self.rel_class_names=rel_class_names
