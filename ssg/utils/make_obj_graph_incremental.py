@@ -1,39 +1,18 @@
-import argparse, os, pandas, h5py, logging,json
-# from codeLib.utils.classification.labels import NYU40_Label_Names, SCANNET20_Label_Names
+import argparse, os, pandas, h5py, logging,json,torch
 import numpy as np
 from tqdm import tqdm
-# import os,io
-# import zipfile
-# import imageio
-# import numpy as np
-# import matplotlib.pyplot as plt
-# import matplotlib
 from PIL import Image
 from torchvision.utils import draw_bounding_boxes
-
 import matplotlib.pyplot as plt
 import codeLib
-# from codeLib.torch.visualization import show_tv_grid
 from codeLib.torch.visualization import show_tv_grid
 from codeLib.common import color_rgb, rand_24_bit
 from codeLib.utils.util import read_txt_to_list
-# from codeLib.object import BoundingBox
-# from codeLib.utils.classification.labels import get_ScanNet_label_mapping#get_NYU40_color_palette, NYU40_Label_Names,get_ScanNet_label_mapping
-import torch
-# import torchvision
-# from torchvision.utils import draw_bounding_boxes
 from collections import defaultdict
-# import json, glob, csv, sys,os, argparse
-# from tqdm import tqdm
-# from tqdm.contrib.concurrent import process_map 
 from ssg import define
 from ssg.utils import util_label
-from ssg.utils.util_3rscan import load_semseg
 from ssg.objects.node import Node
 from ssg.utils import util_data
-
-# from collections import defaultdict
-from codeLib.torch.visualization import show_tensor_images
 
 structure_labels = ['wall','floor','ceiling']
 
@@ -46,27 +25,13 @@ DEBUG=False
 random_clr_i = [color_rgb(rand_24_bit()) for _ in range(1500)]
 random_clr_i[0] = (0,0,0)
 ffont = '/home/sc/research/PersistentSLAM/python/2DTSG/files/Raleway-Medium.ttf'
-# random_clr_l = {v:color_rgb(rand_24_bit()) for k,v in Scan3R528.items()}
-# random_clr_l['none'] = (0,0,0)
 
 def Parse():
     parser = argparse.ArgumentParser(formatter_class = argparse.ArgumentDefaultsHelpFormatter)
-    # parser.add_argument('-f','--scenelist',default='/home/sc/research/PersistentSLAM/python/2DTSG/files/scannetv2_trainval.txt',help='scene list (txt)')
-    #
-    # parser.add_argument('-d','--dir',default='/media/sc/SSD1TB/dataset/3RScan/data/3RScan/', 
-    #                     help='3rscan dir')
     parser.add_argument('-o','--outdir',default='/home/sc/research/PersistentSLAM/python/3DSSG/data/3RScan_ScanNet20/', help='output dir',required=True)
-    # parser.add_argument('-m','--min_occ',default=0.2,help='The threshold for the visibility of an object. If below this value, discard (higher, more occurance)')
     parser.add_argument('--min_object', help='if less thant min_obj objects, ignore image', default=1)
-    # parser.add_argument('-l','--label_type',default='3rscan160', choices=['nyu40','eigen13','rio27', 'rio7','3rscan','3rscan160'], 
-    #                     help='target label type.')
-    parser.add_argument('--min_size', default=60, help='min length on bbox')
+    parser.add_argument('--min_size', default=0.1, help='min length on bbox')
     parser.add_argument('--target_name','-n', default='graph.json', help='target graph json file name')
-    # parser.add_argument('-lf','--label_file',default='/media/sc/space1/dataset/scannet/scannetv2-labels.combined.tsv', 
-    #                     help='file path to scannetv2-labels.combined.tsv')
-    # parser.add_argument('--skip_structure',default=0,help='should ignore sturcture labels or not')
-    # parser.add_argument('--skip_edge',default=0,type=int,help='should bbox close to image boundary')
-    # parser.add_argument('--skip_size',default=1,type=int,help='should filter out too small objs')
     parser.add_argument('--overwrite', type=int, default=0, help='overwrite existing file.')
     parser.add_argument('--debug', action='store_true', help='debug mode')
     return parser
@@ -106,10 +71,10 @@ if __name__ == '__main__':
     # h5f.attrs['label_type'] = args.label_type
     
     '''read scenes'''
-    fdata = os.path.join(define.DATA_PATH)
-    train_ids = read_txt_to_list(os.path.join(define.ROOT_PATH,'files','train_scans.txt'))
-    val_ids = read_txt_to_list(os.path.join(define.ROOT_PATH,'files','validation_scans.txt'))
-    test_ids = read_txt_to_list(os.path.join(define.ROOT_PATH,'files','test_scans.txt'))
+    fdata = os.path.join('data','3RScan',"data","3RScan")# os.path.join(define.DATA_PATH)
+    train_ids = read_txt_to_list(os.path.join('files','train_scans.txt'))
+    val_ids = read_txt_to_list(os.path.join('files','validation_scans.txt'))
+    test_ids = read_txt_to_list(os.path.join('files','test_scans.txt'))
     
     print(len(train_ids))
     print(len(val_ids))

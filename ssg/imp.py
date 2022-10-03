@@ -133,6 +133,16 @@ class IMP(nn.Module):
             data['edge2D'].x = self.pred_embedding(edge_roi)
         self.times['3.pred_embedding'] = timer.tocvalue()
         
+        '''free memory'''
+        # print(torch.cuda.memory_allocated())
+        # print(torch.cuda.memory_reserved())
+        del roi
+        del edge_roi
+        del images
+        torch.cuda.empty_cache()
+        # print(torch.cuda.memory_allocated())
+        # print(torch.cuda.memory_reserved())
+        
         '''GNN'''
         timer.tic()
         if hasattr(self, 'gnn') and self.gnn is not None and len(data['edge2D'].x)>0 and len(data['roi'].x)>0:

@@ -27,3 +27,4 @@ data:
  load_points: false
  load_cache: false
  full_edge: false
+ max_full_img: 32 

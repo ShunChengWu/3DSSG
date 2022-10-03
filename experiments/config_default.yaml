@@ -115,6 +115,7 @@ data:
  normalize_weight: true
  max_num_node: -1 # maximum number of nodes for training (memory)
  max_num_edge: -1 # maximum number of edges for training (memory)
+ max_full_img: -1 
  img_size: -1 # minimum image edge will be resize to this. (-1: keep origianl)
  roi_img_size: [256,256]
  obj_ignore_list: []

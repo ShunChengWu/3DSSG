@@ -1036,6 +1036,7 @@ class SGFNDataset (data.Dataset):
         
         # drop images for memory sack 
         fids = list(fids)
+        fids = random_drop(fids, self.mconfig.max_full_img, replace=True)
         # if not self.for_eval:
         #     fids = random_drop(fids, self.mconfig.drop_img_edge, replace=True)
         # else:
@@ -1115,6 +1116,10 @@ class SGFNDataset (data.Dataset):
                         
                         key = (om_id1,om_id2)
                         image_edge_indices.append(key)
+                        
+            # if self.mconfig.max_num_edge > 0 and len(image_edge_indices) > self.mconfig.max_num_edge and not self.for_eval:
+            #     choices = np.random.choice(range(len(image_edge_indices)),self.mconfig.max_num_edge,replace=False).tolist()
+            #     image_edge_indices = [image_edge_indices[t] for t in choices]
         
         '''build temporal node graph'''
         temporal_node_graph=list()
