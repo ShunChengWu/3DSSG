@@ -1,0 +1,9 @@
+inherit_from: [experiments/config_base_3RScan_full_l160.yaml,experiments/config_base_SGFN.yaml]
+name: 'SGFN_FULL_l160_test'
+training:
+ batch: 1
+model:
+ multi_rel: true # multiple relationship 
+wandb:
+ dry_run: true
+ tags: ["ssg", "sgfn",'full','l160']

@@ -1,7 +1,5 @@
 inherit_from: [experiments/config_base_3RScan_full_l160.yaml,experiments/config_base_IMP.yaml]
-name: 'IMP_FULL_l160_2'
-training:
- data_workers: 0
+name: 'IMP_FULL_l160_2_1'
 model:
  multi_rel: true # multiple relationship 
 wandb:
