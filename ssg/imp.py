@@ -12,6 +12,7 @@ from .models.classifier import PointNetCls, PointNetRelClsMulti, PointNetRelCls
 from codeLib.utils.util import pytorch_count_params
 import logging
 import torchvision
+from pytictoc import TicToc
 logger_py = logging.getLogger(__name__)
 
 class IMP(nn.Module):
@@ -58,7 +59,8 @@ class IMP(nn.Module):
             "num_layers":2,
             "aggr": "mean"
         })
-        # self.cfg.model.image_encoder.backend='vgg16'
+        
+        self.times = dict()
         
 
         '''build models'''
@@ -75,17 +77,6 @@ class IMP(nn.Module):
             models['roi_extractor'].node_feature_dim,
             self.dim,replace=True,
             pretrained=True)
-        
-        # models['obj_embedding'] = nn.Sequential(
-        #     nn.Linear(node_feature_dim, self.dim),
-        #     nn.ReLU(True),
-        #     nn.Linear(self.dim, self.dim),
-        # )
-        # models['pred_embedding'] = nn.Sequential(
-        #     nn.Linear(node_feature_dim, self.dim),
-        #     nn.ReLU(True),
-        #     nn.Linear(self.dim, self.dim),
-        # )
         
         models['gnn'] = ssg.models.gnn_list[cfg.model.gnn.method](
             dim_node=cfg.model.gnn.hidden_dim,
@@ -122,25 +113,46 @@ class IMP(nn.Module):
         # self.roi_extractor.with_precompute=True
         
     def forward(self, data):
+        timer = TicToc()
         images = data['roi'].img
         image_boxes = data['roi'].box
         image_node_edges = data['roi','to','roi'].edge_index
         
         '''compute image feature'''
-        data['roi'].x, data['edge2D'].x = self.roi_extractor(images, image_boxes,image_node_edges)
+        timer.tic()
+        roi, edge_roi = self.roi_extractor(images, image_boxes,image_node_edges)
+        self.times['1.roi_extractor'] = timer.tocvalue()
         
-        data['roi'].x = self.obj_embedding(data['roi'].x)
+        timer.tic()
+        data['roi'].x = self.obj_embedding(roi)
+        self.times['2.obj_embedding'] = timer.tocvalue()
+        
+        '''compute edge feature'''
+        timer.tic()
         if len(data['edge2D'].x)>0:
-            data['edge2D'].x = self.pred_embedding(data['edge2D'].x)
+            data['edge2D'].x = self.pred_embedding(edge_roi)
+        self.times['3.pred_embedding'] = timer.tocvalue()
         
+        '''GNN'''
+        timer.tic()
         if hasattr(self, 'gnn') and self.gnn is not None and len(data['edge2D'].x)>0 and len(data['roi'].x)>0:
             data['roi'].x, data['edge2D'].x = self.gnn(data)
+        self.times['4.gnn'] = timer.tocvalue()
         
+        '''predict'''
+        # object
+        timer.tic()
         obj_class_logits = self.obj_predictor(data['roi'].x)
+        self.times['5.obj_predictor'] = timer.tocvalue()
+        
+        # edge
+        timer.tic()
         if len(data['edge2D'].x)>0:
             rel_class_logits = self.rel_predictor(data['edge2D'].x)
         else:
-            rel_class_logits = data['edge2D'].x
+            rel_class_logits = None# data['edge2D'].x
+        self.times['6.rel_predictor'] = timer.tocvalue()
+            
         return obj_class_logits, rel_class_logits
     
     def calculate_metrics(self, **args):

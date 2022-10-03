@@ -232,14 +232,18 @@ if __name__ == '__main__':
         for k,v in args.__dict__.items():
             f.write('{}:{}\n'.format(k,v))
         pass
-    h5f = h5py.File(os.path.join(outdir,'proposals.h5'), 'a')
+    try:
+        h5f = h5py.File(os.path.join(outdir,'proposals.h5'), 'a')
+    except:
+        os.remove(os.path.join(outdir,'proposals.h5'))
+        h5f = h5py.File(os.path.join(outdir,'proposals.h5'), 'a')
     h5f.attrs['label_type'] = args.label_type
     
     '''read scenes'''
-    fdata = os.path.join(define.DATA_PATH)
-    train_ids = read_txt_to_list(os.path.join(define.ROOT_PATH,'files','train_scans.txt'))
-    val_ids = read_txt_to_list(os.path.join(define.ROOT_PATH,'files','validation_scans.txt'))
-    test_ids = read_txt_to_list(os.path.join(define.ROOT_PATH,'files','test_scans.txt'))
+    fdata = os.path.join('data','3RScan',"data","3RScan")# os.path.join(define.DATA_PATH)
+    train_ids = read_txt_to_list(os.path.join('files','train_scans.txt'))
+    val_ids = read_txt_to_list(os.path.join('files','validation_scans.txt'))
+    test_ids = read_txt_to_list(os.path.join('files','test_scans.txt'))
     
     print(len(train_ids))
     print(len(val_ids))
@@ -314,7 +318,6 @@ if __name__ == '__main__':
                     node2kfs[oid] = list()
                 node2kfs[oid].append(fnum)
                 
-        #TODO:debug
         # print_selection(scene, node2kfs,objects,kfs)
         
         '''check filtered instances'''

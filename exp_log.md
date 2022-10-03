@@ -8,19 +8,18 @@ The edge connection for multi-predicate estimation should be fully connected. Fo
 Use SGFN loader to train VGfM and IMP. 
 Change loader from graph to sgfn.
 remember to change drop_img_edge
-- [ ] IMP_FULL_l160_2  #IMP_FULL_l160_2_33fd851f
-- [ ] IMP_full_l20_4  #IMP_full_l20_3_2253353e_2ec2eb12
+- [ ] IMP_FULL_l160_2
+- [ ] IMP_full_l20_4
 - [ ] IMP_INSEG_l20_2
 - [ ] IMP_ORBSLAM3_l20_2
-- [ ] VGfM_FULL_l160_3 #VGfM_FULL_l160_2_d083a247
+- [ ] VGfM_FULL_l160_3
 - [ ] VGfM_full_l20_6 # 
 - [ ] VGFM_INSEG_l20_3
 - [ ] VGFM_ORBSLAM3_l20_4
 
-
 Test new loader
 - [x] config_SGFN_full_l20_0.yaml
-- [ ] config_2DSSG_full_l20_3_1.yaml
+- [x] config_2DSSG_full_l20_3_1.yaml
 
 ## 3RScan160, Multiple Predicates
 | method            | Trip      | Obj       | Pred      | mRecall_O | mRecall_P |
@@ -32,14 +31,15 @@ Test new loader
 | 2DSSG_full_l160_1 | 11.7/96.4 | 49.9/95.9 | 42.7/95.6 | 28.5/94.5 | 25.4/95.5 |
 
 ## ScanNet20, Single Predicate, full
-| method           | Trip      | Obj       | Pred      | mRecall_O | mRecall_P |
-| ---------------- | --------- | --------- | --------- | --------- | --------- |
-| IMP_full_l20_3   | 8.8/97.3  | 28.1/97.9 | 94.3/99.9 | 4.9/98.1  | 12.5/98.2 |
-| VGfM_full_l20_5  | 16.8/97.3 | 38.4/97.9 | 94.3/99.9 | 24.1/98.1 | 18.9/98.2 |
-| 3DSSG_full_l20_2 | 10.9/100  | 35.1/100  | 88.1/100  | 17.3/100  | 28.3/100  |
-| SGFN_full_0_3    | 35.6/100  | 59.8/100  | 89.3/100  | 53.0/100  | 66.1/100  |
-| 2DSSG_full_l20_2 | 61.3/97.4 | 76.6/97.9 | 95.6/99.9 | 79.1/98.1 | 70.5/98.5 |
-| SGFN_full_l20_0  | 42.7/100  | 62.9/100  | 67.6/100  | 55.4/100  | 57.1/100  |
+| method             | Trip      | Obj       | Pred      | mRecall_O | mRecall_P |
+| ------------------ | --------- | --------- | --------- | --------- | --------- |
+| IMP_full_l20_3     | 8.8/97.3  | 28.1/97.9 | 94.3/99.9 | 4.9/98.1  | 12.5/98.2 |
+| VGfM_full_l20_5    | 16.8/97.3 | 38.4/97.9 | 94.3/99.9 | 24.1/98.1 | 18.9/98.2 |
+| 3DSSG_full_l20_2   | 10.9/100  | 35.1/100  | 88.1/100  | 17.3/100  | 28.3/100  |
+| SGFN_full_0_3      | 35.6/100  | 59.8/100  | 89.3/100  | 53.0/100  | 66.1/100  |
+| 2DSSG_full_l20_2   | 61.3/97.4 | 76.6/97.9 | 95.6/99.9 | 79.1/98.1 | 70.5/98.5 |
+| SGFN_full_l20_0    | 42.7/100  | 62.9/100  | 67.6/100  | 55.4/100  | 57.1/100  |
+| 2DSSG_full_l20_3_1 | 57.7/97.4 | 75.3/97.9 | 76.8/99.9 | 80.6/98.1 | 71.9/98.5 |
 
 ## ScanNet20, Single Predicate, inseg
 | method            | Trip      | Obj       | Pred      | mRecall_O | mRecall_P |

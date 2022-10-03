@@ -11,40 +11,10 @@
 This repository contains the network part of the SceneGraphFusion work. For the incremental framework,
 please check [here](https://github.com/ShunChengWu/SceneGraphFusion).
 
-# Dependencies
-The code has been tested on Ubuntu 18.04 and gcc 7.5. You can either create a conda environment by
+# Setup 
 ```
-conda env create --name <env_name> --file environment.yml
-```
-or install the dependnecies manually
-
-```
-
-###
-# Dependencies
-###
-# for training and evaluation:
-# - Pytorch, Pytorch Geometric, Trimesh, Tensorboard
-# for tracing:
-# - onnxruntime
-# for data generation:
-# - open3d
-###
-# Install commends
-###
-# Main env
-conda create -n 3dssg pytorch=1.8.9 cudatoolkit=10.2 -c pytorch tensorboard trimesh -c conda-forge
-# Onnxruntime
-pip install onnxruntime
-# Pytorch Geometric
-export CUDA=10.2
-pip install torch-scatter -f https://pytorch-geometric.com/whl/torch-1.8.0+${CUDA}.html
-pip install torch-sparse -f https://pytorch-geometric.com/whl/torch-1.8.0+${CUDA}.html
-pip install torch-cluster -f https://pytorch-geometric.com/whl/torch-1.8.0+${CUDA}.html
-pip install torch-spline-conv -f https://pytorch-geometric.com/whl/torch-1.8.0+${CUDA}.html
-pip install torch-geometric
-# open3d
-pip install open3d
+# this will create a conda environment 2dssg 
+bash -i setup.sh 
 ```
 
 # Data generation

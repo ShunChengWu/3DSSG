@@ -194,13 +194,15 @@ class SGFN(nn.Module):
         if has_edge and edge_indices_node_to_node.shape[0] != 2:
             edge_indices_node_to_node = edge_indices_node_to_node.t().contiguous()
         
+        '''compute node feature'''
+        # from points
         if self.with_pts_encoder:
             data['node'].x = self.obj_encoder(data['node'].pts)
-            
+        # from imgae
         if self.with_img_encoder:
             img_dict = self.img_encoder(data['roi'].img, edge_index =data['roi','sees','node'].edge_index)
             data['node'].x = img_dict['nodes_feature'] 
-            
+        # froms spatial descriptor
         if self.use_spatial:
             if self.with_pts_encoder:
                 tmp = descriptor[:,3:].clone()
@@ -219,7 +221,7 @@ class SGFN(nn.Module):
                 
             data['node'].x = torch.cat([data['node'].x, tmp],dim=1)
             
-        ''' Create edge feature '''
+        '''compute edge feature'''
         if has_edge:
             data['edge'].x = self.rel_encoder(descriptor,edge_indices_node_to_node)
             

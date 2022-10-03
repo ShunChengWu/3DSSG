@@ -151,17 +151,22 @@ class JointSG(nn.Module):
         descriptor =  data['node'].desp
         edge_indices_node_to_node = data['node','to','node'].edge_index
         
+        has_edge = edge_indices_node_to_node.nelement()>0
+        """reshape node edges if needed"""
+        if has_edge and edge_indices_node_to_node.shape[0] != 2:
+            edge_indices_node_to_node = edge_indices_node_to_node.t().contiguous()
+            
         '''Get 2D Features'''
         # Compute image feature
         if self.with_img_encoder:
             data['roi'].x = self.img_encoder(data['roi'].img)
         
-        
         '''Get 3D features'''
-        # Node
+        # from pts
         if self.with_pts_encoder:
             data['node'].x = self.obj_encoder(data['node'].pts)
-        
+            
+        # froms spatial descriptor
         if self.use_spatial:
             if self.with_pts_encoder:
                 tmp = descriptor[:,3:].clone()
@@ -177,30 +182,27 @@ class JointSG(nn.Module):
                 xy_ratio = xy_ratio.view(-1,1)
                 # [:, 6] -> [:, N]
                 tmp = self.spatial_encoder(torch.cat([tmp,xy_ratio],dim=1))
-                # learnable positional encoding
+                
             data['node'].x = torch.cat([data['node'].x, tmp],dim=1)
             
-        # Edge
-        if len(edge_indices_node_to_node)>0:
+        '''compute edge feature'''
+        if has_edge:
             data['edge'].x = self.rel_encoder(descriptor,edge_indices_node_to_node)
             
         '''Message Passing''' 
-        if len(edge_indices_node_to_node)>0:#TODO: maybe also need to check others
-                    
+        if has_edge:
             ''' GNN '''
             probs=None
             if hasattr(self, 'gnn') and self.gnn is not None:
                 gnn_nodes_feature, gnn_edges_feature, probs = self.gnn(data)
-
-                if self.cfg.model.gnn.node_from_gnn:
-                    data['node'].x = gnn_nodes_feature
+                data['node'].x = gnn_nodes_feature
                 data['edge'].x = gnn_edges_feature
         
         '''Classification'''
         # Node
         node_cls = self.obj_predictor(data['node'].x)
         # Edge
-        if len(edge_indices_node_to_node)>0:
+        if has_edge:
             edge_cls = self.rel_predictor(data['edge'].x)
         else:
             edge_cls = None
@@ -216,8 +218,7 @@ class JointSG(nn.Module):
             acc_node_cls = (node_cls_gt == node_cls_pred).sum().item() / node_cls_gt.nelement()
             outputs['acc_node_cls'] = acc_node_cls
         
-        if 'edge_cls_pred' in args and 'edge_cls_gt' in args and \
-            args['edge_cls_pred'].nelement()>0:
+        if 'edge_cls_pred' in args and 'edge_cls_gt' in args and args['edge_cls_pred'] is not None and args['edge_cls_pred'].nelement()>0:
             edge_cls_pred = args['edge_cls_pred'].detach()
             edge_cls_gt   = args['edge_cls_gt']
             if self.cfg.model.multi_rel:

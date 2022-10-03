@@ -15,6 +15,7 @@ from ssg.checkpoints import CheckpointIO
 # import torch.optim as optim
 import codeLib.utils.moving_average as moving_average 
 import torch.multiprocessing
+from pytictoc import TicToc
 logger_py = logging.getLogger(__name__)
         
 class Trainer():
@@ -145,6 +146,8 @@ class Trainer():
         avg_time = moving_average.MA()
         avg_loss = moving_average.MA()
         
+        timer = TicToc()
+        times = dict()
         epo_time = time.time()
         it_time = time.time()
         # time.sleep(2)# Prevent possible deadlock during epoch transition
@@ -153,19 +156,22 @@ class Trainer():
         pbar = tqdm(it_dataset,leave=False)
         self.model_trainer.zero_metrics()
         for data in pbar:
-            # continue
             it+=1
+            '''train step'''
+            timer.tic()
             logs = self.model_trainer.train_step(data, it)
+            times['train_step'] = timer.tocvalue()
             
+            # check 
             if 'loss' not in logs: continue
-            # logs = convert_torch_to_scalar(logs)            
             loss = logs['loss']
             
             #update time
             avg_time.update(time.time()-it_time)
             it_time = time.time()
-            
+            # update loss
             avg_loss.update(loss)
+            # update description
             pbar.set_description('it=%03d, loss=%.4f, time=%.4f' % (it, avg_loss.avg, avg_time.avg))
             
             # accumulate scalars

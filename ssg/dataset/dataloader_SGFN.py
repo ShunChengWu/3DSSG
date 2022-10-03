@@ -20,7 +20,7 @@ import codeLib.utils.string_numpy as snp
 import logging
 from PIL import Image
 from codeLib.common import run
-
+from pytictoc import TicToc
 from torch_geometric.data import HeteroData
 
 logger_py = logging.getLogger(__name__)
@@ -139,7 +139,7 @@ class SGFNDataset (data.Dataset):
             
         '''check if pre-computed global image featur eexist'''
         # if self.for_eval and not self.mconfig.is_roi_img and self.mconfig.load_images: # train mode can't use precmopute feature. need to do img. aug.
-        if not self.mconfig.is_roi_img and self.mconfig.load_images: # loading and memory issue. try to use precomputed
+        if not self.mconfig.is_roi_img and self.mconfig.load_images and self.cfg.data.use_precompute_img_feature: # loading and memory issue. try to use precomputed
             # self.open_filtered()
             should_compute_image_feature=False
             if not os.path.exists(self.path_img_feature):
@@ -229,13 +229,18 @@ class SGFNDataset (data.Dataset):
             self.image_feature = h5py.File(self.path_img_feature,'r')
            
     def __getitem__(self, index):
+        timers = dict()
+        timer = TicToc()
         scan_id = snp.unpack(self.scans,index)# self.scans[idx]
-        # if self.for_eval: scan_id = '6bde6041-9162-246f-8e57-11444a314136'
-        self.open_data()
         
+        '''open data'''
+        timer.tic()
+        # open
+        self.open_data()
+        # get SG data
         scan_data_raw = self.sg_data[scan_id]
         scan_data = raw_to_data(scan_data_raw)
-        
+        # shortcut
         object_data = scan_data['nodes']
         relationships_data = scan_data['relationships']
         mv_data = None
@@ -250,14 +255,14 @@ class SGFNDataset (data.Dataset):
                 
             
             '''filter'''
-            mv_node_ids = [int(x) for x in mv_data['nodes'].keys()]
-            
+            mv_node_ids = [int(x) for x in mv_data['nodes'].keys()]            
             sg_node_ids = object_data.keys()                
             inter_node_ids = set(sg_node_ids).intersection(mv_node_ids)
-            
             object_data = {nid: object_data[nid] for nid in inter_node_ids}
+        timers['open_data'] = timer.tocvalue()
             
         ''' build nn dict '''
+        timer.tic()
         nns = dict()
         seg2inst = dict()
         for oid, odata in object_data.items():
@@ -266,8 +271,10 @@ class SGFNDataset (data.Dataset):
             '''build instance dict'''
             if 'instance_id' in odata:
                 seg2inst[oid] = odata['instance_id']
+        timers['build_nn_dict'] = timer.tocvalue()
             
         ''' load point cloud data '''
+        timer.tic()
         if self.mconfig.load_points:
             if 'scene' in scan_id:
                 path = os.path.join(self.root_scannet, scan_id)
@@ -283,29 +290,43 @@ class SGFNDataset (data.Dataset):
         
             if self.use_data_augmentation and not self.for_eval:
                points = self.data_augmentation(points)
+        timers['load_pc'] = timer.tocvalue()
                
         '''extract 3D node classes and instances'''
+        timer.tic()
         cat,oid2idx,idx2oid,filtered_instances = self.__sample_3D_nodes(object_data,mv_data,nns)
+        timers['sample_3D_nodes'] = timer.tocvalue()
          
         '''sample 3D node connections'''
+        timer.tic()
         edge_indices_3D = self.__sample_3D_node_edges(cat,oid2idx,filtered_instances,nns)
+        timers['sample_3D_node_edges'] = timer.tocvalue()
         
         '''extract relationships data'''
+        timer.tic()
         relationships_3D = self.__extract_relationship_data(relationships_data,edge_indices_3D)
+        timers['extract_relationship_data'] = timer.tocvalue()
         
         '''sample 3D edges'''
+        timer.tic()
         gt_rels_3D = self.__sample_relationships(relationships_3D,idx2oid,edge_indices_3D)
+        timers['sample_relationships'] = timer.tocvalue()
 
         ''' random sample points '''
         if self.mconfig.load_points:
+            timer.tic()
             obj_points, descriptor, bboxes = self.__sample_points(scan_id,points,instances,cat,filtered_instances)
+            timers['sample_points'] = timer.tocvalue()
             
             '''build rel points'''
+            timer.tic()
             if self.mconfig.rel_data_type == 'points':
                 rel_points =    self.__sample_rel_points(points,instances,idx2oid,bboxes,edge_indices_3D)
+            timers['sample_rel_points'] = timer.tocvalue()
             
         if self.mconfig.load_images:
             '''load images'''
+            timer.tic()
             if self.mconfig.is_roi_img:
                 roi_images, node_descriptor_for_image, edge_indices_img_to_obj = \
                     self.__load_roi_images(cat,idx2oid,mv_nodes,roi_imgs,
@@ -330,7 +351,8 @@ class SGFNDataset (data.Dataset):
                     node_descriptor_for_image = torch.stack(node_descriptor_for_image)
                 else:
                     node_descriptor_for_image = torch.tensor([],dtype=torch.long)
-        
+            timers['load_images'] = timer.tocvalue()
+            
         ''' to tensor '''
         gt_class_3D = torch.from_numpy(np.array(cat))
         edge_indices_3D = torch.tensor(edge_indices_3D,dtype=torch.long)
@@ -1064,7 +1086,10 @@ class SGFNDataset (data.Dataset):
                 # box[1]/=height
                 # box[2]/=width
                 # box[3]/=height
-                box = np.concatenate(([mid], box)).tolist() # ROIAlign format
+                box = np.concatenate(([mid], box))
+                assert not (box[1:]>1).any()
+                
+                box = box.tolist() # ROIAlign format
                 
                 om_id = len(bbox_cat)
                 img_idx2oid[om_id] = kf_oid
