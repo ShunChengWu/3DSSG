@@ -1185,15 +1185,16 @@ def load_mesh(path,label_file,use_rgb,use_normal):
     else:# label_file.find('inseg')>=0 or label_file == 'cvvseg.ply':
         plydata = trimesh.load(os.path.join(path,label_file), process=False)
         points = np.array(plydata.vertices)
-        instances = plydata.metadata['ply_raw']['vertex']['data']['label'].flatten()
+        text_ply_raw = 'ply_raw' if 'ply_raw' in plydata.metadata else '_ply_raw'
+        instances = plydata.metadata[text_ply_raw]['vertex']['data']['label'].flatten()
         
         if use_rgb:
             rgbs = np.array(plydata.colors)[:,:3] / 255.0 * 2 - 1.0
             points = np.concatenate((points, rgbs), axis=1)
         if use_normal:
-            nx = plydata.metadata['ply_raw']['vertex']['data']['nx']
-            ny = plydata.metadata['ply_raw']['vertex']['data']['ny']
-            nz = plydata.metadata['ply_raw']['vertex']['data']['nz']
+            nx = plydata.metadata[text_ply_raw]['vertex']['data']['nx']
+            ny = plydata.metadata[text_ply_raw]['vertex']['data']['ny']
+            nz = plydata.metadata[text_ply_raw]['vertex']['data']['nz']
             
             normal = np.stack([ nx,ny,nz ]).squeeze().transpose()
             points = np.concatenate((points, normal), axis=1)

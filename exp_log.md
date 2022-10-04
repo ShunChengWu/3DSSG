@@ -24,7 +24,7 @@ Test new loader
 
 # TODO: Re-eval all methods. 
 3RScan160, Multi-Pred.
-- [ ] IMP
+- [ ] IMP ()
 - [x] VGfM (VGfM_FULL_l160_3_1)
 - [x] 3DSSG (3DSSG_full_l160_0)
 - [ ] SGFN (SGFN_full_l160_3)
