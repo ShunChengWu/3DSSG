@@ -151,9 +151,10 @@ class Trainer_IMP(BaseTrainer, EvalInst):
         if self.cfg.training.lambda_mode == 'dynamic':
             # calculate loss ratio base on the number of node and edge
             batch_node = node_cls.shape[0]
-            batch_edge = edge_cls.shape[0]
             self.cfg.training.lambda_node = 1
-            self.cfg.training.lambda_edge = batch_edge / batch_node
+            if edge_cls is not None:
+                batch_edge = edge_cls.shape[0]
+                self.cfg.training.lambda_edge = batch_edge / batch_node
             
         ''' 1. node class loss'''
         self.calc_node_loss(logs, node_cls, gt_cls, self.w_node_cls)
@@ -174,7 +175,8 @@ class Trainer_IMP(BaseTrainer, EvalInst):
         ''' eval tool '''
         if eval_tool is not None:
             node_cls = torch.softmax(node_cls.detach(),dim=1)
-            edge_cls = torch.sigmoid(edge_cls.detach())
+            if edge_cls is not None:
+                edge_cls = torch.sigmoid(edge_cls.detach())
             eval_tool.add(scan_id, 
                           node_cls,gt_cls, 
                           edge_cls,gt_rel,
