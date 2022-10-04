@@ -240,10 +240,11 @@ class EvalInst(object):
                         else:
                             edge_pds = torch.sigmoid(edge_pds).mean(0)
                         merged_edge_cls[counter,inst_valid_edge_cls_indices] = edge_pds
-                    else:
+                    elif not self.cfg.model.multi_rel:
                         merged_edge_cls[counter,noneidx_edge_cls] = 1.0
-                        
-                    merged_edge_cls_gt[counter] = inst_edge_cls
+                    
+                    if not self.cfg.model.multi_rel:
+                        merged_edge_cls_gt[counter] = inst_edge_cls
                     counter+=1
                 if ignore_missing:
                     merged_edge_cls=merged_edge_cls[:counter]
