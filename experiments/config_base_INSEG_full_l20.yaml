@@ -37,6 +37,7 @@ data:
  input_type: sgfn #[3RScan, graph, sgfn, sgpn]
  path: "./data/3RScan_ScanNet20/"
  path_gt: "./data/3RScan_ScanNet20_gt/"
+ label_file: "inseg.ply"
  roi_img_path: "./data/3RScan/roi_images.h5"
  sample_in_runtime: true
  sample_num_nn: 2
