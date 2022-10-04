@@ -165,12 +165,13 @@ class SGFNDataset (data.Dataset):
                 os.environ['MKL_THREADING_LAYER'] = 'GNU'
                 # os.environ['PYTHONPATH'] = config.PYTHONPATH
                 # subprocess.call(["export PYTHONPATH={}".format(PYTHONPATH)], shell=True) 
+                mode_ = 'eval' if mode == 'test' else mode
                 bashCommand=[
                     'python','ssg/utils/compute_image_feature.py',
                     "--config",config.config_path,
                     '-n',image_feature_folder_name,
                     "-o",self.cfg.data.path_image_feature,
-                    "--mode",mode,
+                    "--mode",mode_,
                 ]
                 run(bashCommand)
                 if not os.path.exists(self.path_img_feature):

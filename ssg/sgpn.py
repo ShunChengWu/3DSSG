@@ -72,7 +72,11 @@ class SGPN(nn.Module):
             print(name,pytorch_count_params(model))
         print('')
 
-    def forward(self, obj_points, rel_points, node_edges, return_meta_data=False, **args):
+    def forward(self, data):
+        obj_points = data['node'].pts
+        rel_points = data['edge'].pts
+        node_edges = data['node','to','node'].edge_index
+        
         obj_feature = self.obj_encoder(obj_points)
         rel_feature = self.rel_encoder(rel_points)
 
@@ -89,10 +93,10 @@ class SGPN(nn.Module):
             obj_cls = self.obj_predictor(obj_feature)
             rel_cls = self.rel_predictor(rel_feature)
         
-        if return_meta_data:
-            return obj_cls, rel_cls, obj_feature, rel_feature, gcn_obj_feature, gcn_rel_feature, probs
-        else:
-            return obj_cls, rel_cls
+        # if return_meta_data:
+        #     return obj_cls, rel_cls, obj_feature, rel_feature, gcn_obj_feature, gcn_rel_feature, probs
+        # else:
+        return obj_cls, rel_cls
         
     
     def calculate_metrics(self, **args):

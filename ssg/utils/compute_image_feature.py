@@ -45,6 +45,9 @@ if __name__ == '__main__':
     logger_py.info('args:\n{}'.format(args.__dict__))
     logger_py.info('use backend {}'.format(cfg.model.image_encoder.backend))
     
+    if args.mode == 'eval':
+        args.mode = 'test' #TODO: fix data generation to make this consistent
+    
     '''read label type '''
     # fdata = define.DATA_PATH
     # rgb_filepattern =  define.RGB_NAME_FORMAT

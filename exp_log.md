@@ -13,7 +13,7 @@ remember to change drop_img_edge
 - [ ] IMP_INSEG_l20_2
 - [ ] IMP_ORBSLAM3_l20_2
 
-- [ ] VGfM_FULL_l160_3_1
+- [x] VGfM_FULL_l160_3_1
 - [ ] VGfM_full_l20_6 # 
 - [ ] VGFM_INSEG_l20_3
 - [ ] VGFM_ORBSLAM3_l20_4
@@ -22,14 +22,18 @@ Test new loader
 - [x] config_SGFN_full_l20_0.yaml
 - [x] config_2DSSG_full_l20_3_1.yaml
 
+Not sure why VGfM_FULL_l160_3_1 has high mRecall_P but low Pred.
+
+
 ## 3RScan160, Multiple Predicates
-| method            | Trip      | Obj       | Pred      | mRecall_O | mRecall_P |
-| ----------------- | --------- | --------- | --------- | --------- | --------- |
-| IMP_FULL_l160_1   | 0.0/73.7  | 3.5/95.9  | 1.4/74.0  | 1.1/94.4  | 18.5/81.5 |
-| VGfM_FULL_l160_2  | 0.1/73.7  | 17.0/95.9 | 9.8/74.0  | 4.6/94.4  | 19.0/81.5 |
-| 3DSSG_full_l160_0 | 8.2/100   | 30.4/100  | 63.4/100  | 10.4/100  | 17.4/100  |
-| SGFN_full_l160_2  | 6.3/100   | 34.6/100  | 37.2/100  | 15.6/100  | 10.8/100  |
-| 2DSSG_full_l160_1 | 11.7/96.4 | 49.9/95.9 | 42.7/95.6 | 28.5/94.5 | 25.4/95.5 |
+| method             | Trip      | Obj       | Pred      | mRecall_O | mRecall_P |
+| ------------------ | --------- | --------- | --------- | --------- | --------- |
+| IMP_FULL_l160_1    | 0.0/73.7  | 3.5/95.9  | 1.4/74.0  | 1.1/94.4  | 18.5/81.5 |
+| VGfM_FULL_l160_2   | 0.1/73.7  | 17.0/95.9 | 9.8/74.0  | 4.6/94.4  | 19.0/81.5 |
+| VGfM_FULL_l160_3_1 | 5.5/81.9  | 43.5/85.1 | 14.2/100  | 18.5/82.4 | 47.0/100  |
+| 3DSSG_full_l160_0  | 8.2/100   | 30.4/100  | 63.4/100  | 10.4/100  | 17.4/100  |
+| SGFN_full_l160_2   | 6.3/100   | 34.6/100  | 37.2/100  | 15.6/100  | 10.8/100  |
+| 2DSSG_full_l160_1  | 11.7/96.4 | 49.9/95.9 | 42.7/95.6 | 28.5/94.5 | 25.4/95.5 |
 
 ## ScanNet20, Single Predicate, full
 | method             | Trip      | Obj       | Pred      | mRecall_O | mRecall_P |

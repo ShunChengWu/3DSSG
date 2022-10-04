@@ -526,66 +526,66 @@ class EvaPairWeight():
     def reset(self):
         self.c_mat = np.zeros([len(self.class_names),len(self.class_names)], dtype=np.float)
         
-class EvaClassificationSimple(object):
-    def __init__(self,class_names):
-        '''
-        This class takes the prediction and ground truth indices as the input,
-        and keep updating a confusion matrix.
+# class EvaClassificationSimple(object):
+#     def __init__(self,class_names):
+#         '''
+#         This class takes the prediction and ground truth indices as the input,
+#         and keep updating a confusion matrix.
 
-        Returns
-        -------
-        None.
+#         Returns
+#         -------
+#         None.
 
-        '''
-        self.class_names = class_names
-        self.c_mat = np.zeros([len(self.class_names),len(self.class_names)], dtype=np.float) # cmat[gt][pd]
-        pass
-    def __call__(self,pds, gts):
-        self.update(pds,gts)
-    def update(self,pds, gts):
-        assert len(pds) == len(gts)
-        for i in range(len(pds)):
-            pd = pds[i]
-            gt = gts[i]
-            self.c_mat[gt][pd]+=1
+#         '''
+#         self.class_names = class_names
+#         self.c_mat = np.zeros([len(self.class_names),len(self.class_names)], dtype=np.float) # cmat[gt][pd]
+#         pass
+#     def __call__(self,pds, gts):
+#         self.update(pds,gts)
+#     def update(self,pds, gts):
+#         assert len(pds) == len(gts)
+#         for i in range(len(pds)):
+#             pd = pds[i]
+#             gt = gts[i]
+#             self.c_mat[gt][pd]+=1
              
-    def get_recall(self):
-        return self.c_mat.diagonal().sum() / self.c_mat.sum()
-    def get_all_metrics(self):
-        return get_metrics_all(self.c_mat, [], self.class_names)
-    def get_mean_metrics(self):
-        return cal_mean(self.get_all_metrics(), [], self.class_names)
-    def reset(self):
-        self.c_mat = np.zeros([len(self.class_names),len(self.class_names)], dtype=np.float)
-    def draw(self, **args):
-        args['y_labels']=self.class_names
-        args['x_labels']=self.class_names
-        return plot_confusion_matrix(self.c_mat, 
-                          **args)
-    def write_result_file(self, filename, VALID_CLASS_IDS):
-        return write_result_file(self.c_mat, filename, VALID_CLASS_IDS, self.class_names)
-    def gen_text(self):
-        c_recall = self.get_recall()        
-        txt = "recall obj cls {}".format(c_recall) +'\n'
-        return txt
+#     def get_recall(self):
+#         return self.c_mat.diagonal().sum() / self.c_mat.sum()
+#     def get_all_metrics(self):
+#         return get_metrics_all(self.c_mat, [], self.class_names)
+#     def get_mean_metrics(self):
+#         return cal_mean(self.get_all_metrics(), [], self.class_names)
+#     def reset(self):
+#         self.c_mat = np.zeros([len(self.class_names),len(self.class_names)], dtype=np.float)
+#     def draw(self, **args):
+#         args['y_labels']=self.class_names
+#         args['x_labels']=self.class_names
+#         return plot_confusion_matrix(self.c_mat, 
+#                           **args)
+#     def write_result_file(self, filename, VALID_CLASS_IDS):
+#         return write_result_file(self.c_mat, filename, VALID_CLASS_IDS, self.class_names)
+#     def gen_text(self):
+#         c_recall = self.get_recall()        
+#         txt = "recall obj cls {}".format(c_recall) +'\n'
+#         return txt
     
-    def write(self, path, model_name):
-        pathlib.Path(path).mkdir(parents=True, exist_ok=True)
+#     def write(self, path, model_name):
+#         pathlib.Path(path).mkdir(parents=True, exist_ok=True)
         
-        obj_results = self.write_result_file(os.path.join(path,model_name+'_results_obj.txt'), [])
+#         obj_results = self.write_result_file(os.path.join(path,model_name+'_results_obj.txt'), [])
         
-        r_o = {k: v for v, k in zip(obj_results, ['Obj_IOU','Obj_Precision', 'Obj_Recall']) }
-        results = r_o
+#         r_o = {k: v for v, k in zip(obj_results, ['Obj_IOU','Obj_Precision', 'Obj_Recall']) }
+#         results = r_o
         
-        self.draw(
-            title='object confusion matrix',
-            normalize='log',
-            plot_text=False,
-            plot=False,
-            grid=False,
-            pth_out=os.path.join(path, model_name + "_obj_cmat.png")
-        )
-        return results
+#         self.draw(
+#             title='object confusion matrix',
+#             normalize='log',
+#             plot_text=False,
+#             plot=False,
+#             grid=False,
+#             pth_out=os.path.join(path, model_name + "_obj_cmat.png")
+#         )
+#         return results
     
 class ConfusionMatrix():
     def __init__(self, class_names:list):
