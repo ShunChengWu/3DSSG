@@ -993,7 +993,8 @@ class SGFNDataset (data.Dataset):
         self.open_filtered()
         # if self.for_eval:
             # self.open_image_feature()
-        self.open_image_feature()
+        if self.cfg.data.use_precompute_img_feature:
+            self.open_image_feature()
         
         images=list()
         bounding_boxes = list() # bounding_boxes[node_id]{kf_id: [boxes]}

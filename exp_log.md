@@ -31,7 +31,7 @@ Test new loader
 - [ ] 2DSSG
 ScanNet20, Single, Full
 - [x] IMP (IMP_full_l20_4)
-- [ ] VGfM
+- [ ] VGfM (VGfM_full_l20_6)
 - [ ] 3DSSG
 - [ ] SGFN
 - [ ] 2DSSG
