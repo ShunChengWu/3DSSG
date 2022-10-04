@@ -9,7 +9,7 @@ Use SGFN loader to train VGfM and IMP.
 Change loader from graph to sgfn.
 remember to change drop_img_edge
 - [ ] IMP_FULL_l160_2_1
-- [ ] IMP_full_l20_4
+- [x] IMP_full_l20_4
 - [ ] IMP_INSEG_l20_2
 - [ ] IMP_ORBSLAM3_l20_2
 
@@ -22,6 +22,26 @@ Test new loader
 - [x] config_SGFN_full_l20_0.yaml
 - [x] config_2DSSG_full_l20_3_1.yaml
 
+# TODO: Re-eval all methods. 
+3RScan160, Multi-Pred.
+- [ ] IMP
+- [x] VGfM (VGfM_FULL_l160_3_1)
+- [x] 3DSSG (3DSSG_full_l160_0)
+- [ ] SGFN
+- [ ] 2DSSG
+ScanNet20, Single, Full
+- [x] IMP (IMP_full_l20_4)
+- [ ] VGfM
+- [ ] 3DSSG
+- [ ] SGFN
+- [ ] 2DSSG
+ScanNet20, Single, Inseg
+- [ ] IMP
+- [ ] VGfM
+- [ ] 3DSSG
+- [ ] SGFN
+- [ ] 2DSSG
+ScanNet20, Single, ORBSLAM
 
 ## 3RScan160, Multiple Predicates
 | method             | Trip      | Obj       | Pred      | mRecall_O | mRecall_P |
@@ -37,6 +57,7 @@ Test new loader
 | method             | Trip      | Obj       | Pred      | mRecall_O | mRecall_P |
 | ------------------ | --------- | --------- | --------- | --------- | --------- |
 | IMP_full_l20_3     | 8.8/97.3  | 28.1/97.9 | 94.3/99.9 | 4.9/98.1  | 12.5/98.2 |
+| IMP_full_l20_4 | 31.0/86.9|65.5/92.2|46.6/97.4|50.1/92.1|29.3/98.0|
 | VGfM_full_l20_5    | 16.8/97.3 | 38.4/97.9 | 94.3/99.9 | 24.1/98.1 | 18.9/98.2 |
 | 3DSSG_full_l20_2   | 10.9/100  | 35.1/100  | 88.1/100  | 17.3/100  | 28.3/100  |
 | SGFN_full_0_3      | 35.6/100  | 59.8/100  | 89.3/100  | 53.0/100  | 66.1/100  |
