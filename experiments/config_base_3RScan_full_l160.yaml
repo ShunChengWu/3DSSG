@@ -50,7 +50,7 @@ data:
  drop_edge_eval: 0 # if is int and >0, select given number. if is float/double, select percentage between [1-x,1]
  normalize_weight: true 
  max_num_node: 64 # maximum number of nodes for training (memory)
- max_num_edge: 512 # maximum number of edges for training (to save memory)
+ max_num_edge: 256 # maximum number of edges for training (to save memory)
  img_size: -1 # minimum image edge will be resize to this. (-1: keep origianl)
  roi_img_size: [256,256]
  full_edge: true
