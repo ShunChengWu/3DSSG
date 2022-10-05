@@ -252,13 +252,14 @@ class EvalInst(object):
                 merged_node_edges = torch.tensor(merged_node_edges,dtype=torch.long)
             
             merged_node_edges=merged_node_edges.t().contiguous()
-            eval_tool.add([scan_id], 
+            frac_missing_nodes, frac_missing_edge = eval_tool.add([scan_id], 
                           merged_node_cls,
                           merged_node_cls_gt, 
                           merged_edge_cls,
                           merged_edge_cls_gt,
                           [merged_mask2instance],
                           merged_node_edges)
+            # print(scan_id,frac_missing_nodes, frac_missing_edge)
             # break
         eval_dict = dict()
         obj_, edge_ = eval_tool.get_mean_metrics()

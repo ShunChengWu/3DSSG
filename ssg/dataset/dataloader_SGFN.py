@@ -822,7 +822,7 @@ class SGFNDataset (data.Dataset):
         if self.multi_rel_outputs:
             gt_rels = torch.zeros(len(edge_indices), len(self.relationNames),dtype = torch.float)
         else:
-            gt_rels = torch.zeros(len(edge_indices),dtype = torch.long)
+            gt_rels = torch.ones(len(edge_indices),dtype = torch.long)*self.none_idx
         for e in range(len(edge_indices)):
             edge = edge_indices[e]
             index1 = edge[0]

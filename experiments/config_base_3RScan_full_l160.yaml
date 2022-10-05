@@ -42,15 +42,15 @@ data:
  roi_img_path: "./data/3RScan/roi_images.h5"
  path_image_feature: "./data/3RScan/"
  sample_in_runtime: true
- sample_num_nn: 2
- sample_num_seed: 4
+ sample_num_nn: 1
+ sample_num_seed: 2
  drop_img_edge: 4 # if is int and >0, select given number. if is float/double, select percentage between [1-x,1]
  drop_img_edge_eval: 0
  drop_edge: 0.5 # if is int and >0, select given number. if is float/double, select percentage between [1-x,1]
  drop_edge_eval: 0 # if is int and >0, select given number. if is float/double, select percentage between [1-x,1]
  normalize_weight: true 
  max_num_node: 64 # maximum number of nodes for training (memory)
- max_num_edge: 128 # maximum number of edges for training (to save memory)
+ max_num_edge: 80 # maximum number of edges for training (to save memory)
  img_size: -1 # minimum image edge will be resize to this. (-1: keep origianl)
  roi_img_size: [256,256]
  full_edge: true
