@@ -310,8 +310,11 @@ class SGFNDataset (data.Dataset):
         
         '''sample 3D edges'''
         timer.tic()
-        gt_rels_3D = self.__sample_relationships(relationships_3D,idx2oid,edge_indices_3D)
+        gt_rels_3D, edge_index_has_gt_3D = self.__sample_relationships(relationships_3D,idx2oid,edge_indices_3D)
         timers['sample_relationships'] = timer.tocvalue()
+        
+        '''drop edges'''# to fit memory
+        gt_rels_3D, edge_indices_3D, _ = self.__drop_edge(gt_rels_3D, edge_indices_3D,edge_index_has_gt_3D)
 
         ''' random sample points '''
         if self.mconfig.load_points:
@@ -325,8 +328,8 @@ class SGFNDataset (data.Dataset):
                 rel_points =    self.__sample_rel_points(points,instances,idx2oid,bboxes,edge_indices_3D)
             timers['sample_rel_points'] = timer.tocvalue()
             
+        '''load images'''
         if self.mconfig.load_images:
-            '''load images'''
             timer.tic()
             if self.mconfig.is_roi_img:
                 roi_images, node_descriptor_for_image, edge_indices_img_to_obj = \
@@ -337,8 +340,20 @@ class SGFNDataset (data.Dataset):
                     image_edge_indices, img_idx2oid, temporal_node_graph, temporal_edge_graph = \
                         self.__load_full_images(scan_id,idx2oid,cat,scan_data,mv_data)
                 relationships_img = self.__extract_relationship_data(relationships_data,image_edge_indices)
-                gt_rels_2D = self.__sample_relationships(relationships_img,img_idx2oid,image_edge_indices)
-                        
+                gt_rels_2D, edge_index_has_gt_2D = self.__sample_relationships(relationships_img,img_idx2oid,image_edge_indices)
+                
+                # gt_rels_2D, image_edge_indices, final_edge_indices_2D = self.__drop_edge(
+                #     gt_rels_2D, image_edge_indices,edge_index_has_gt_2D)
+                # # filter temporal edge graph
+                # to_delete=[]
+                # all_indices = range(len(temporal_edge_graph))
+                # for idx in all_indices:
+                #     idx_0,idx_1 = temporal_edge_graph[idx][0],temporal_edge_graph[idx][1]
+                #     if idx_0 not in final_edge_indices_2D or idx_1 not in final_edge_indices_2D:
+                #         to_delete.append(idx)
+                # to_keep = set(all_indices).difference(to_delete)
+                # temporal_edge_graph = [temporal_edge_graph[idx] for idx in to_keep]
+                
                 '''to tensor'''
                 assert len(img_bounding_boxes) > 0
                 images = torch.stack(images,dim=0)
@@ -823,6 +838,7 @@ class SGFNDataset (data.Dataset):
             gt_rels = torch.zeros(len(edge_indices), len(self.relationNames),dtype = torch.float)
         else:
             gt_rels = torch.ones(len(edge_indices),dtype = torch.long)*self.none_idx
+        edges_has_gt = []
         for e in range(len(edge_indices)):
             edge = edge_indices[e]
             index1 = edge[0]
@@ -844,7 +860,8 @@ class SGFNDataset (data.Dataset):
                         [print(self.relationNames[x])for x in relatinoships_gt[key]]
                         assert len(relatinoships_gt[key])==1
                     gt_rels[e] = relatinoships_gt[key][0]
-        return gt_rels
+                edges_has_gt.append(e)
+        return gt_rels, edges_has_gt
     
     def __sample_3D_node_edges(self, cat:list, oid2idx:dict,filtered_instances:list,nns:dict):
         if self.sample_in_runtime:
@@ -875,15 +892,15 @@ class SGFNDataset (data.Dataset):
                     edge_indices = [(e[0],e[1]) for e in edge_indices]
 
             '''edge dropout'''
-            if len(edge_indices)>0:
-                if not self.for_eval:
-                    edge_indices = random_drop(edge_indices, self.mconfig.drop_edge)       
-                if self.for_eval :
-                    edge_indices = random_drop(edge_indices, self.mconfig.drop_edge_eval)
+            # if len(edge_indices)>0:
+            #     if not self.for_eval:
+            #         edge_indices = random_drop(edge_indices, self.mconfig.drop_edge)       
+            #     if self.for_eval :
+            #         edge_indices = random_drop(edge_indices, self.mconfig.drop_edge_eval)
                     
-                if self.mconfig.max_num_edge > 0 and len(edge_indices) > self.mconfig.max_num_edge and not self.for_eval:
-                    choices = np.random.choice(range(len(edge_indices)),self.mconfig.max_num_edge,replace=False).tolist()
-                    edge_indices = [edge_indices[t] for t in choices]
+            #     if self.mconfig.max_num_edge > 0 and len(edge_indices) > self.mconfig.max_num_edge and not self.for_eval:
+            #         choices = np.random.choice(range(len(edge_indices)),self.mconfig.max_num_edge,replace=False).tolist()
+            #         edge_indices = [edge_indices[t] for t in choices]
         else:
             edge_indices = list()
             max_edges=-1
@@ -891,11 +908,40 @@ class SGFNDataset (data.Dataset):
                 for m in range(len(cat)):
                     if n == m:continue
                     edge_indices.append((n,m))
-            if max_edges>0 and len(edge_indices) > max_edges and not self.for_eval: 
-                # for eval, do not drop out any edges.
-                indices = list(np.random.choice(len(edge_indices),max_edges,replace=False))
-                edge_indices = edge_indices[indices]
+            # if max_edges>0 and len(edge_indices) > max_edges and not self.for_eval: 
+            #     # for eval, do not drop out any edges.
+            #     indices = list(np.random.choice(len(edge_indices),max_edges,replace=False))
+            #     edge_indices = edge_indices[indices]
         return edge_indices
+    
+    def __drop_edge(self,gt_rels:torch.Tensor, edge_indices:list, edge_index_has_gt:list):
+        if len(edge_indices)==0: # no edges
+            return edge_indices
+        
+        all_indices = set(range(len(edge_indices)))
+        edge_index_wo_gt = all_indices.difference(edge_index_has_gt)
+        if len(edge_index_wo_gt)==0:
+            return gt_rels, edge_indices # all edges are needed
+        
+        edge_index_wo_gt=list(edge_index_wo_gt)
+        if not self.for_eval:
+            edge_index_wo_gt = random_drop(edge_index_wo_gt, self.mconfig.drop_edge)       
+        if self.for_eval :
+            edge_index_wo_gt = random_drop(edge_index_wo_gt, self.mconfig.drop_edge_eval)
+           
+        num_edges = len(edge_index_wo_gt)+len(edge_index_has_gt)
+        if self.mconfig.max_num_edge > 0 and num_edges > self.mconfig.max_num_edge\
+            and len(edge_index_has_gt)<self.mconfig.max_num_edge:
+            # only process with max_num_ede is set, and the total number is larger
+            # and the edges with gt is smaller
+            number_to_sample = self.mconfig.max_num_edge-len(edge_index_has_gt)
+            edge_index_wo_gt = np.random.choice(edge_index_wo_gt,number_to_sample,replace=False).tolist()
+        
+        final_edge_indices = list(edge_index_has_gt)+list(edge_index_wo_gt)    
+        edge_indices = [edge_indices[t] for t in final_edge_indices]
+        gt_rels = gt_rels[final_edge_indices]
+        
+        return gt_rels, edge_indices,final_edge_indices
     
     def __load_roi_images(self, cat:list, idx2oid:dict,mv_nodes:dict, roi_imgs:dict,
                           object_data:dict, filtered_instances:list):

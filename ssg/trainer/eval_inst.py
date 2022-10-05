@@ -252,7 +252,7 @@ class EvalInst(object):
                 merged_node_edges = torch.tensor(merged_node_edges,dtype=torch.long)
             
             merged_node_edges=merged_node_edges.t().contiguous()
-            frac_missing_nodes, frac_missing_edge = eval_tool.add([scan_id], 
+            eval_tool.add([scan_id], 
                           merged_node_cls,
                           merged_node_cls_gt, 
                           merged_edge_cls,

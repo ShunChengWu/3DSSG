@@ -25,15 +25,18 @@ Test new loader
 # TODO: Re-eval all methods. 
 # TODO: run again. there was a bug in eval using edge indicex (N,2)->(2,N)
 # TODO: check instance ID conversion
+# TODO: there was a bug in the GT rel generator. for single prediction.
 3RScan160, Multi-Pred.
-- [ ] IMP ()
+- [ ] IMP (IMP_FULL_l160_2_1)
 - [x] VGfM (VGfM_FULL_l160_3_1)
 - [ ] 3DSSG (3DSSG_full_l160_0)
 - [x] SGFN (SGFN_full_l160_3)
 - [ ] 2DSSG (2DSSG_full_l160_2)
 ScanNet20, Single, Full
 - [x] IMP (IMP_full_l20_4)
+- [ ] IMP (IMP_full_l20_5)
 - [x] VGfM (VGfM_full_l20_6)
+- [ ] VGfM (VGfM_full_l20_7)
 - [ ] 3DSSG (3DSSG_INSEG_l20_2)
 - [ ] SGFN
 - [ ] 2DSSG
