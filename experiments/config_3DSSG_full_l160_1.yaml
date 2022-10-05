@@ -1,0 +1,13 @@
+inherit_from: [experiments/config_base_3RScan_full_l160.yaml,experiments/config_base_3DSSG.yaml]
+name: '3DSSG_full_l160_1'
+model:
+ multi_rel: true # multiple relationship
+logging:
+ method: wandb # [tensorboard, wandb, none]
+ log_grad_freq: 1000 
+ log_graph: True
+wandb:
+ dry_run: true
+ entity: 'shunchengwu'
+ project: "ssg"
+ tags: ["ssg", "3dssg",'full','l160']
