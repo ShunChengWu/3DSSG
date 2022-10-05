@@ -7,7 +7,7 @@ logging:
  log_grad_freq: 1000 
  log_graph: True
 wandb:
- dry_run: true
+ dry_run: false
  entity: 'shunchengwu'
  project: "ssg"
  tags: ["ssg", "3dssg",'full','l160']

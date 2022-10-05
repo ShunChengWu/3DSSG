@@ -314,7 +314,7 @@ class SGFNDataset (data.Dataset):
         timers['sample_relationships'] = timer.tocvalue()
         
         '''drop edges'''# to fit memory
-        gt_rels_3D, edge_indices_3D, _ = self.__drop_edge(gt_rels_3D, edge_indices_3D,edge_index_has_gt_3D)
+        gt_rels_3D, edge_indices_3D= self.__drop_edge(gt_rels_3D, edge_indices_3D,edge_index_has_gt_3D)
 
         ''' random sample points '''
         if self.mconfig.load_points:
@@ -916,12 +916,12 @@ class SGFNDataset (data.Dataset):
     
     def __drop_edge(self,gt_rels:torch.Tensor, edge_indices:list, edge_index_has_gt:list):
         if len(edge_indices)==0: # no edges
-            return edge_indices
+            return gt_rels,edge_indices
         
         all_indices = set(range(len(edge_indices)))
         edge_index_wo_gt = all_indices.difference(edge_index_has_gt)
         if len(edge_index_wo_gt)==0:
-            return gt_rels, edge_indices # all edges are needed
+            return gt_rels,edge_indices # all edges are needed
         
         edge_index_wo_gt=list(edge_index_wo_gt)
         if not self.for_eval:
@@ -941,7 +941,7 @@ class SGFNDataset (data.Dataset):
         edge_indices = [edge_indices[t] for t in final_edge_indices]
         gt_rels = gt_rels[final_edge_indices]
         
-        return gt_rels, edge_indices,final_edge_indices
+        return gt_rels,edge_indices
     
     def __load_roi_images(self, cat:list, idx2oid:dict,mv_nodes:dict, roi_imgs:dict,
                           object_data:dict, filtered_instances:list):

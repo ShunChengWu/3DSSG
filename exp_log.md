@@ -29,8 +29,8 @@ Test new loader
 3RScan160, Multi-Pred.
 - [ ] IMP (IMP_FULL_l160_2_1)
 - [x] VGfM (VGfM_FULL_l160_3_1)
-- [ ] 3DSSG (3DSSG_full_l160_0)
-- [x] SGFN (SGFN_full_l160_3)
+- [ ] 3DSSG (3DSSG_full_l160_1)
+- [ ] SGFN (SGFN_full_l160_3)
 - [ ] 2DSSG (2DSSG_full_l160_2)
 ScanNet20, Single, Full
 - [x] IMP (IMP_full_l20_4)
