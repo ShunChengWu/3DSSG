@@ -27,14 +27,14 @@ Test new loader
 # TODO: check instance ID conversion
 # TODO: there was a bug in the GT rel generator. for single prediction.
 3RScan160, Multi-Pred.
-- [ ] IMP (IMP_FULL_l160_2_1)
-- [ ] VGfM (VGfM_FULL_l160_3_1)
-- [ ] 3DSSG (3DSSG_full_l160_1)
-- [ ] SGFN (SGFN_full_l160_3)
-- [ ] 2DSSG (2DSSG_full_l160_2)
+- [ ] IMP (IMP_FULL_l160_2_1) # training at remote server 
+- [x] VGfM (VGfM_FULL_l160_3_1)
+- [ ] 3DSSG (3DSSG_full_l160_1) # train on SC
+- [x] SGFN (SGFN_full_l160_4)
+- [ ] 2DSSG (2DSSG_full_l160_2) # train on SC
 ScanNet20, Single, Full
 - [x] IMP (IMP_full_l20_4)
-- [ ] IMP (IMP_full_l20_5)
+- [ ] IMP (IMP_full_l20_5) # train on Windows
 - [x] VGfM (VGfM_full_l20_6)
 - [ ] VGfM (VGfM_full_l20_7)
 - [ ] 3DSSG (3DSSG_INSEG_l20_2)
@@ -51,14 +51,12 @@ ScanNet20, Single, ORBSLAM
 ## 3RScan160, Multiple Predicates
 | method             | Trip      | Obj       | Pred      | mRecall_O | mRecall_P |
 | ------------------ | --------- | --------- | --------- | --------- | --------- |
-| IMP_FULL_l160_1    | 0.0/73.7  | 3.5/95.9  | 1.4/74.0  | 1.1/94.4  | 18.5/81.5 |
-| VGfM_FULL_l160_3_1 | 5.0/81.9  | 43.5/85.1 | 10.5/100  | 18.5/82.4 | 11.0/100  |
+| IMP_FULL_l160_2_1  |
+| VGfM_FULL_l160_3_1 | 4.83/78.6 | 43.4/85.3 | 14.4/98.8 | 17.4/83.0 | 6.5/98.6  |
 | 3DSSG_full_l160_0  | 8.2/100   | 30.4/100  | 50.2/100  | 10.4/100  | 17.4/100  |
-| 3DSSG_full_l160_1  | 
-| SGFN_full_l160_2   | 6.3/100   | 34.6/100  | 37.2/100  | 15.6/100  | 10.8/100  |
-| SGFN_full_l160_3   | 3.4       | 30.0      | 25.6      | 13.3      | 12.2      |
-| SGFN_full_l160_4   | 5.3/100       | 31.5/100      | 39.9      | 11.5 |13.5 |
-| 2DSSG_full_l160_1  | 11.7/96.4 | 49.9/95.9 | 42.7/95.6 | 28.5/94.5 | 25.4/95.5 |
+| 3DSSG_full_l160_1  |
+| SGFN_full_l160_4   | 5.3/100   | 31.5/100  | 48.8/100  | 11.5/100  | 13.5/100  |
+| 2DSSG_full_l160_2  |
 
 ## ScanNet20, Single Predicate, full
 | method             | Trip      | Obj       | Pred      | mRecall_O | mRecall_P |
