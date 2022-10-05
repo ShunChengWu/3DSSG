@@ -6,6 +6,7 @@ from ssg.utils.util_data import match_class_info_from_two
 from ssg.utils.util_eva import EvalUpperBound
 
 def process(cfg1):
+    cfg1.data.load_cache=False
     db_1  = config.get_dataset(cfg1,'test')
     db_2  = config.get_dataset_inst(cfg1,'test')
     
@@ -52,7 +53,7 @@ def process(cfg1):
         missing_node_frac, missing_edge_frac = eval_UpperBound(data_seg,data_inst,is_eval_image)
         
         print(scan_id_inst, missing_node_frac, missing_edge_frac)
-        # print(eval_UpperBound.eval_tool.gen_text())
+        print(eval_UpperBound.eval_tool.gen_text())
         # print('')
     pass
 

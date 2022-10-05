@@ -38,15 +38,18 @@ def calculate(args:codeLib.Config, topK:int=10):
         
         
         frac_missing_nodes, frac_missing_edge = eval_UB(data_seg,data_inst,is_eval_image)
-        print(scan_id_inst,frac_missing_nodes, frac_missing_edge)
+        # print(scan_id_inst,frac_missing_nodes, frac_missing_edge)
         if frac_missing_nodes != 0:
             print()
         if frac_missing_edge != 0:
             print()
+        print(scan_id_inst, frac_missing_nodes, frac_missing_edge)
+        print(eval_UB.eval_tool.gen_text())
     return eval_UB.eval_tool
 
 if __name__ == '__main__':
     cfg = ssg.Parse()
+    cfg.data.load_cache=False
     eval_tool = calculate(cfg)
     
     

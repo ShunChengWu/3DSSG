@@ -234,6 +234,9 @@ class SGFNDataset (data.Dataset):
         timer = TicToc()
         scan_id = snp.unpack(self.scans,index)# self.scans[idx]
         
+        # if self.for_eval:
+        #     scan_id = '0cac75b1-8d6f-2d13-8c17-9099db8915bc'
+        
         '''open data'''
         timer.tic()
         # open
@@ -305,7 +308,7 @@ class SGFNDataset (data.Dataset):
         
         '''extract relationships data'''
         timer.tic()
-        relationships_3D = self.__extract_relationship_data(relationships_data,edge_indices_3D)
+        relationships_3D = self.__extract_relationship_data(relationships_data)
         timers['extract_relationship_data'] = timer.tocvalue()
         
         '''sample 3D edges'''
@@ -339,7 +342,7 @@ class SGFNDataset (data.Dataset):
                 images, img_bounding_boxes, bbox_cat, node_descriptor_for_image, \
                     image_edge_indices, img_idx2oid, temporal_node_graph, temporal_edge_graph = \
                         self.__load_full_images(scan_id,idx2oid,cat,scan_data,mv_data)
-                relationships_img = self.__extract_relationship_data(relationships_data,image_edge_indices)
+                relationships_img = self.__extract_relationship_data(relationships_data)
                 gt_rels_2D, edge_index_has_gt_2D = self.__sample_relationships(relationships_img,img_idx2oid,image_edge_indices)
                 
                 # gt_rels_2D, image_edge_indices, final_edge_indices_2D = self.__drop_edge(
@@ -807,7 +810,7 @@ class SGFNDataset (data.Dataset):
                 
         return cat,oid2idx,idx2oid,filtered_instances
     
-    def __extract_relationship_data(self, relationships_data,edge_indices):
+    def __extract_relationship_data(self, relationships_data):
         '''build relaitonship data'''
         relatinoships_gt= defaultdict(list)
         for r in relationships_data:
@@ -930,13 +933,14 @@ class SGFNDataset (data.Dataset):
             edge_index_wo_gt = random_drop(edge_index_wo_gt, self.mconfig.drop_edge_eval)
            
         num_edges = len(edge_index_wo_gt)+len(edge_index_has_gt)
-        if self.mconfig.max_num_edge > 0 and num_edges > self.mconfig.max_num_edge\
-            and len(edge_index_has_gt)<self.mconfig.max_num_edge:
+        if self.mconfig.max_num_edge > 0 and num_edges > self.mconfig.max_num_edge:
             # only process with max_num_ede is set, and the total number is larger
             # and the edges with gt is smaller
-            number_to_sample = self.mconfig.max_num_edge-len(edge_index_has_gt)
-            edge_index_wo_gt = np.random.choice(edge_index_wo_gt,number_to_sample,replace=False).tolist()
-        
+            if len(edge_index_has_gt)<self.mconfig.max_num_edge:
+                number_to_sample = self.mconfig.max_num_edge-len(edge_index_has_gt)
+                edge_index_wo_gt = np.random.choice(edge_index_wo_gt,number_to_sample,replace=False).tolist()
+            else:
+                edge_index_wo_gt=[]
         final_edge_indices = list(edge_index_has_gt)+list(edge_index_wo_gt)    
         edge_indices = [edge_indices[t] for t in final_edge_indices]
         gt_rels = gt_rels[final_edge_indices]

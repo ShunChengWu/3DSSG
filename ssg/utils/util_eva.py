@@ -78,6 +78,7 @@ def evaluate_topk_multi_prediction(gts, pds, k=-1):
         for index in indices:
             if index in sorted_args:
                 index = sorted(torch.where(sorted_args == index)[0])[0].item()+1
+                index = math.ceil(index / len(indices))
             else:
                 index = maxk+1
             top_k.append(index)
