@@ -5,7 +5,7 @@ from tqdm import tqdm
 from codeLib.utils import moving_average
 from ssg import define
 from ssg.utils.util_data import match_class_info_from_two, merge_batch_mask2inst
-from ssg.utils.util_eva import EvalSceneGraph, EvalUpperBound
+from ssg.utils.util_eva import EvalSceneGraphBatch, EvalUpperBound
 import codeLib.utils.string_numpy as snp
 
 class EvalInst(object):
@@ -21,7 +21,7 @@ class EvalInst(object):
             seg_valid_edge_cls_indices,inst_valid_edge_cls_indices) = \
             match_class_info_from_two(dataset_seg,dataset_inst, multi_rel=self.cfg.model.multi_rel)
 
-        eval_tool = EvalSceneGraph(node_cls_names, edge_cls_names,multi_rel_prediction=self.cfg.model.multi_rel,k=topk,save_prediction=True,
+        eval_tool = EvalSceneGraphBatch(node_cls_names, edge_cls_names,multi_rel_prediction=self.cfg.model.multi_rel,k=topk,save_prediction=True,
                                    none_name=define.NAME_NONE) 
         # eval_upper_bound
         eval_UpperBound = EvalUpperBound(node_cls_names,edge_cls_names,noneidx_node_cls,noneidx_edge_cls,
@@ -154,7 +154,7 @@ class EvalInst(object):
                             merged_node_cls[mask_new,inst_valid_node_cls_indices] = node_cls_pred[seg_valid_node_cls_indices] # assign and ignor
                             
                         else:
-                            #TODO: handle missing inst
+                            assert noneidx_node_cls is not None
                             merged_node_cls[mask_new,noneidx_node_cls] = 1.0
                             # merged_node_cls_gt[mask_new]=noneidx_node_cls
                             
@@ -251,6 +251,7 @@ class EvalInst(object):
                     merged_edge_cls_gt = merged_edge_cls_gt[:counter]
                 merged_node_edges = torch.tensor(merged_node_edges,dtype=torch.long)
             
+            merged_node_edges=merged_node_edges.t().contiguous()
             eval_tool.add([scan_id], 
                           merged_node_cls,
                           merged_node_cls_gt, 

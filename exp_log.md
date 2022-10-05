@@ -23,14 +23,16 @@ Test new loader
 - [x] config_2DSSG_full_l20_3_1.yaml
 
 # TODO: Re-eval all methods. 
+# TODO: run again. there was a bug in eval using edge indicex (N,2)->(2,N)
+# TODO: check instance ID conversion
 3RScan160, Multi-Pred.
 - [ ] IMP ()
 - [x] VGfM (VGfM_FULL_l160_3_1)
-- [x] 3DSSG (3DSSG_full_l160_0)
-- [ ] SGFN (SGFN_full_l160_3)
+- [ ] 3DSSG (3DSSG_full_l160_0)
+- [x] SGFN (SGFN_full_l160_3)
 - [ ] 2DSSG (2DSSG_full_l160_2)
 ScanNet20, Single, Full
-- [x] IMP (IMP_full_l20_4)
+- [ ] IMP (IMP_full_l20_4)
 - [ ] VGfM (VGfM_full_l20_6)
 - [ ] 3DSSG
 - [ ] SGFN
@@ -47,17 +49,17 @@ ScanNet20, Single, ORBSLAM
 | method             | Trip      | Obj       | Pred      | mRecall_O | mRecall_P |
 | ------------------ | --------- | --------- | --------- | --------- | --------- |
 | IMP_FULL_l160_1    | 0.0/73.7  | 3.5/95.9  | 1.4/74.0  | 1.1/94.4  | 18.5/81.5 |
-| VGfM_FULL_l160_2   | 0.1/73.7  | 17.0/95.9 | 9.8/74.0  | 4.6/94.4  | 19.0/81.5 |
-| VGfM_FULL_l160_3_1 | 5.0/81.9  | 43.5/85.1 | 14.2/100  | 18.5/82.4 | 11.0/100  |
+| VGfM_FULL_l160_3_1 | 5.0/81.9  | 43.5/85.1 | 10.5/100  | 18.5/82.4 | 11.0/100  |
 | 3DSSG_full_l160_0  | 8.2/100   | 30.4/100  | 63.4/100  | 10.4/100  | 17.4/100  |
 | SGFN_full_l160_2   | 6.3/100   | 34.6/100  | 37.2/100  | 15.6/100  | 10.8/100  |
+| SGFN_full_l160_3   | 3.4       | 30.0      | 25.6      | 13.3      | 12.2      |
 | 2DSSG_full_l160_1  | 11.7/96.4 | 49.9/95.9 | 42.7/95.6 | 28.5/94.5 | 25.4/95.5 |
 
 ## ScanNet20, Single Predicate, full
 | method             | Trip      | Obj       | Pred      | mRecall_O | mRecall_P |
 | ------------------ | --------- | --------- | --------- | --------- | --------- |
 | IMP_full_l20_3     | 8.8/97.3  | 28.1/97.9 | 94.3/99.9 | 4.9/98.1  | 12.5/98.2 |
-| IMP_full_l20_4 | 31.0/86.9|65.5/92.2|46.6/97.4|50.1/92.1|29.3/98.0|
+| IMP_full_l20_4     | 31.0/86.9 | 65.5/92.2 | 46.6/97.4 | 50.1/92.1 | 29.3/98.0 |
 | VGfM_full_l20_5    | 16.8/97.3 | 38.4/97.9 | 94.3/99.9 | 24.1/98.1 | 18.9/98.2 |
 | 3DSSG_full_l20_2   | 10.9/100  | 35.1/100  | 88.1/100  | 17.3/100  | 28.3/100  |
 | SGFN_full_0_3      | 35.6/100  | 59.8/100  | 89.3/100  | 53.0/100  | 66.1/100  |
@@ -182,25 +184,25 @@ number is R@1.
 | IMP_FULL_l160_0    |      |       |      |      |      |      |
 
 #### Relationships (R@1)
-| method                | Relationships | Objects | Predicate |
-| --------------------- | ------------- | ------- | --------- |
-| 3DSSG baseline        | 15.0          | 35.1    | 5.4       |
-| 3DSSG GCNfeat         | 58.5          | 39.9    | 20.3      |
-| 3DSSG_PN              | 64.2          | 33.4    | 31.5      |
-| Jo_IJCV               | 71.2          | 52.0    | 42.5      |
-| 3DSSG_test_14         | 70.2          | 31.1    | 74.2      |
-| 2DSSS_exp2_3          | 84.4          | 50.5    | 87.5      |
-| SGFN_full_l160_1      | 84.2          | 34.6    | 87.5      |
-| 2DSSG_full_l160_0     | 84.2          | 52.3    | 86.9      |
-| VGfM_FULL_l160_0      | 65.0          | 32.9    | 66.4      |
-| IMP_FULL_l160_0       | 63.2          | 37.0    | 66.6      |
-| VGfM_FULL_l160_1      | 63.1          | 54.0    | 65.3      |
-| IMP_FULL_l160_1       |               |         |           |
-| VGfM_FULL_l160_2_inst | 82.3          | 17.0    | 29.5      |
-| VGfM_FULL_l160_UB     | 83.4          | 95.9    | 86.9      |
-| SGFN_full_l160_UB     | 83.8          | 100     | 90.3      |
-| SGFN_full_l160_1_inst | 83.7          | 34.9    | 87.6      |
-
+| method                | Relationships | Objects   | Predicate |
+| --------------------- | ------------- | --------- | --------- |
+| 3DSSG baseline        | 15.0          | 35.1      | 5.4       |
+| 3DSSG GCNfeat         | 58.5          | 39.9      | 20.3      |
+| 3DSSG_PN              | 64.2          | 33.4      | 31.5      |
+| Jo_IJCV               | 71.2          | 52.0      | 42.5      |
+| 3DSSG_test_14         | 70.2          | 31.1      | 74.2      |
+| 2DSSS_exp2_3          | 84.4          | 50.5      | 87.5      |
+| SGFN_full_l160_1      | 84.2          | 34.6      | 87.5      |
+| 2DSSG_full_l160_0     | 84.2          | 52.3      | 86.9      |
+| VGfM_FULL_l160_0      | 65.0          | 32.9      | 66.4      |
+| IMP_FULL_l160_0       | 63.2          | 37.0      | 66.6      |
+| VGfM_FULL_l160_1      | 63.1          | 54.0      | 65.3      |
+| IMP_FULL_l160_1       |               |           |           |
+| VGfM_FULL_l160_2_inst | 82.3          | 17.0      | 29.5      |
+| VGfM_FULL_l160_UB     | 83.4          | 95.9      | 86.9      |
+| SGFN_full_l160_UB     | 83.8          | 100       | 90.3      |
+| SGFN_full_l160_1_inst | 83.7          | 34.9      | 87.6      |
+| VGfM_FULL_l160_2      | 0.1/73.7      | 17.0/95.9 | 9.8/74.0  | 4.6/94.4 | 19.0/81.5 |
 Note: why ours looks much better in relationships? Our topK relationship includes true positive. maybe this is not the case for johanna? But the "none" relationships should also be correct. otherwise the network can always predicate something.
 
 #### objects

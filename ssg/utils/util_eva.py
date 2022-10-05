@@ -175,9 +175,11 @@ def get_gt(objs_target, rels_target, edges, mask2inst,multiple_prediction:bool):
 
 def build_gt_triplet(objs_target, rels_target, edges,multiple_prediction:bool):
     gt_edges = [] # initialize
-    for edge_index in range(len(edges)):
-        idx_eo = edges[edge_index][0].cpu().numpy().item()
-        idx_os = edges[edge_index][1].cpu().numpy().item()
+    assert edges.shape[0] == 2
+    num_connections = edges.shape[1]
+    for edge_index in range(num_connections):
+        idx_eo = edges[0,edge_index].cpu().numpy().item()
+        idx_os = edges[1,edge_index].cpu().numpy().item()
 
         target_eo = objs_target[idx_eo].cpu().numpy().item()
         target_os = objs_target[idx_os].cpu().numpy().item()
@@ -201,11 +203,13 @@ def evaluate_topk(gt_rel, objs_pred, rels_pred, edges, threshold=0.5, k=40):
     rels_pred = rels_pred.detach().cpu()
     
     batch_size = 64
-    all_indices = [idx for idx in range(len(edges))]
+    assert edges.shape[0] == 2
+    num_edges = edges.shape[1]
+    all_indices = [idx for idx in range(num_edges)]
     
     for indices in torch.split(torch.LongTensor(all_indices),batch_size):
-        sub_preds = objs_pred[edges[indices,0]]
-        obj_preds = objs_pred[edges[indices,1]]
+        sub_preds = objs_pred[edges[0,indices]]
+        obj_preds = objs_pred[edges[1,indices]]
         rel_preds = rels_pred[indices]
         so_preds = torch.einsum('bn,bm->bnm',sub_preds,obj_preds)
         conf_matrix = torch.einsum('bnm, bk->bnmk',so_preds,rel_preds)
@@ -1222,7 +1226,7 @@ class EvalUpperBound():
         self.noneidx_node_cls=noneidx_node_cls
         self.noneidx_edge_cls=noneidx_edge_cls
         '''evaluate'''
-        self.eval_tool = EvalSceneGraph(node_cls_names, edge_cls_names,
+        self.eval_tool = EvalSceneGraphBatch(node_cls_names, edge_cls_names,
                                 multi_rel_prediction=multi_rel,k=topK,
                                 save_prediction=True,
                                 none_name=none_name) 
