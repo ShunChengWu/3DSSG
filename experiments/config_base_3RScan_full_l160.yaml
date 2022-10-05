@@ -42,8 +42,8 @@ data:
  roi_img_path: "./data/3RScan/roi_images.h5"
  path_image_feature: "./data/3RScan/"
  sample_in_runtime: true
- sample_num_nn: 1
- sample_num_seed: 2
+ sample_num_nn: 2
+ sample_num_seed: 4
  drop_img_edge: 4 # if is int and >0, select given number. if is float/double, select percentage between [1-x,1]
  drop_img_edge_eval: 0
  drop_edge: 0.5 # if is int and >0, select given number. if is float/double, select percentage between [1-x,1]
