@@ -5,7 +5,7 @@ import numpy as np
 import multiprocessing as mp
 
 # from utils import util_ply, util_data, util, define
-from codeLib.common import random_drop, random_drop
+from codeLib.common import random_drop
 from codeLib import transformation
 from ssg.utils import util_ply, util_data
 from codeLib.utils.util import read_txt_to_list, check_file_exist
@@ -1088,7 +1088,7 @@ class SGFNDataset (data.Dataset):
         
         # drop images for memory sack 
         fids = list(fids)
-        fids = random_drop(fids, self.mconfig.max_full_img, replace=True)
+        fids = random_drop(fids, self.mconfig.max_full_img, replace=False)
         # if not self.for_eval:
         #     fids = random_drop(fids, self.mconfig.drop_img_edge, replace=True)
         # else:
