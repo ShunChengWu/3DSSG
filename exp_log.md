@@ -36,7 +36,7 @@ ScanNet20, Single, Full
 - [x] IMP (IMP_full_l20_4)
 - [ ] IMP (IMP_full_l20_5) # train on Windows
 - [x] VGfM (VGfM_full_l20_6)
-- [ ] VGfM (VGfM_full_l20_7)
+- [ ] VGfM (VGfM_full_l20_7) # train on Windows
 - [ ] 3DSSG (3DSSG_INSEG_l20_2)
 - [ ] SGFN
 - [ ] 2DSSG
