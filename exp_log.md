@@ -34,7 +34,7 @@ Test new loader
 - [ ] 2DSSG (2DSSG_full_l160_2) # train on SC
 ScanNet20, Single, Full
 - [x] IMP (IMP_full_l20_4)
-- [ ] IMP (IMP_full_l20_5) # train on Windows
+- [x] IMP (IMP_full_l20_5) # train on Windows
 - [x] VGfM (VGfM_full_l20_6)
 - [ ] VGfM (VGfM_full_l20_7) # train on Windows
 - [ ] 3DSSG (3DSSG_INSEG_l20_2)
@@ -63,6 +63,7 @@ ScanNet20, Single, ORBSLAM
 | ------------------ | --------- | --------- | --------- | --------- | --------- |
 | IMP_full_l20_3     | 8.8/97.3  | 28.1/97.9 | 94.3/99.9 | 4.9/98.1  | 12.5/98.2 |
 | IMP_full_l20_4     | 22.7/85.8 | 47.4/87.5 | 29.3/98.0 | 50.1/92.1 | 59.6/98.6 |
+| IMP_full_l20_5     | 42.9/87.3 | 63.7/97.9 | 93.8/98.9 | 50.2/93.0 | 39.887.6  |
 | VGfM_full_l20_5    | 16.8/97.3 | 38.4/97.9 | 94.3/99.9 | 24.1/98.1 | 18.9/98.2 |
 | VGfM_full_l20_6    | 35.6/86.9 | 67.6/92.2 | 60.1/98.6 | 55.5/92.1 | 25.5/98.0 |
 | 3DSSG_full_l20_2   | 10.9/100  | 35.1/100  | 88.1/100  | 17.3/100  | 28.3/100  |
