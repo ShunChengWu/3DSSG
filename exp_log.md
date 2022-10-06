@@ -29,12 +29,12 @@ Test new loader
 3RScan160, Multi-Pred.
 - [ ] IMP (IMP_FULL_l160_2_1) # training at remote server 
 - [x] VGfM (VGfM_FULL_l160_3_1)
-- [ ] 3DSSG (3DSSG_full_l160_1) # train on SC
+- [x] 3DSSG (3DSSG_full_l160_1) # train on SC
 - [x] SGFN (SGFN_full_l160_4)
 - [ ] 2DSSG (2DSSG_full_l160_2) # train on SC
 ScanNet20, Single, Full
 - [x] IMP (IMP_full_l20_4)
-- [ ] IMP (IMP_full_l20_5) # train on Windows
+- [x] IMP (IMP_full_l20_5) # train on Windows
 - [x] VGfM (VGfM_full_l20_6)
 - [ ] VGfM (VGfM_full_l20_7) # train on Windows
 - [ ] 3DSSG (3DSSG_INSEG_l20_2)
@@ -54,7 +54,7 @@ ScanNet20, Single, ORBSLAM
 | IMP_FULL_l160_2_1  |
 | VGfM_FULL_l160_3_1 | 4.83/78.6 | 43.4/85.3 | 14.4/98.8 | 17.4/83.0 | 6.5/98.6  |
 | 3DSSG_full_l160_0  | 8.2/100   | 30.4/100  | 50.2/100  | 10.4/100  | 17.4/100  |
-| 3DSSG_full_l160_1  |
+| 3DSSG_full_l160_1  | 7.8/100   | 28.8/100  | 68.3/100  | 11.3/100  | 25.1/100  |
 | SGFN_full_l160_4   | 5.3/100   | 31.5/100  | 48.8/100  | 11.5/100  | 13.5/100  |
 | 2DSSG_full_l160_2  |
 
@@ -63,6 +63,7 @@ ScanNet20, Single, ORBSLAM
 | ------------------ | --------- | --------- | --------- | --------- | --------- |
 | IMP_full_l20_3     | 8.8/97.3  | 28.1/97.9 | 94.3/99.9 | 4.9/98.1  | 12.5/98.2 |
 | IMP_full_l20_4     | 22.7/85.8 | 47.4/87.5 | 29.3/98.0 | 50.1/92.1 | 59.6/98.6 |
+| IMP_full_l20_5     | 42.9/87.3 | 63.7/97.9 | 93.8/98.9 | 50.2/93.0 | 39.887.6  |
 | VGfM_full_l20_5    | 16.8/97.3 | 38.4/97.9 | 94.3/99.9 | 24.1/98.1 | 18.9/98.2 |
 | VGfM_full_l20_6    | 35.6/86.9 | 67.6/92.2 | 60.1/98.6 | 55.5/92.1 | 25.5/98.0 |
 | 3DSSG_full_l20_2   | 10.9/100  | 35.1/100  | 88.1/100  | 17.3/100  | 28.3/100  |
