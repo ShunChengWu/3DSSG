@@ -146,9 +146,18 @@ if __name__ == '__main__':
                 '''scale bounding box back'''
                 box = bboxes[oid] # xmin,ymin,xmax,ymax
                 box[0] *= scale[0]
-                box[2] *= scale[0]
                 box[1] *= scale[1]
+                box[2] *= scale[0]
                 box[3] *= scale[1]
+                
+                assert box[0]<=1 
+                assert box[0]>=0
+                assert box[1]<=1 
+                assert box[1]>=0
+                assert box[2]<=1 
+                assert box[2]>=0
+                assert box[3]<=1 
+                assert box[3]>=0
                 
                 '''Check width and height'''
                 w_ori = box[2]-box[0]
@@ -185,9 +194,9 @@ if __name__ == '__main__':
                 '''
                 # c.clockwise 90
                 box_r = [0,0,0,0]
-                box_r[0] = height-box[1]
+                box_r[0] = 1-box[1]
                 box_r[1] = box[0]
-                box_r[2] = height-box[3]
+                box_r[2] = 1-box[3]
                 box_r[3] = box[2]
                 
                 box[0] = min(box_r[0],box_r[2])

@@ -41,19 +41,19 @@ ScanNet20, Single, Full
 - [x] SGFN (SGFN_full_l20_2)
 - [x] 2DSSG (2DSSG_full_l20_4)
 ScanNet20, Single, Inseg
-- [ ] IMP
+- [ ] IMP # train on windows
 - [ ] VGfM
 - [x] 3DSSG (3DSSG_INSEG_l20_2)
-- [ ] SGFN (SGFN_inseg_l20_0) # train on sc
-- [ ] 2DSSG
-
+- [x] SGFN (SGFN_inseg_l20_0) # train on sc
+- [ ] 2DSSG (2DSSG_inseg_l20_0) # train on sc
 #TODO: neeed to regenerate proposals for ORBSLAM.
+#TODO: need to reextract bounding boxes
 ScanNet20, Single, ORBSLAM
 - [ ] IMP
 - [ ] VGfM
 - [ ] 3DSSG
-- [ ] SGFN
-- [ ] 2DSSG
+- [ ] SGFN (SGFN_3rscan_orbslam_l20_0) 
+- [ ] 2DSSG 
 
 ## 3RScan160, Multiple Predicates
 | method             | Trip      | Obj       | Pred      | mRecall_O | mRecall_P |
@@ -91,6 +91,7 @@ ScanNet20, Single, ORBSLAM
 | 3DSSG_INSEG_1     | 17.2/63.8 | 41.7/75.1 | 91.4/98.3 | 34.7/75.7 | 33.1/67.5 |
 | 3DSSG_INSEG_l20_2 | 13.6/63.1 | 38.6/75.1 | 86.8/98.7 | 29.8/75.7 | 29.2/86.9 |
 | SGFN_inseg_0_5    | 29.3/63.8 | 55.1/75.1 | 84.3/98.3 | 46.8/75.7 | 37.4/67.5 |
+| SGFN_inseg_l20_0  | 28.1/63.1 | 53.4/75.1 | 89.7/98.7 | 36.9/75.7 | 29.8/86.9 |
 | 2DSSG_INSEG_l20_1 | 31.4/63.7 | 54.3/75.0 | 90.6/98.3 | 47.9/75.7 | 33.9/67.4 |
 TODO: investigate why IMP and VGfM have so low upper bound
 

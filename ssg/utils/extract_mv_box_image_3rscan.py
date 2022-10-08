@@ -161,6 +161,15 @@ def process(scan_id):
                 box = kfdata[bid,:4]
                 oc  = kfdata[bid,4]
                 
+                assert box[0]<=1 
+                assert box[0]>=0
+                assert box[1]<=1 
+                assert box[1]>=0
+                assert box[2]<=1 
+                assert box[2]>=0
+                assert box[3]<=1 
+                assert box[3]>=0
+                
                 # Denormalize
                 box[0] *= width
                 box[2] *= width
