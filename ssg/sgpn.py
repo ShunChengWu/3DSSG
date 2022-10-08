@@ -77,11 +77,16 @@ class SGPN(nn.Module):
         rel_points = data['edge'].pts
         node_edges = data['node','to','node'].edge_index
         
+        has_edge = node_edges.nelement()>0
+        if has_edge and node_edges.shape[0] != 2:
+            node_edges = node_edges.t().contiguous()
+        
         obj_feature = self.obj_encoder(obj_points)
-        rel_feature = self.rel_encoder(rel_points)
+        if has_edge:
+            rel_feature = self.rel_encoder(rel_points)
 
         probs=None        
-        if self.cfg.model.gnn.num_layers > 0 and len(node_edges)>0:
+        if has_edge and self.cfg.model.gnn.num_layers > 0:
             gcn_obj_feature, gcn_rel_feature = self.gnn(obj_feature, rel_feature, node_edges)
             
             if self.cfg.model.gnn.node_from_gnn:
@@ -91,7 +96,10 @@ class SGPN(nn.Module):
             rel_cls = self.rel_predictor(gcn_rel_feature)
         else:
             obj_cls = self.obj_predictor(obj_feature)
-            rel_cls = self.rel_predictor(rel_feature)
+            if has_edge:
+                rel_cls = self.rel_predictor(rel_feature)
+            else:
+                rel_cls = None
         
         # if return_meta_data:
         #     return obj_cls, rel_cls, obj_feature, rel_feature, gcn_obj_feature, gcn_rel_feature, probs
@@ -100,14 +108,16 @@ class SGPN(nn.Module):
         
     
     def calculate_metrics(self, **args):
+        outputs={}
         if 'node_cls_pred' in args and 'node_cls_gt' in args:
             node_cls_pred = args['node_cls_pred'].detach()
             node_cls_pred = torch.softmax(node_cls_pred, dim=1)
             node_cls_gt   = args['node_cls_gt']
             node_cls_pred = torch.max(node_cls_pred,1)[1]
             acc_node_cls = (node_cls_gt == node_cls_pred).sum().item() / node_cls_gt.nelement()
+            outputs['acc_node_cls'] = acc_node_cls
         
-        if 'edge_cls_pred' in args and 'edge_cls_gt' in args:
+        if 'edge_cls_pred' in args and 'edge_cls_gt' in args and args['edge_cls_pred'] is not None and args['edge_cls_pred'].nelement()>0:
             edge_cls_pred = args['edge_cls_pred'].detach()
             edge_cls_gt   = args['edge_cls_gt']
             if self.cfg.model.multi_rel:
@@ -117,10 +127,9 @@ class SGPN(nn.Module):
                 edge_cls_pred = torch.softmax(edge_cls_pred, dim=1)
                 edge_cls_pred = torch.max(edge_cls_pred,1)[1]
             acc_edgee_cls = (edge_cls_gt==edge_cls_pred).sum().item() / edge_cls_gt.nelement()
-        return {
-            'acc_node_cls': acc_node_cls,
-            'acc_edgee_cls': acc_edgee_cls,
-        }
+            
+            outputs['acc_edgee_cls'] = acc_edgee_cls
+        return outputs
     
 
         

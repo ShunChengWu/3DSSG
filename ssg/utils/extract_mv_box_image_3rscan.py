@@ -78,7 +78,7 @@ pth_link = os.path.join(args.outdir,'roi_images.h5')
 
 toTensor = transforms.ToTensor()
 resize = transforms.Resize([256,256])
-fdata = define.DATA_PATH# '/media/sc/SSD1TB/dataset/3RScan/data/3RScan'
+fdata = './data/3RScan/data/3RScan'#define.DATA_PATH# '/media/sc/SSD1TB/dataset/3RScan/data/3RScan'
 pattern = 'roi_images/*.h5'
 rgb_filepattern = 'frame-{0:06d}.color.jpg'
 pose_filepattern = 'frame-{0:06d}.pose.txt'
@@ -142,6 +142,7 @@ def process(scan_id):
                 img_data = np.rot90(img_data,3)# Rotate image
                 pos_data = np.loadtxt(pth_pos)
                 
+                height,width = img_data.shape[0],img_data.shape[1]
                 # bfid = imgs['indices'][fid] # convert frame idx to the buffer idx 
                 pose = torch.from_numpy(pos_data)
                 
@@ -159,7 +160,13 @@ def process(scan_id):
                 kfdata = np.asarray(kf)
                 box = kfdata[bid,:4]
                 oc  = kfdata[bid,4]
-                # print(oc)
+                
+                # Denormalize
+                box[0] *= width
+                box[2] *= width
+                box[1] *= height
+                box[3] *= height
+                
                 box = torch.from_numpy(box).float().view(1,-1)
                 timg = toTensor(img_data.copy()).unsqueeze(0)
                 w = box[:,2] - box[:,0]

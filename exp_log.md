@@ -29,24 +29,31 @@ Test new loader
 3RScan160, Multi-Pred.
 - [ ] IMP (IMP_FULL_l160_2_1) # training at remote server 
 - [x] VGfM (VGfM_FULL_l160_3_1)
-- [x] 3DSSG (3DSSG_full_l160_1) # train on SC
+- [x] 3DSSG (3DSSG_full_l160_1)
 - [x] SGFN (SGFN_full_l160_4)
-- [ ] 2DSSG (2DSSG_full_l160_2) # train on SC
+- [x] 2DSSG (2DSSG_full_l160_2)
 ScanNet20, Single, Full
 - [x] IMP (IMP_full_l20_4)
-- [x] IMP (IMP_full_l20_5) # train on Windows
+- [x] IMP (IMP_full_l20_5)
 - [x] VGfM (VGfM_full_l20_6)
-- [ ] VGfM (VGfM_full_l20_7) # train on Windows
-- [ ] 3DSSG (3DSSG_INSEG_l20_2)
-- [ ] SGFN
-- [ ] 2DSSG
+- [x] VGfM (VGfM_full_l20_7)
+- [x] 3DSSG (3DSSG_full_l20_3)
+- [x] SGFN (SGFN_full_l20_2)
+- [x] 2DSSG (2DSSG_full_l20_4)
 ScanNet20, Single, Inseg
+- [ ] IMP
+- [ ] VGfM
+- [x] 3DSSG (3DSSG_INSEG_l20_2)
+- [ ] SGFN (SGFN_inseg_l20_0) # train on sc
+- [ ] 2DSSG
+
+#TODO: neeed to regenerate proposals for ORBSLAM.
+ScanNet20, Single, ORBSLAM
 - [ ] IMP
 - [ ] VGfM
 - [ ] 3DSSG
 - [ ] SGFN
 - [ ] 2DSSG
-ScanNet20, Single, ORBSLAM
 
 ## 3RScan160, Multiple Predicates
 | method             | Trip      | Obj       | Pred      | mRecall_O | mRecall_P |
@@ -56,7 +63,7 @@ ScanNet20, Single, ORBSLAM
 | 3DSSG_full_l160_0  | 8.2/100   | 30.4/100  | 50.2/100  | 10.4/100  | 17.4/100  |
 | 3DSSG_full_l160_1  | 7.8/100   | 28.8/100  | 68.3/100  | 11.3/100  | 25.1/100  |
 | SGFN_full_l160_4   | 5.3/100   | 31.5/100  | 48.8/100  | 11.5/100  | 13.5/100  |
-| 2DSSG_full_l160_2  |
+| 2DSSG_full_l160_2  | 13.2/95.8 | 49.2/95.9 | 42.9/99.9 | 27.6/94.5 | 29.4/99.9 |
 
 ## ScanNet20, Single Predicate, full
 | method             | Trip      | Obj       | Pred      | mRecall_O | mRecall_P |
@@ -66,11 +73,15 @@ ScanNet20, Single, ORBSLAM
 | IMP_full_l20_5     | 42.9/87.3 | 63.7/97.9 | 93.8/98.9 | 50.2/93.0 | 39.887.6  |
 | VGfM_full_l20_5    | 16.8/97.3 | 38.4/97.9 | 94.3/99.9 | 24.1/98.1 | 18.9/98.2 |
 | VGfM_full_l20_6    | 35.6/86.9 | 67.6/92.2 | 60.1/98.6 | 55.5/92.1 | 25.5/98.0 |
+| VGfM_full_l20_7    | 44.2/87.3 | 64.3/91.9 | 94.4/98.9 | 55.2/93.0 | 37.7/87.6 |
 | 3DSSG_full_l20_2   | 10.9/100  | 35.1/100  | 88.1/100  | 17.3/100  | 28.3/100  |
+| 3DSSG_full_l20_3   | 34.1/100  | 57.8/100  | 95.1/100  | 47.0/100  | 57.8/100  |
 | SGFN_full_0_3      | 35.6/100  | 59.8/100  | 89.3/100  | 53.0/100  | 66.1/100  |
 | 2DSSG_full_l20_2   | 61.3/97.4 | 76.6/97.9 | 95.6/99.9 | 79.1/98.1 | 70.5/98.5 |
 | SGFN_full_l20_0    | 42.7/100  | 62.9/100  | 67.6/100  | 55.4/100  | 57.1/100  |
+| SGFN_full_l20_2    | 41.7/100  | 63.5/100  | 94.2/100  | 58.3/100  | 65.0/100  |
 | 2DSSG_full_l20_3_1 | 57.7/97.4 | 75.3/97.9 | 76.8/99.9 | 80.6/98.1 | 71.9/98.5 |
+| 2DSSG_full_l20_4   | 55.7/97.0 | 74.7/97.9 | 92.4/99.7 | 81.2/98.1 | 74.1/95.4 |
 
 ## ScanNet20, Single Predicate, inseg
 | method            | Trip      | Obj       | Pred      | mRecall_O | mRecall_P |
@@ -78,6 +89,7 @@ ScanNet20, Single, ORBSLAM
 | IMP_INSEG_l20_1   | 0.7/6.8   | 7.6/24.9  | 94.3/94.9 | 1.3/23.2  | 12.5/18.9 |
 | VGfM_INSEG_l20_2  | 0.0/6.8   | 2.5/24.9  | 93.4/94.9 | 1.2/23.2  | 12.5/18.9 |
 | 3DSSG_INSEG_1     | 17.2/63.8 | 41.7/75.1 | 91.4/98.3 | 34.7/75.7 | 33.1/67.5 |
+| 3DSSG_INSEG_l20_2 | 13.6/63.1 | 38.6/75.1 | 86.8/98.7 | 29.8/75.7 | 29.2/86.9 |
 | SGFN_inseg_0_5    | 29.3/63.8 | 55.1/75.1 | 84.3/98.3 | 46.8/75.7 | 37.4/67.5 |
 | 2DSSG_INSEG_l20_1 | 31.4/63.7 | 54.3/75.0 | 90.6/98.3 | 47.9/75.7 | 33.9/67.4 |
 TODO: investigate why IMP and VGfM have so low upper bound
@@ -92,6 +104,9 @@ TODO: investigate why IMP and VGfM have so low upper bound
 | 2DSSG_ORBSLAM3_l20_6_1 | 8.7/25.5 | 27.0/44.2 | 93.2/96.1 | 25.1/48.6 | 19.6/35.2 |
 TODO: investigate why IMP and VGfM have so low upper bound
 
+
+
+# ============= OLD ===================
 ##
 segment-level, instance-level
 | method                 | Trip | Obj  | Pred | mO   | mR   | Trip      | Obj       | Pred      | mO        | mR        |
@@ -119,7 +134,8 @@ Note: Why in ORBSLAM3 2DSSG has higher UB than VGfM?
 all those methods are evaluated with fully-connected edge, which not be.
 
 
-# ============= OLD ===================
+
+
 # SSG with GT Segmentation. Multiple predicate prediction. 160-26
 full_edge. multi_rel.
 ## SGPN (3DSSG)
