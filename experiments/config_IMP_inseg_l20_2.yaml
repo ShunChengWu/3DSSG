@@ -1,4 +1,4 @@
-inherit_from: [experiments/config_base_inseg_full_l20.yaml,experiments/config_base_IMP.yaml]
+inherit_from: [experiments/config_base_3RScan_inseg_l20.yaml,experiments/config_base_IMP.yaml]
 name: 'IMP_INSEG_l20_2'
 model:
  multi_rel: false # multiple relationship 
