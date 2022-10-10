@@ -41,19 +41,19 @@ ScanNet20, Single, Full
 - [x] SGFN (SGFN_full_l20_2)
 - [x] 2DSSG (2DSSG_full_l20_4)
 ScanNet20, Single, Inseg
-- [ ] IMP # train on windows
-- [ ] VGfM
+- [ ] IMP (IMP_INSEG_l20_2) # train on windows
+- [ ] VGfM (VGfM_inseg_l20_0) # train on windows
 - [x] 3DSSG (3DSSG_INSEG_l20_2)
-- [x] SGFN (SGFN_inseg_l20_0) # train on sc
-- [ ] 2DSSG (2DSSG_inseg_l20_0) # train on sc
+- [x] SGFN (SGFN_inseg_l20_0)
+- [x] 2DSSG (2DSSG_inseg_l20_0)
 #TODO: neeed to regenerate proposals for ORBSLAM.
 #TODO: need to reextract bounding boxes
 ScanNet20, Single, ORBSLAM
-- [ ] IMP
-- [ ] VGfM
-- [ ] 3DSSG
-- [ ] SGFN (SGFN_3rscan_orbslam_l20_0) 
-- [ ] 2DSSG 
+- [ ] IMP (IMP_orbslam_l20_0) # train on sc
+- [ ] VGfM (VGfM_orbslam_l20_0) # train on sc
+- [x] 3DSSG (3DSSG_3rscan_orbslam_l20_0)
+- [x] SGFN (SGFN_3rscan_orbslam_l20_0) 
+- [x] 2DSSG (2DSSG_orbslam_l20_0)
 
 ## 3RScan160, Multiple Predicates
 | method             | Trip      | Obj       | Pred      | mRecall_O | mRecall_P |
@@ -84,28 +84,31 @@ ScanNet20, Single, ORBSLAM
 | 2DSSG_full_l20_4   | 55.7/97.0 | 74.7/97.9 | 92.4/99.7 | 81.2/98.1 | 74.1/95.4 |
 
 ## ScanNet20, Single Predicate, inseg
-| method            | Trip      | Obj       | Pred      | mRecall_O | mRecall_P |
-| ----------------- | --------- | --------- | --------- | --------- | --------- |
-| IMP_INSEG_l20_1   | 0.7/6.8   | 7.6/24.9  | 94.3/94.9 | 1.3/23.2  | 12.5/18.9 |
-| VGfM_INSEG_l20_2  | 0.0/6.8   | 2.5/24.9  | 93.4/94.9 | 1.2/23.2  | 12.5/18.9 |
-| 3DSSG_INSEG_1     | 17.2/63.8 | 41.7/75.1 | 91.4/98.3 | 34.7/75.7 | 33.1/67.5 |
-| 3DSSG_INSEG_l20_2 | 13.6/63.1 | 38.6/75.1 | 86.8/98.7 | 29.8/75.7 | 29.2/86.9 |
-| SGFN_inseg_0_5    | 29.3/63.8 | 55.1/75.1 | 84.3/98.3 | 46.8/75.7 | 37.4/67.5 |
-| SGFN_inseg_l20_0  | 28.1/63.1 | 53.4/75.1 | 89.7/98.7 | 36.9/75.7 | 29.8/86.9 |
-| 2DSSG_INSEG_l20_1 | 31.4/63.7 | 54.3/75.0 | 90.6/98.3 | 47.9/75.7 | 33.9/67.4 |
+| method             | Trip      | Obj       | Pred      | mRecall_O | mRecall_P |
+| ------------------ | --------- | --------- | --------- | --------- | --------- |
+| IMP_INSEG_l20_1    | 0.7/6.8   | 7.6/24.9  | 94.3/94.9 | 1.3/23.2  | 12.5/18.9 |
+| VGfM_INSEG_l20_2   | 0.0/6.8   | 2.5/24.9  | 93.4/94.9 | 1.2/23.2  | 12.5/18.9 |
+| VGfM_orbslam_l20_0 |
+| 3DSSG_INSEG_1      | 17.2/63.8 | 41.7/75.1 | 91.4/98.3 | 34.7/75.7 | 33.1/67.5 |
+| 3DSSG_INSEG_l20_2  | 13.6/63.1 | 38.6/75.1 | 86.8/98.7 | 29.8/75.7 | 29.2/86.9 |
+| SGFN_inseg_0_5     | 29.3/63.8 | 55.1/75.1 | 84.3/98.3 | 46.8/75.7 | 37.4/67.5 |
+| SGFN_inseg_l20_0   | 28.1/63.1 | 53.4/75.1 | 89.7/98.7 | 36.9/75.7 | 29.8/86.9 |
+| 2DSSG_INSEG_l20_1  | 31.4/63.7 | 54.3/75.0 | 90.6/98.3 | 47.9/75.7 | 33.9/67.4 |
+| 2DSSG_inseg_l20_0  | 29.1/63.0 | 54.3/74.9 | 88.3/98.7 | 46.4/75.6 | 33.5/86.9 |
 TODO: investigate why IMP and VGfM have so low upper bound
 
 ## ScanNet20, Single Predicate, ORBSLAM3
-| method                 | Trip     | Obj       | Pred      | mRecall_O | mRecall_P |
-| ---------------------- | -------- | --------- | --------- | --------- | --------- |
-| IMP_ORBSLAM3_l20_1     | 0.0/0.1  | 0.8/3.2   | 94.3/94.4 | 0.1/2.3   | 12.5/12.6 |
-| VGfM_ORBSLAM3_l20_3    | 0.0/0.1  | 1.0/3.2   | 94.3/94.4 | 0.6/2.3   | 12.5/12.6 |
-| 3DSSG_ORBSLAM3_l20_0   | 1.8/25.5 | 12.9/44.2 | 93.2/96.1 | 8.7/48.6  | 17.5/35.2 |
-| SGFN_ORBSLAM3_l20_0    | 2.5/25.5 | 15.5/44.2 | 94.0/96.1 | 6.9/48.6  | 13.2/35.2 |
-| 2DSSG_ORBSLAM3_l20_6_1 | 8.7/25.5 | 27.0/44.2 | 93.2/96.1 | 25.1/48.6 | 19.6/35.2 |
-TODO: investigate why IMP and VGfM have so low upper bound
-
-
+| method                     | Trip     | Obj       | Pred      | mRecall_O | mRecall_P |
+| -------------------------- | -------- | --------- | --------- | --------- | --------- |
+| IMP_ORBSLAM3_l20_1         | 0.0/0.1  | 0.8/3.2   | 94.3/94.4 | 0.1/2.3   | 12.5/12.6 |
+| IMP_orbslam_l20_0          |
+| VGfM_ORBSLAM3_l20_3        | 0.0/0.1  | 1.0/3.2   | 94.3/94.4 | 0.6/2.3   | 12.5/12.6 |
+| 3DSSG_ORBSLAM3_l20_0       | 1.8/25.5 | 12.9/44.2 | 93.2/96.1 | 8.7/48.6  | 17.5/35.2 |
+| 3DSSG_3rscan_orbslam_l20_0 | 0.8/25.9 | 10.0/44.2 | 88.4/98.3 | 7.3/48.6  | 15.6/81.2 |
+| SGFN_ORBSLAM3_l20_0        | 2.5/25.5 | 15.5/44.2 | 94.0/96.1 | 6.9/48.6  | 13.2/35.2 |
+| SGFN_3rscan_orbslam_l20_0  | 2.8/25.9 | 16.4/44.2 | 90.1/98.3 | 9.7/48.6  | 14.3/81.2 |
+| 2DSSG_ORBSLAM3_l20_6_1     | 8.7/25.5 | 27.0/44.2 | 93.2/96.1 | 25.1/48.6 | 19.6/35.2 |
+| 2DSSG_orbslam_l20_0        | 8.0/26.0 | 26.544.2  | 89.0/98.3 | 26.1/48.6 | 19.6/81.5 |
 
 # ============= OLD ===================
 ##

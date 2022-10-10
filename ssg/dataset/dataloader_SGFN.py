@@ -234,6 +234,7 @@ class SGFNDataset (data.Dataset):
         timer = TicToc()
         scan_id = snp.unpack(self.scans,index)# self.scans[idx]
         
+        # scan_id = '6bde6057-9162-246f-8d07-dfba45622e09'
         # if self.for_eval:
         #     scan_id = '0cac75b1-8d6f-2d13-8c17-9099db8915bc'
         
@@ -1059,6 +1060,7 @@ class SGFNDataset (data.Dataset):
         mv_nodes = mv_data['nodes']
         mv_kfs = mv_data['kfs']
         feature_type = self.cfg.model.image_encoder.backend
+        filtered_kf_indices = self.filtered_data[scan_id]
         
         # 
         descriptor_generator = util_data.Node_Descriptor_24(with_bbox=self.cfg.data.img_desc_6_pts)
@@ -1075,7 +1077,10 @@ class SGFNDataset (data.Dataset):
                 cls_label = self.classNames[cat[idx]]
                 
             kf_indices = np.asarray(mv_node)
+            kf_indices = set(kf_indices).intersection(filtered_kf_indices)
+            kf_indices = list(kf_indices)
             
+            if len(kf_indices)==0:continue
             if not self.for_eval:
                 kf_indices = random_drop(kf_indices, self.mconfig.drop_img_edge, replace=True)
             else:
@@ -1083,8 +1088,8 @@ class SGFNDataset (data.Dataset):
             
             fids = fids.union(kf_indices)
         
-        filtered_kf_indices = self.filtered_data[scan_id]
-        fids = fids.intersection(filtered_kf_indices)
+        assert len(fids)>0
+        # fids = fids.intersection(filtered_kf_indices)
         
         # drop images for memory sack 
         fids = list(fids)
