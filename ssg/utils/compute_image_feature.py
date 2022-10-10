@@ -18,6 +18,7 @@ from tqdm import tqdm
 import codeLib
 from codeLib.common import normalize_imagenet, create_folder
 from ssg.utils import util_data
+from ssg.utils.util_data import raw_to_data
 import ssg.define as define
 import h5py,glob,pathlib
 import numpy as np
@@ -32,7 +33,7 @@ def Parser():
         add_help=False)
     parser.add_argument('-n','--folder_name',type=str,default='image_features', help='folder name which will be created at outdir',required=True)
     # parser.add_argument('-o','--outdir',default='/media/sc/SSD1TB/dataset/3RScan/', help='where to store all image features.',required=True)
-    parser.add_argument('--overwrite', type=int, default=0, help='overwrite existing file.')
+    parser.add_argument('--overwrite', action='store_true', help='overwrite existing file.')
     return parser
 
 if __name__ == '__main__':
@@ -86,25 +87,37 @@ if __name__ == '__main__':
                 ])
         
     logger_py.info('start processing')
-    for scan_id, kf_indices in tqdm(filtered_data.items()):
+    for scan_id, raw in tqdm(filtered_data.items()):
         logger_py.info('process scan {}'.format(scan_id))
+        kf_indices = raw_to_data(raw)[define.NAME_FILTERED_KF_INDICES]
+        
         '''check overwrite'''
         filepath = os.path.join(pth_out,scan_id+'.h5')
         logger_py.info('check file at {}'.format(filepath))
+        
+        # also stroe a list of kf indices to be processed
+        filtered_kf_indices = list()
         if os.path.exists(filepath):
-            if args.overwrite==0:
+            # check kf ids
+            should_process=False
+            with h5py.File(filepath,'r') as h5f:
+                for kfId in kf_indices:
+                    if str(kfId) not in h5f:
+                        should_process=True
+                        filtered_kf_indices.append(kfId)
+
+            # if all exisit and not overwriting existing feature. skip.
+            if not should_process and not args.overwrite:
                 logger_py.info('exist, skip')
                 continue
-            else:
-                logger_py.info('exist skip')
-                os.remove(filepath)
-                
-        kf_indices = [idx for idx in kf_indices]
-                
+        else:
+            filtered_kf_indices = kf_indices
+
         logger_py.info('create file')
         try:
             torch.cuda.empty_cache()
             logger_py.info('get image list')
+            '''batch process. need a lot of RAM and VRAM'''
             # images=list()
             # for fid in kf_indices:
             #     pth_rgb = os.path.join(cfg.data.path_3rscan,scan_id,'sequence', define.RGB_NAME_FORMAT.format(int(fid)))
@@ -125,9 +138,10 @@ if __name__ == '__main__':
             #     img_features = torch.cat(img_features,dim=0)    
                 # img_features = torch.cat([ img_encoder.preprocess(p_split.to(cfg.DEVICE)).cpu()  for p_split in torch.split(images,int(4), dim=0) ], dim=0)
             
+            '''individual process'''
             logger_py.info('save')
-            with h5py.File(filepath,'w') as h5f:
-                for idx, fid in enumerate(kf_indices):
+            with h5py.File(filepath,'a') as h5f:
+                for idx, fid in enumerate(filtered_kf_indices):
                     pth_rgb = os.path.join(cfg.data.path_3rscan,scan_id,'sequence', define.RGB_NAME_FORMAT.format(int(fid)))
                     img_data = Image.open(pth_rgb)
                     img_data = np.rot90(img_data,3)# Rotate image

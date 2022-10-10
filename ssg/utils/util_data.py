@@ -87,7 +87,16 @@ def merge_batch_mask2inst(mask2insts):
             idx2seg[idx] = iid
     return idx2seg
 
+def data_to_raw(data:dict):
+    '''
+    this converts a dictionary to string for saving purpose (e.g. h5py)
+    '''
+    return np.array([str(data)],dtype='S')
+
 def raw_to_data(raw):
+    '''
+    this converts a string of dict back to dict
+    '''
     return ast.literal_eval(raw[0].decode())
 
 def cvt_all_to_dict_from_h5(data:dict):

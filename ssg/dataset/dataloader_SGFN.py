@@ -10,12 +10,12 @@ from codeLib import transformation
 from ssg.utils import util_ply, util_data
 from codeLib.utils.util import read_txt_to_list, check_file_exist
 from ssg import define
-from codeLib.torch.visualization import show_tensor_images
+# from codeLib.torch.visualization import show_tensor_images
 from codeLib.common import normalize_imagenet
 from torchvision import transforms
 import codeLib.torchvision.transforms as cltransform
 import ssg.utils.compute_weight as compute_weight
-from ssg.utils.util_data import raw_to_data, cvt_all_to_dict_from_h5
+from ssg.utils.util_data import raw_to_data,data_to_raw, cvt_all_to_dict_from_h5
 import codeLib.utils.string_numpy as snp
 import logging
 from PIL import Image
@@ -149,17 +149,17 @@ class SGFNDataset (data.Dataset):
                 self.open_image_feature()
                 image_feature = self.image_feature[feature_type]
                 for scan_id in self.filtered_data:
+                    # Check scan exist
                     if scan_id not in image_feature:
                         should_compute_image_feature=True
-                        break
                     else:
-                        try:
-                            image_feature[scan_id]
-                        except:
-                            should_compute_image_feature=True
-                            break
-                            
-            
+                        # check image exist
+                        filtered_data = raw_to_data(self.filtered_data[scan_id])[define.NAME_FILTERED_KF_INDICES]
+                        for kfId in filtered_data:
+                            if str(kfId) not in image_feature[scan_id]:
+                                should_compute_image_feature=True
+                                break
+                    if should_compute_image_feature: break
             if should_compute_image_feature:
                 # Try to generate
                 os.environ['MKL_THREADING_LAYER'] = 'GNU'
@@ -234,22 +234,22 @@ class SGFNDataset (data.Dataset):
         timer = TicToc()
         scan_id = snp.unpack(self.scans,index)# self.scans[idx]
         
-        # scan_id = '6bde6057-9162-246f-8d07-dfba45622e09'
-        # if self.for_eval:
-        #     scan_id = '0cac75b1-8d6f-2d13-8c17-9099db8915bc'
-        
         '''open data'''
         timer.tic()
         # open
-        self.open_data()
         self.open_filtered()
+        self.open_data()
+        
         # get SG data
         scan_data_raw = self.sg_data[scan_id]
         scan_data = raw_to_data(scan_data_raw)
         # shortcut
         object_data = scan_data['nodes']
         relationships_data = scan_data['relationships']
-        filtered_node_indices = self.filtered_data[scan_id]
+        
+        filtered_data = raw_to_data(self.filtered_data[scan_id])
+        filtered_node_indices = filtered_data[define.NAME_FILTERED_OBJ_INDICES]
+        filtered_kf_indices   = filtered_data[define.NAME_FILTERED_KF_INDICES]
         
         mv_data = None
         if self.mconfig.load_images:
@@ -260,13 +260,10 @@ class SGFNDataset (data.Dataset):
             if self.mconfig.is_roi_img:
                 self.open_img()
                 roi_imgs = self.roi_imgs[scan_id]
-                
             
-            '''filter'''
-            mv_node_ids = [int(x) for x in mv_data['nodes'].keys()]            
-            sg_node_ids = object_data.keys()                
-            inter_node_ids = set(sg_node_ids).intersection(mv_node_ids)
-            object_data = {nid: object_data[nid] for nid in inter_node_ids}
+        '''filter node data'''
+        object_data = {nid: object_data[nid] for nid in filtered_node_indices}
+        
         timers['open_data'] = timer.tocvalue()
             
         ''' build nn dict '''
@@ -302,8 +299,7 @@ class SGFNDataset (data.Dataset):
                
         '''extract 3D node classes and instances'''
         timer.tic()
-        cat,oid2idx,idx2oid,filtered_instances = self.__sample_3D_nodes(filtered_node_indices,
-                                                                        object_data,
+        cat,oid2idx,idx2oid,filtered_instances = self.__sample_3D_nodes(object_data,
                                                                         mv_data,
                                                                         nns)
         timers['sample_3D_nodes'] = timer.tocvalue()
@@ -348,7 +344,7 @@ class SGFNDataset (data.Dataset):
             else:
                 images, img_bounding_boxes, bbox_cat, node_descriptor_for_image, \
                     image_edge_indices, img_idx2oid, temporal_node_graph, temporal_edge_graph = \
-                        self.__load_full_images(scan_id,idx2oid,cat,scan_data,mv_data)
+                        self.__load_full_images(scan_id,idx2oid,cat,scan_data,mv_data, filtered_kf_indices)
                 relationships_img = self.__extract_relationship_data(relationships_data)
                 gt_rels_2D, edge_index_has_gt_2D = self.__sample_relationships(relationships_img,img_idx2oid,image_edge_indices)
                 
@@ -568,6 +564,9 @@ class SGFNDataset (data.Dataset):
             should_process |= not os.path.isfile(pth_node_weights) or not os.path.isfile(pth_edge_weights)
         
         if should_process:
+            '''
+            This is to make sure the 2D and 3D methdos have the same amount of data for training 
+            '''
             print('generating filtered data...')
             ''' load data '''
             selected_scans = read_txt_to_list(os.path.join(self.path,'%s_scans.txt' % (self.mode)))
@@ -586,7 +585,10 @@ class SGFNDataset (data.Dataset):
         if not os.path.isfile(pth_filtered):
             self.open_data()
             self.open_mv_graph()
-            filtered = dict()
+            filtered_data = defaultdict(dict)
+            # filtered_kf_indices = dict()
+            # filtered_node_indices = dict()
+            
             for scan_id in inter:
                 scan_data = c_sg_data[scan_id]
                 
@@ -601,35 +603,50 @@ class SGFNDataset (data.Dataset):
                 kfs = mv_data['kfs']
                 
                 '''filter'''
+                # get the intersection between point and multi-view data
                 mv_node_ids = [int(x) for x in mv_nodes.keys()]
                 sg_node_ids = object_data.keys()                
                 inter_node_ids = set(sg_node_ids).intersection(mv_node_ids)
-                object_data = {nid: object_data[nid] for nid in inter_node_ids}
+                # object_data = {nid: object_data[nid] for nid in inter_node_ids}
+                filtered_object_indices = [nid for nid in inter_node_ids]
                 
+                if len(filtered_object_indices) == 0: continue # skip if no intersection
                 
+                dict_objId_kfId = dict() # make sure each object has at least a keyframe
                 kf_indices=[]
                 '''select frames with at least 1 objects'''
                 for k in kfs.keys():
                     kf = kfs[k]
                     oids = [v[0] for v in kf.attrs['seg2idx']]
+                    
+                    # filter object bbox with the intersection of the object_data
+                    oids = set(object_data.keys()).intersection(oids) 
+                    if len(oids)==0:continue # skip if no object available
+                    
+                    # filter keyframe by checking there is at least one object exist
                     obj_count=0
-                    if len(oids)<=1:continue
                     for oid in oids:
                         oid = int(oid)
                         if oid in instance2labelName:
                             if instance2labelName[oid] in self.classNames:
+                                dict_objId_kfId[oid]=k
                                 obj_count+=1
                     if obj_count>0:
                         kf_indices.append(int(k))
                             
-                if len(kf_indices) == 0:
-                    continue
+                if len(kf_indices) == 0: continue # skip if no keyframe available
                 
-                filtered[scan_id] = kf_indices
-            # s_scan = str(filtered)
+                filtered_object_indices = [k for k in dict_objId_kfId.keys()]
+                
+                filtered_data[scan_id][define.NAME_FILTERED_KF_INDICES]  = kf_indices
+                filtered_data[scan_id][define.NAME_FILTERED_OBJ_INDICES] = filtered_object_indices
+                
+            
+            
             with h5py.File(pth_filtered, 'w') as h5f:
-                for scan_id in filtered:
-                    h5f.create_dataset(scan_id,data=np.array(filtered[scan_id]))            
+                for scan_id in filtered_data:
+                    buffer = data_to_raw(filtered_data[scan_id])
+                    h5f.create_dataset(scan_id,data=buffer,compression='gzip')
             
         if not self.for_eval:
             if not os.path.isfile(pth_node_weights) or not os.path.isfile(pth_edge_weights):
@@ -638,12 +655,15 @@ class SGFNDataset (data.Dataset):
                 self.open_filtered()
                 filtered = self.filtered_data.keys()
                 for scan_id in filtered:
-                    mv_node_ids = [int(x) for x in self.mv_data[scan_id]['nodes'].keys()]
-                    sg_node_ids = c_sg_data[scan_id]['nodes'].keys()                
-                    inter_node_ids = set(sg_node_ids).intersection(mv_node_ids)
+                    filtered_data = raw_to_data(filtered[scan_id])
+                    node_indices = filtered_data[define.NAME_FILTERED_OBJ_INDICES]
+                    
+                    # mv_node_ids = [int(x) for x in self.mv_data[scan_id]['nodes'].keys()]
+                    # sg_node_ids = c_sg_data[scan_id]['nodes'].keys()                
+                    # inter_node_ids = set(sg_node_ids).intersection(mv_node_ids)
                     
                     filtered_sg_data[scan_id] = dict()
-                    filtered_sg_data[scan_id]['nodes'] = {nid: c_sg_data[scan_id]['nodes'][nid] for nid in inter_node_ids}
+                    filtered_sg_data[scan_id]['nodes'] = {nid: c_sg_data[scan_id]['nodes'][nid] for nid in node_indices}
                     
                     filtered_sg_data[scan_id]['relationships'] = c_sg_data[scan_id]['relationships']
                 c_sg_data = filtered_sg_data
@@ -763,7 +783,7 @@ class SGFNDataset (data.Dataset):
         rel_points = rel_points.permute(0,2,1)
         return rel_points
     
-    def __sample_3D_nodes(self, filtered_data:dict, object_data:dict, mv_data:dict, nns:dict):
+    def __sample_3D_nodes(self, object_data:dict, mv_data:dict, nns:dict):
         instance2labelName  = { int(key): node['label'] for key,node in object_data.items()  }
         
         '''sample training set'''  
@@ -775,7 +795,13 @@ class SGFNDataset (data.Dataset):
             if self.mconfig.load_images:
                 mv_node_ids = [int(x) for x in mv_data['nodes'].keys()]
                 selected_nodes = list( set(selected_nodes).intersection(mv_node_ids) )
-            selected_ndoes = list(set(selected_nodes).intersection(filtered_data))
+            # selected_nodes = list(set(selected_nodes).intersection(filtered_data))
+            # if len(selected_nodes)==0:
+            #     print('object_data.keys():',sorted(list(object_data.keys())))
+            #     if self.mconfig.load_images:
+            #         print('mv_node_ids',sorted(mv_node_ids))
+            #         print('filtered_data:',sorted(np.asarray(filtered_data)))
+            #     raise RuntimeError('no node available!')
             
             use_all=False
             sample_num_nn=self.mconfig.sample_num_nn# 1 if "sample_num_nn" not in self.config else self.config.sample_num_nn
@@ -1051,13 +1077,11 @@ class SGFNDataset (data.Dataset):
         return roi_images, node_descriptor_for_image, edge_indices_img_to_obj
     
     def __load_full_images(self, scan_id, idx2oid:dict, cat:list, 
-                           scan_data:dict, mv_data:dict):
-        self.open_filtered()
-        # if self.for_eval:
-            # self.open_image_feature()
+                           scan_data:dict, mv_data:dict, filtered_kf_indices:dict):
         if self.cfg.data.use_precompute_img_feature:
             self.open_image_feature()
         
+        '''containers'''
         images=list()
         bounding_boxes = list() # bounding_boxes[node_id]{kf_id: [boxes]}
         bbox_cat=list()
@@ -1071,9 +1095,8 @@ class SGFNDataset (data.Dataset):
         mv_nodes = mv_data['nodes']
         mv_kfs = mv_data['kfs']
         feature_type = self.cfg.model.image_encoder.backend
-        filtered_kf_indices = self.filtered_data[scan_id]
-        
-        # 
+
+        '''descriptor generator'''
         descriptor_generator = util_data.Node_Descriptor_24(with_bbox=self.cfg.data.img_desc_6_pts)
         
         '''collect frame idx'''
@@ -1099,7 +1122,9 @@ class SGFNDataset (data.Dataset):
             
             fids = fids.union(kf_indices)
         
-        assert len(fids)>0
+        if len(fids) == 0:
+            print()
+            raise RuntimeError('there is no bounding boxes found. (len(flids)==0)')
         # fids = fids.intersection(filtered_kf_indices)
         
         # drop images for memory sack 
