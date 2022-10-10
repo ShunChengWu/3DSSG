@@ -242,12 +242,15 @@ class SGFNDataset (data.Dataset):
         timer.tic()
         # open
         self.open_data()
+        self.open_filtered()
         # get SG data
         scan_data_raw = self.sg_data[scan_id]
         scan_data = raw_to_data(scan_data_raw)
         # shortcut
         object_data = scan_data['nodes']
         relationships_data = scan_data['relationships']
+        filtered_node_indices = self.filtered_data[scan_id]
+        
         mv_data = None
         if self.mconfig.load_images:
             self.open_mv_graph()
@@ -299,7 +302,10 @@ class SGFNDataset (data.Dataset):
                
         '''extract 3D node classes and instances'''
         timer.tic()
-        cat,oid2idx,idx2oid,filtered_instances = self.__sample_3D_nodes(object_data,mv_data,nns)
+        cat,oid2idx,idx2oid,filtered_instances = self.__sample_3D_nodes(filtered_node_indices,
+                                                                        object_data,
+                                                                        mv_data,
+                                                                        nns)
         timers['sample_3D_nodes'] = timer.tocvalue()
          
         '''sample 3D node connections'''
@@ -447,7 +453,10 @@ class SGFNDataset (data.Dataset):
                 # output['image_mask2instance'] = img_idx2oid
             
             # output['node_descriptor_8'] = node_descriptor_for_image
-
+        if hasattr(self,'filtered_data'):
+            del self.filtered_data
+        if hasattr(self,'image_feature'):
+            del self.image_feature
         return output
         
     def __len__(self):
@@ -754,17 +763,19 @@ class SGFNDataset (data.Dataset):
         rel_points = rel_points.permute(0,2,1)
         return rel_points
     
-    def __sample_3D_nodes(self, object_data:dict, mv_data:dict, nns:dict):
+    def __sample_3D_nodes(self, filtered_data:dict, object_data:dict, mv_data:dict, nns:dict):
         instance2labelName  = { int(key): node['label'] for key,node in object_data.items()  }
         
         '''sample training set'''  
         instances_ids = list(instance2labelName.keys())
         if 0 in instances_ids: instances_ids.remove(0)
+        
         if self.sample_in_runtime and not self.for_eval:
             selected_nodes = list(object_data.keys())
             if self.mconfig.load_images:
                 mv_node_ids = [int(x) for x in mv_data['nodes'].keys()]
                 selected_nodes = list( set(selected_nodes).intersection(mv_node_ids) )
+            selected_ndoes = list(set(selected_nodes).intersection(filtered_data))
             
             use_all=False
             sample_num_nn=self.mconfig.sample_num_nn# 1 if "sample_num_nn" not in self.config else self.config.sample_num_nn
@@ -1202,10 +1213,6 @@ class SGFNDataset (data.Dataset):
         # if DRAW_BBOX_IMAGE:
         # t_img = torch.stack(images,dim=0)
         # show_tensor_images(t_img.float()/255, '-')
-        if hasattr(self,'filtered_data'):
-            del self.filtered_data
-        if hasattr(self,'image_feature'):
-            del self.image_feature
         return images, bounding_boxes, bbox_cat, node_descriptor_for_image, \
             image_edge_indices, img_idx2oid, temporal_node_graph, temporal_edge_graph
 
