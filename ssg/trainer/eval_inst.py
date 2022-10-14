@@ -21,8 +21,18 @@ class EvalInst(object):
             seg_valid_edge_cls_indices,inst_valid_edge_cls_indices) = \
             match_class_info_from_two(dataset_seg,dataset_inst, multi_rel=self.cfg.model.multi_rel)
 
-        eval_tool = EvalSceneGraphBatch(node_cls_names, edge_cls_names,multi_rel_prediction=self.cfg.model.multi_rel,k=topk,save_prediction=True,
-                                   none_name=define.NAME_NONE) 
+        '''all'''
+        eval_tool_all = EvalSceneGraphBatch(node_cls_names, edge_cls_names,
+                                        multi_rel_prediction=self.cfg.model.multi_rel,k=topk,save_prediction=True,
+                                        none_name=define.NAME_NONE,ignore_none=False)
+        
+        '''ignore none'''
+        eval_tool_ignore_none = EvalSceneGraphBatch(node_cls_names, edge_cls_names,
+                                        multi_rel_prediction=self.cfg.model.multi_rel,k=topk,save_prediction=True,
+                                        none_name=define.NAME_NONE,ignore_none=True)
+        eval_tools = {'all': eval_tool_all, 'ignore_none': eval_tool_ignore_none}
+        
+        
         # eval_upper_bound
         eval_UpperBound = EvalUpperBound(node_cls_names,edge_cls_names,noneidx_node_cls,noneidx_edge_cls,
                                          multi_rel=self.cfg.model.multi_rel,topK=topk,none_name=define.NAME_NONE)
@@ -87,13 +97,14 @@ class EvalInst(object):
                     else:
                         edge_pred = torch.zeros_like(inst_gt_rel).float()
                     
-                    eval_tool.add([scan_id], 
-                          node_pred,
-                          inst_gt_cls, 
-                          edge_pred,
-                          inst_gt_rel,
-                          [inst_mask2instance],
-                          inst_node_edges)
+                    for eval_tool in eval_tools.values():
+                        eval_tool.add([scan_id], 
+                            node_pred,
+                            inst_gt_cls, 
+                            edge_pred,
+                            inst_gt_rel,
+                            [inst_mask2instance],
+                            inst_node_edges)
                     continue
                 
                 if not is_eval_image:
@@ -252,27 +263,36 @@ class EvalInst(object):
                 merged_node_edges = torch.tensor(merged_node_edges,dtype=torch.long)
             
             merged_node_edges=merged_node_edges.t().contiguous()
-            eval_tool.add([scan_id], 
-                          merged_node_cls,
-                          merged_node_cls_gt, 
-                          merged_edge_cls,
-                          merged_edge_cls_gt,
-                          [merged_mask2instance],
-                          merged_node_edges)
-            # print(scan_id,frac_missing_nodes, frac_missing_edge)
+            
+            for eval_tool in eval_tools.values():
+                eval_tool.add([scan_id], 
+                            merged_node_cls,
+                            merged_node_cls_gt, 
+                            merged_edge_cls,
+                            merged_edge_cls_gt,
+                            [merged_mask2instance],
+                            merged_node_edges)
             # break
+        
         eval_dict = dict()
-        obj_, edge_ = eval_tool.get_mean_metrics()
-        for k,v in obj_.items():
-            # print(k)
-            eval_dict[k+'_node_cls'] = v
-        for k,v in edge_.items():
-            # print(k)
-            eval_dict[k+'_edge_cls'] = v
+        eval_dict['visualization'] = dict()
+        for eval_type, eval_tool in eval_tools.items():
         
-        for k, v in eval_list.items():
-            eval_dict[k] = v.avg
+            obj_, edge_ = eval_tool.get_mean_metrics()
+            for k,v in obj_.items():
+                # print(k)
+                eval_dict[eval_type+'_'+k+'_node_cls'] = v
+            for k,v in edge_.items():
+                # print(k)
+                eval_dict[eval_type+'_'+k+'_edge_cls'] = v
+            
+            for k, v in eval_list.items():
+                eval_dict[eval_type+'_'+k] = v.avg
         
-        vis = self.visualize(eval_tool=eval_tool)
-        eval_dict['visualization'] = vis
-        return eval_dict, eval_tool, eval_UpperBound.eval_tool
+            vis = self.visualize(eval_tool=eval_tool)
+            
+            vis = {eval_type+'_'+k:v for k,v in vis.items()}
+            
+            eval_dict['visualization'].update(vis)
+            
+        return eval_dict, eval_tools, eval_UpperBound.eval_tool

@@ -217,7 +217,7 @@ def main():
             logger_py.info('start evaluation')
             pr = cProfile.Profile()
             pr.enable()    
-            eval_dict, eval_tool,eval_tool_upperbound = model_trainer.evaluate_inst(dataset_seg,dataset_inst, topk=cfg.eval.topK)
+            eval_dict, eval_tools,eval_tool_upperbound = model_trainer.evaluate_inst(dataset_seg,dataset_inst, topk=cfg.eval.topK)
             pr.disable()
             logger_py.info('save time profile to {}'.format(os.path.join(out_dir,'tp_eval_inst.dmp')))
             pr.dump_stats(os.path.join(out_dir,'tp_eval_inst.dmp'))
@@ -226,10 +226,12 @@ def main():
             # ignore_missing=cfg.eval.ignore_missing
             prefix='inst' if not cfg.eval.ignore_missing else 'inst_ignore'
             
-            print(eval_tool.gen_text())
-            _ = eval_tool.write(out_dir, prefix)
-            
             eval_tool_upperbound.write(out_dir,'upper_bound')
+            
+            for eval_type, eval_tool in eval_tools.items():
+                print('======={}======'.format(eval_type))
+                print(eval_tool.gen_text())
+                _ = eval_tool.write(out_dir, eval_type+'_'+prefix)
             
             if logger:
                 for k,v in eval_dict['visualization'].items(): 

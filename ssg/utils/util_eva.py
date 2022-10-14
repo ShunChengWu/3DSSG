@@ -192,12 +192,11 @@ def build_gt_triplet(objs_target, rels_target, edges,multiple_prediction:bool):
                     target_rel.append(i)
         else:
             assert rels_target.ndim == 1
-            if rels_target[edge_index] > 0:
-                target_rel.append(rels_target[edge_index].cpu().numpy().item())
+            target_rel.append(rels_target[edge_index].cpu().numpy().item())
         gt_edges.append([target_eo, target_os, target_rel])
     return gt_edges 
 
-def evaluate_topk(gt_rel, objs_pred, rels_pred, edges, threshold=0.5, k=40):
+def evaluate_topk(gt_rel, objs_pred, rels_pred, edges, threshold=0.5, k=40, ignore_none:bool=False):
     top_k=list()
     device = objs_pred.device
     objs_pred = objs_pred.detach().cpu()
@@ -236,7 +235,8 @@ def evaluate_topk(gt_rel, objs_pred, rels_pred, edges, threshold=0.5, k=40):
             gt_t = e[1]
             gt_r = e[2]
             if len(gt_r) == 0:
-                continue # 
+                if ignore_none:
+                    continue
                 # Ground truth is None
                 indices = torch.where(sorted_conf_matrix[mask] < threshold)[0]
                 if len(indices) == 0:
@@ -887,6 +887,7 @@ class EvalSceneGraphBase():
         self.top_k_triplet=list()
         self.top_k_obj=list()
         self.top_k_rel=list()
+        self.ignore_none=False
         
     def get_recall(self):
         return self.eva_o_cls.get_recall(), self.eva_p_cls.get_recall()
@@ -991,7 +992,8 @@ class EvalSceneGraphBase():
 class EvalSceneGraphBatch(EvalSceneGraphBase):
     def __init__(self, obj_class_names:list, rel_class_names:list, multi_rel_threshold:float=0.5, k=100, 
                  save_prediction:bool=False,
-                 multi_rel_prediction:bool=True, none_name='none'):
+                 multi_rel_prediction:bool=True, none_name='none',
+                 ignore_none:bool=False):
         super().__init__()
         self.obj_class_names=obj_class_names
         self.rel_class_names=rel_class_names
@@ -1000,6 +1002,7 @@ class EvalSceneGraphBatch(EvalSceneGraphBase):
         self.k=k
         self.none_name=none_name
         self.save_prediction=save_prediction
+        self.ignore_none = ignore_none
         
         # object cls
         self.eva_o_cls = EvaClassificationSimple(obj_class_names)
@@ -1052,7 +1055,7 @@ class EvalSceneGraphBatch(EvalSceneGraphBase):
             gt_rel_triplet = build_gt_triplet(bobj_gts, brel_gts, edge_indices, self.multi_rel_prediction)
             
             self.top_k_triplet += evaluate_topk(gt_rel_triplet, obj_pds, rel_pds, edge_indices, 
-                                    threshold=self.multi_rel_threshold, k=self.k) # class_labels, relationships_dict)
+                                    threshold=self.multi_rel_threshold, k=self.k, ignore_none=self.ignore_none) # class_labels, relationships_dict)
             
         # Write prediction
         if self.save_prediction:

@@ -8,15 +8,15 @@ The edge connection for multi-predicate estimation should be fully connected. Fo
 Use SGFN loader to train VGfM and IMP. 
 Change loader from graph to sgfn.
 remember to change drop_img_edge
-- [ ] IMP_FULL_l160_2_1
+- [x] IMP_FULL_l160_2_1
 - [x] IMP_full_l20_4
-- [ ] IMP_INSEG_l20_2
-- [ ] IMP_ORBSLAM3_l20_2
+- [x] IMP_INSEG_l20_2
+- [x] IMP_ORBSLAM3_l20_2
 
 - [x] VGfM_FULL_l160_3_1
-- [ ] VGfM_full_l20_6 # 
-- [ ] VGFM_INSEG_l20_3
-- [ ] VGFM_ORBSLAM3_l20_4
+- [x] VGfM_full_l20_6 # 
+- [x] VGFM_INSEG_l20_3
+- [x] VGFM_ORBSLAM3_l20_4
 
 Test new loader
 - [x] config_SGFN_full_l20_0.yaml
@@ -27,7 +27,7 @@ Test new loader
 # TODO: check instance ID conversion
 # TODO: there was a bug in the GT rel generator. for single prediction.
 3RScan160, Multi-Pred.
-- [ ] IMP (IMP_FULL_l160_2_1) # training at remote server 
+- [x] IMP (IMP_FULL_l160_2_3)
 - [x] VGfM (VGfM_FULL_l160_3_1)
 - [x] 3DSSG (3DSSG_full_l160_1)
 - [x] SGFN (SGFN_full_l160_4)
@@ -41,24 +41,64 @@ ScanNet20, Single, Full
 - [x] SGFN (SGFN_full_l20_2)
 - [x] 2DSSG (2DSSG_full_l20_4)
 ScanNet20, Single, Inseg
-- [ ] IMP (IMP_INSEG_l20_2) # train on windows
-- [ ] VGfM (VGfM_inseg_l20_0) # train on windows
+- [x] IMP (IMP_INSEG_l20_2)
+- [x] VGfM (VGfM_inseg_l20_0)
 - [x] 3DSSG (3DSSG_INSEG_l20_2)
 - [x] SGFN (SGFN_inseg_l20_0)
 - [x] 2DSSG (2DSSG_inseg_l20_0)
-#TODO: neeed to regenerate proposals for ORBSLAM.
-#TODO: need to reextract bounding boxes
 ScanNet20, Single, ORBSLAM
-- [ ] IMP (IMP_orbslam_l20_0) # train on sc
-- [ ] VGfM (VGfM_orbslam_l20_0) # train on sc
+- [x] IMP (IMP_orbslam_l20_0)
+- [x] VGfM (VGfM_orbslam_l20_0)
 - [x] 3DSSG (3DSSG_3rscan_orbslam_l20_0)
 - [x] SGFN (SGFN_3rscan_orbslam_l20_0) 
 - [x] 2DSSG (2DSSG_orbslam_l20_0)
 
 ## 3RScan160, Multiple Predicates
+with(*) is including none estimation
+| method              | Trip      | Obj       | Pred      | mRecall_O | mRecall_P |
+| ------------------- | --------- | --------- | --------- | --------- | --------- |
+| IMP_FULL_l160_2_3   | 5.2/84.6  | 43.8/89.0 | 15.1/98.7 | 18.7/89.7 | 4.9/98.2  |
+| IMP_FULL_l160_2_3*  | 42.1/84.6 | 43.8/89.0 | 15.1/98.7 | 18.7/89.7 | 4.9/98.2  |
+| VGfM_FULL_l160_3_1  | 5.2/78.6  | 45.5/85.3 | 15.6/98.8 | 19.3/83.0 | 6.4/98.6  |
+| VGfM_FULL_l160_3_1* | 42.0/78.6 | 45.5/85.3 | 15.6/98.8 | 17.4/83.0 | 6.5/98.6  |
+| 3DSSG_full_l160_1   | 7.8/100   | 28.8/100  | 68.3/100  | 11.3/100  | 25.1/100  |
+| 3DSSG_full_l160_1*  | 43.4/100  | 29.5/100  | 68.8/100  | 11.7/100  | 25.5/100  |
+| SGFN_full_l160_4    | 5.3/100   | 31.5/100  | 48.8/100  | 11.5/100  | 13.5/100  |
+| SGFN_full_l160_4*   | 42.2/100  | 32.1/100  | 49.3/100  | 11.8/100  | 13.5/100  |
+| 2DSSG_full_l160_2   | 12.9/95.8 | 51.4/95.9 | 44.9/99.9 | 29.7/94.5 | 30.2/99.9 |
+| 2DSSG_full_l160_2*  | 46.8/95.8 | 51.4/95.9 | 44.9/99.9 | 29.7/94.5 | 30.2/99.9 |
+
+## ScanNet20, Single Predicate, full
+| method           | Trip      | Obj       | Pred      | mRecall_O | mRecall_P |
+| ---------------- | --------- | --------- | --------- | --------- | --------- |
+| IMP_full_l20_5   | /87.3     | /97.9     | /98.9     | /93.0     | /87.6     |
+| VGfM_full_l20_7  | /87.3     | /91.9     | /98.9     | /93.0     | /87.6     |
+| 3DSSG_full_l20_3 | 34.8/100  | 57.5/100  | 95.2/100  | 46.0/100  | 58.7/100  |
+| SGFN_full_l20_2  | 42.5/100  | 63.0/100  | 94.3/100  | 57.7/100  | 65.5/100  |
+| 2DSSG_full_l20_4 | 57.8/97.0 | 76.3/97.9 | 92.3/99.7 | 82.8/98.1 | 75.2/95.4 |
+
+## ScanNet20, Single Predicate, inseg
+| method            | Trip      | Obj       | Pred      | mRecall_O | mRecall_P |
+| ----------------- | --------- | --------- | --------- | --------- | --------- |
+| IMP_INSEG_l20_2   | /6.2      | /23.7     | /98.7     | /21.0     | /87.2     |
+| VGfM_inseg_l20_0  | /6.2      | /23.7     | /98.7     | /21.0     | /87.2     |
+| 3DSSG_INSEG_l20_2 | 3.5/63.1  | 37.9/75.1 | 41.1/98.7 | 28.1/75.7 | 25.6/86.9 |
+| SGFN_inseg_l20_0  | 31.0/63.1 | 54.9/75.1 | 89.6/98.7 | 38.3/75.7 | 30.5/86.9 |
+| 2DSSG_inseg_l20_0 | 31.1/63.0 | 55.4/74.9 | 88.1/98.7 | 46.9/75.6 | 33.9/86.9 |
+## ScanNet20, Single Predicate, ORBSLAM3
+| method                     | Trip     | Obj       | Pred      | mRecall_O | mRecall_P |
+| -------------------------- | -------- | --------- | --------- | --------- | --------- |
+| IMP_orbslam_l20_0          | /0.2     | 0.9/3.2   | 90.8/98.1 | 0.5/2.3   | 12.5/80.0 |
+| VGfM_orbslam_l20_0         | /0.2     | 0.9/3.2   | 90.8/98.1 | 0.7/2.3   | 2.3/80.0  |
+| 3DSSG_3rscan_orbslam_l20_0 | 0.9/25.9 | 10.0/44.2 | 88.3/98.3 | 7.0/48.6  | 16.0/81.2 |
+| SGFN_3rscan_orbslam_l20_0  | 3.8/25.9 | 17.2/44.2 | 90.0/98.3 | 10.2/48.6 | 14.3/81.2 |
+| 2DSSG_orbslam_l20_0        | 8.6/26.0 | 26.9/44.2 | 89.7/98.3 | 26.4/48.6 | 19.7/81.5 |
+
+# ============= OLD ===================
+## 3RScan160, Multiple Predicates
 | method             | Trip      | Obj       | Pred      | mRecall_O | mRecall_P |
 | ------------------ | --------- | --------- | --------- | --------- | --------- |
-| IMP_FULL_l160_2_1  |
+| IMP_FULL_l160_2_1  | 5.2/84.6  | 43.8/89.0 | 15.1/98.7 | 18.7/89.7 | 4.9/98.2  |
 | VGfM_FULL_l160_3_1 | 4.83/78.6 | 43.4/85.3 | 14.4/98.8 | 17.4/83.0 | 6.5/98.6  |
 | 3DSSG_full_l160_0  | 8.2/100   | 30.4/100  | 50.2/100  | 10.4/100  | 17.4/100  |
 | 3DSSG_full_l160_1  | 7.8/100   | 28.8/100  | 68.3/100  | 11.3/100  | 25.1/100  |
@@ -77,32 +117,34 @@ ScanNet20, Single, ORBSLAM
 | 3DSSG_full_l20_2   | 10.9/100  | 35.1/100  | 88.1/100  | 17.3/100  | 28.3/100  |
 | 3DSSG_full_l20_3   | 34.1/100  | 57.8/100  | 95.1/100  | 47.0/100  | 57.8/100  |
 | SGFN_full_0_3      | 35.6/100  | 59.8/100  | 89.3/100  | 53.0/100  | 66.1/100  |
-| 2DSSG_full_l20_2   | 61.3/97.4 | 76.6/97.9 | 95.6/99.9 | 79.1/98.1 | 70.5/98.5 |
 | SGFN_full_l20_0    | 42.7/100  | 62.9/100  | 67.6/100  | 55.4/100  | 57.1/100  |
 | SGFN_full_l20_2    | 41.7/100  | 63.5/100  | 94.2/100  | 58.3/100  | 65.0/100  |
+| 2DSSG_full_l20_2   | 61.3/97.4 | 76.6/97.9 | 95.6/99.9 | 79.1/98.1 | 70.5/98.5 |
 | 2DSSG_full_l20_3_1 | 57.7/97.4 | 75.3/97.9 | 76.8/99.9 | 80.6/98.1 | 71.9/98.5 |
 | 2DSSG_full_l20_4   | 55.7/97.0 | 74.7/97.9 | 92.4/99.7 | 81.2/98.1 | 74.1/95.4 |
 
 ## ScanNet20, Single Predicate, inseg
-| method             | Trip      | Obj       | Pred      | mRecall_O | mRecall_P |
-| ------------------ | --------- | --------- | --------- | --------- | --------- |
-| IMP_INSEG_l20_1    | 0.7/6.8   | 7.6/24.9  | 94.3/94.9 | 1.3/23.2  | 12.5/18.9 |
-| VGfM_INSEG_l20_2   | 0.0/6.8   | 2.5/24.9  | 93.4/94.9 | 1.2/23.2  | 12.5/18.9 |
-| VGfM_orbslam_l20_0 |
-| 3DSSG_INSEG_1      | 17.2/63.8 | 41.7/75.1 | 91.4/98.3 | 34.7/75.7 | 33.1/67.5 |
-| 3DSSG_INSEG_l20_2  | 13.6/63.1 | 38.6/75.1 | 86.8/98.7 | 29.8/75.7 | 29.2/86.9 |
-| SGFN_inseg_0_5     | 29.3/63.8 | 55.1/75.1 | 84.3/98.3 | 46.8/75.7 | 37.4/67.5 |
-| SGFN_inseg_l20_0   | 28.1/63.1 | 53.4/75.1 | 89.7/98.7 | 36.9/75.7 | 29.8/86.9 |
-| 2DSSG_INSEG_l20_1  | 31.4/63.7 | 54.3/75.0 | 90.6/98.3 | 47.9/75.7 | 33.9/67.4 |
-| 2DSSG_inseg_l20_0  | 29.1/63.0 | 54.3/74.9 | 88.3/98.7 | 46.4/75.6 | 33.5/86.9 |
+| method            | Trip      | Obj       | Pred      | mRecall_O | mRecall_P |
+| ----------------- | --------- | --------- | --------- | --------- | --------- |
+| IMP_INSEG_l20_1   | 0.7/6.8   | 7.6/24.9  | 94.3/94.9 | 1.3/23.2  | 12.5/18.9 |
+| IMP_INSEG_l20_2   | 0.3/6.2   | 4.2/23.7  | 89.7/98.7 | 1.7/21.0  | 12.4/87.2 |
+| VGfM_INSEG_l20_2  | 0.0/6.8   | 2.5/24.9  | 93.4/94.9 | 1.2/23.2  | 12.5/18.9 |
+| VGfM_inseg_l20_0  | 0.2/6.2   | 4.2/23.7  | 89.8/98.7 | 1.8/21.0  | 12.5/87.2 |
+| 3DSSG_INSEG_1     | 17.2/63.8 | 41.7/75.1 | 91.4/98.3 | 34.7/75.7 | 33.1/67.5 |
+| 3DSSG_INSEG_l20_2 | 13.6/63.1 | 38.6/75.1 | 86.8/98.7 | 29.8/75.7 | 29.2/86.9 |
+| SGFN_inseg_0_5    | 29.3/63.8 | 55.1/75.1 | 84.3/98.3 | 46.8/75.7 | 37.4/67.5 |
+| SGFN_inseg_l20_0  | 28.1/63.1 | 53.4/75.1 | 89.7/98.7 | 36.9/75.7 | 29.8/86.9 |
+| 2DSSG_INSEG_l20_1 | 31.4/63.7 | 54.3/75.0 | 90.6/98.3 | 47.9/75.7 | 33.9/67.4 |
+| 2DSSG_inseg_l20_0 | 29.1/63.0 | 54.3/74.9 | 88.3/98.7 | 46.4/75.6 | 33.5/86.9 |
 TODO: investigate why IMP and VGfM have so low upper bound
 
 ## ScanNet20, Single Predicate, ORBSLAM3
 | method                     | Trip     | Obj       | Pred      | mRecall_O | mRecall_P |
 | -------------------------- | -------- | --------- | --------- | --------- | --------- |
 | IMP_ORBSLAM3_l20_1         | 0.0/0.1  | 0.8/3.2   | 94.3/94.4 | 0.1/2.3   | 12.5/12.6 |
-| IMP_orbslam_l20_0          |
+| IMP_orbslam_l20_0          | 0.0/0.2  | 0.9/3.2   | 90.8/98.1 | 0.5/2.3   | 12.5/80.0 |
 | VGfM_ORBSLAM3_l20_3        | 0.0/0.1  | 1.0/3.2   | 94.3/94.4 | 0.6/2.3   | 12.5/12.6 |
+| VGfM_orbslam_l20_0         | 0.0/0.2  | 0.9/3.2   | 90.8/98.1 | 0.7/2.3   | 2.3/80.0  |
 | 3DSSG_ORBSLAM3_l20_0       | 1.8/25.5 | 12.9/44.2 | 93.2/96.1 | 8.7/48.6  | 17.5/35.2 |
 | 3DSSG_3rscan_orbslam_l20_0 | 0.8/25.9 | 10.0/44.2 | 88.4/98.3 | 7.3/48.6  | 15.6/81.2 |
 | SGFN_ORBSLAM3_l20_0        | 2.5/25.5 | 15.5/44.2 | 94.0/96.1 | 6.9/48.6  | 13.2/35.2 |
@@ -110,7 +152,26 @@ TODO: investigate why IMP and VGfM have so low upper bound
 | 2DSSG_ORBSLAM3_l20_6_1     | 8.7/25.5 | 27.0/44.2 | 93.2/96.1 | 25.1/48.6 | 19.6/35.2 |
 | 2DSSG_orbslam_l20_0        | 8.0/26.0 | 26.544.2  | 89.0/98.3 | 26.1/48.6 | 19.6/81.5 |
 
-# ============= OLD ===================
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 ##
 segment-level, instance-level
 | method                 | Trip | Obj  | Pred | mO   | mR   | Trip      | Obj       | Pred      | mO        | mR        |

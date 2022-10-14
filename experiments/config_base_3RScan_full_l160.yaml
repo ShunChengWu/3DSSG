@@ -27,7 +27,7 @@ training:
 eval: #evaluation
  mode: instance #eval on [segment, instance].  
  data_workers: 4
- topK: 10
+ topK: 100
  ignore_missing: false
 logging:
  method: wandb # [tensorboard, wandb, none]
