@@ -1047,15 +1047,16 @@ class EvalSceneGraphBatch(EvalSceneGraphBase):
         if self.k>0:
             self.top_k_obj += evaluate_topk_single_prediction(bobj_gts, obj_pds,k=self.k)
             
-            if not self.multi_rel_prediction:
-                self.top_k_rel += evaluate_topk_single_prediction(brel_gts,rel_pds,k=self.k)
-            else:
-                self.top_k_rel += evaluate_topk_multi_prediction(brel_gts,rel_pds,k=self.k)
+            if has_rel:
+                if not self.multi_rel_prediction:
+                    self.top_k_rel += evaluate_topk_single_prediction(brel_gts,rel_pds,k=self.k)
+                else:
+                    self.top_k_rel += evaluate_topk_multi_prediction(brel_gts,rel_pds,k=self.k)
 
-            gt_rel_triplet = build_gt_triplet(bobj_gts, brel_gts, edge_indices, self.multi_rel_prediction)
-            
-            self.top_k_triplet += evaluate_topk(gt_rel_triplet, obj_pds, rel_pds, edge_indices, 
-                                    threshold=self.multi_rel_threshold, k=self.k, ignore_none=self.ignore_none) # class_labels, relationships_dict)
+                gt_rel_triplet = build_gt_triplet(bobj_gts, brel_gts, edge_indices, self.multi_rel_prediction)
+                
+                self.top_k_triplet += evaluate_topk(gt_rel_triplet, obj_pds, rel_pds, edge_indices, 
+                                        threshold=self.multi_rel_threshold, k=self.k, ignore_none=self.ignore_none) # class_labels, relationships_dict)
             
         # Write prediction
         if self.save_prediction:
@@ -1260,23 +1261,21 @@ class EvalUpperBound():
                           [inst_mask2instance],
                           inst_node_edges)
             return 
+        
+        # seg_gt_cls = data_seg['node'].y
+        # mask2seg   = data_seg['node'].idx2oid[0]
+        # seg_node_edges = data_seg['node','to','node'].edge_index
+        # seg2inst = data_seg['node'].get('idx2iid',None)
         if not is_eval_image:
             seg_gt_cls = data_seg['node'].y
             mask2seg   = data_seg['node'].idx2oid[0]
             seg_node_edges = data_seg['node','to','node'].edge_index
-            seg2inst = data_seg['node'].get('idx2iid',None)
-            
-            # seg_gt_cls= data_seg['gt_cls']
-            # mask2seg = data_seg['mask2instance']
-            # seg_node_edges = data_seg['node_edges']
         else:
             seg_gt_cls = data_seg['roi'].y
             mask2seg = data_seg['roi'].idx2oid[0]
             seg_node_edges = data_seg['roi','to','roi'].edge_index
-            seg2inst = data_seg['roi'].get('idx2iid',None)
-            # seg_gt_cls = data_seg['image_gt_cls']
-            # mask2seg = data_seg['image_mask2instance']
-            # seg_node_edges = data_seg['image_node_edges']
+        seg2inst = data_seg['node'].get('idx2iid',None)
+
         if seg2inst is not None:
             seg2inst=seg2inst[0]
             

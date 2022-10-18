@@ -112,25 +112,14 @@ class EvalInst(object):
                     seg_gt_rel = data_seg['edge'].y
                     mask2seg   = data_seg['node'].idx2oid[0]
                     seg_node_edges = data_seg['node','to','node'].edge_index
-                    seg2inst = data_seg['node'].get('idx2iid',None)
-                    
-                    
-                    # seg_gt_rel = data_seg['seg_gt_rel']
-                    # mask2seg = data_seg['mask2instance']
-                    # data_seg['node_edges'] = data_seg['node_edges'].t().contiguous()
-                    # node_edges = data_seg['node_edges']
                 else:
                     seg_gt_cls = data_seg['roi'].y
                     seg_gt_rel = data_seg['edge2D'].y
                     mask2seg = data_seg['roi'].idx2oid[0]
                     seg_node_edges = data_seg['roi','to','roi'].edge_index
-                    seg2inst = data_seg['roi'].get('idx2iid',None)
+                    # seg2inst = data_seg['roi'].get('idx2iid',None)
+                seg2inst = data_seg['node'].get('idx2iid',None)
                     
-                    # node_edges_ori = data_seg['node_edges']
-                    # mask2seg = data_seg['image_mask2instance']
-                    # seg_gt_rel = data_seg['image_gt_rel']
-                    # data_seg['image_node_edges'] = data_seg['image_node_edges'].t().contiguous()
-                    # node_edges = data_seg['image_node_edges']
                 if seg2inst is not None:
                     seg2inst=seg2inst[0]
                 
