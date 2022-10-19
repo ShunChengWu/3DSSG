@@ -106,11 +106,18 @@ if __name__ == '__main__':
         if os.path.exists(filepath):
             # check kf ids
             should_process=False
-            with h5py.File(filepath,'r') as h5f:
-                for kfId in kf_indices:
-                    if str(kfId) not in h5f:
-                        should_process=True
-                        filtered_kf_indices.append(kfId)
+            
+            # try to open
+            try:
+                with h5py.File(filepath,'r') as h5f:
+                    for kfId in kf_indices:
+                        if str(kfId) not in h5f:
+                            should_process=True
+                            # logger_py.info('missing node {}'.format(kfId))
+                            filtered_kf_indices.append(kfId)
+            except:
+                # delete that file if failed to open it
+                os.remove(filepath)
 
             # if all exisit and not overwriting existing feature. skip.
             if not should_process and not args.overwrite:
@@ -147,58 +154,60 @@ if __name__ == '__main__':
                 #     # if feature_type in h5g: del h5g[feature_type]
                 #     h5f.create_dataset(str(fid),data=img_features[idx].numpy())    
             '''individual process'''
-            # logger_py.info('save')
-            # with h5py.File(filepath,'a') as h5f:
-            #     for _, fid in enumerate(filtered_kf_indices):
+            logger_py.info('save')
+            with h5py.File(filepath,'a') as h5f:
+                for _, fid in enumerate(filtered_kf_indices):
+                    pth_rgb = os.path.join(cfg.data.path_3rscan,scan_id,'sequence', define.RGB_NAME_FORMAT.format(int(fid)))
+                    img_data = Image.open(pth_rgb)
+                    img_data = np.rot90(img_data,3)# Rotate image
+                    img_data = torch.as_tensor(img_data.copy()).permute(2,0,1)
+                    img_data = transform(img_data)
+                    img_data= normalize_imagenet(img_data.float()/255.0).unsqueeze(0)
+                    with torch.no_grad():
+                        img_feature = img_encoder.preprocess(img_data.to(cfg.DEVICE)).cpu()[0].numpy()
+
+                    h5f.create_dataset(str(fid),data=img_feature)    
+                
+            '''process every batch'''
+            # logger_py.info('save batch')
+            # # generate indices
+            # filtered_kf_indices = torch.LongTensor(filtered_kf_indices)
+
+            # for indices in torch.split(filtered_kf_indices, batch_size):
+            #     images=list()
+            #     for fid in indices:
             #         pth_rgb = os.path.join(cfg.data.path_3rscan,scan_id,'sequence', define.RGB_NAME_FORMAT.format(int(fid)))
             #         img_data = Image.open(pth_rgb)
             #         img_data = np.rot90(img_data,3)# Rotate image
             #         img_data = torch.as_tensor(img_data.copy()).permute(2,0,1)
             #         img_data = transform(img_data)
-            #         img_data= normalize_imagenet(img_data.float()/255.0).unsqueeze(0)
-            #         with torch.no_grad():
-            #             img_feature = img_encoder.preprocess(img_data.to(cfg.DEVICE)).cpu()[0].numpy()
-
-            #         h5f.create_dataset(str(fid),data=img_feature)    
+            #         images.append(img_data)
+            #     images = torch.stack(images)
+            #     images = normalize_imagenet(images.to(cfg.DEVICE).float()/255.0)
                 
-            '''process every batch'''
-            logger_py.info('save batch')
-            with h5py.File(filepath,'a') as h5f:
-                # generate indices
-                filtered_kf_indices = torch.LongTensor(filtered_kf_indices)
+            #     img_features = img_encoder.preprocess(images).cpu()
+                
+            #     '''write'''
+            #     with h5py.File(filepath,'a') as h5f:
+            #         for idx, fid in enumerate(indices):
+            #             fid = str(fid)
+            #             if fid in h5f:
+            #                 del h5f[fid]
+            #             h5f.create_dataset(fid,data=img_features[idx].numpy())
+                        
+            #     '''check'''
+            #     with h5py.File(filepath,'r') as h5f:
+            #         for idx,fid in enumerate(indices):
+            #             img_data = np.asarray(h5f[str(fid)]).copy()
+            #             img_data = torch.from_numpy(img_data)
+            #             assert torch.equal(img_data,img_features[idx])
 
-                for indices in torch.split(filtered_kf_indices, batch_size):
-                    images=list()
-                    for fid in indices:
-                        pth_rgb = os.path.join(cfg.data.path_3rscan,scan_id,'sequence', define.RGB_NAME_FORMAT.format(int(fid)))
-                        img_data = Image.open(pth_rgb)
-                        img_data = np.rot90(img_data,3)# Rotate image
-                        img_data = torch.as_tensor(img_data.copy()).permute(2,0,1)
-                        img_data = transform(img_data)
-                        images.append(img_data)
-                    images = torch.stack(images)
-                    images = normalize_imagenet(images.to(cfg.DEVICE).float()/255.0)
-                    
-                    img_features = img_encoder.preprocess(images).cpu().numpy()
-                    for idx, fid in enumerate(indices):
-                        fid = str(fid)
-                        if fid in h5f:
-                            del h5f[fid]
-                        h5f.create_dataset(fid,data=img_features[idx])    
-                    
-            # '''check '''
-            # with h5py.File(filepath,'r') as h5f:
-            #     for idx,fid in enumerate(kf_indices):
-            #         img_data = np.asarray(h5f[str(fid)]).copy()
-            #         img_data = torch.from_numpy(img_data)
-            #         assert torch.equal(img_data,img_features[idx])
-            # del images, img_features
             logger_py.info('close')
-        except:
+        except Exception as e:
             if os.path.exists(filepath):
                 os.remove(filepath)
             logger_py.error('error occur. delete unfinished file at {}'.format(filepath))
-            raise RuntimeError()
+            raise RuntimeError(e)
     #     break
             
     '''create a link h5 db'''
