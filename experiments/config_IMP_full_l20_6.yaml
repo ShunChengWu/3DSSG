@@ -1,0 +1,9 @@
+inherit_from: [experiments/config_base_3RScan_full_l20.yaml,experiments/config_base_IMP.yaml]
+name: 'IMP_full_l20_6'
+training:
+ data_workers: 4
+model:
+ multi_rel: false # multiple relationship 
+wandb:
+ dry_run: false
+ tags: ["ssg", "imp",'full','l20']
