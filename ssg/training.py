@@ -136,6 +136,8 @@ class Trainer():
                                format(self.patient, max_patient))
                 break
             
+            # break
+            
         logger_py.info('Training finished.')
 
     def train(self, train_loader,val_loader, epoch_it, it_start, **args):

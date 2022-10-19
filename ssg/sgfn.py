@@ -155,6 +155,10 @@ class SGFN(nn.Module):
                     classifier = ssg.models.classifider_list[node_clsifier](in_channels=node_feature_dim, out_channels=num_obj_cls)
             else:
                 raise NotImplementedError()    
+            
+            # classifier = PointNetCls(num_obj_cls, in_size=node_feature_dim,
+            #                          batch_norm=with_bn,drop_out=cfg.model.node_classifier.dropout)
+            
             models['obj_predictor'] = classifier
         else:
             models['obj_predictor'] = PointNetCls(num_obj_cls, in_size=node_feature_dim,

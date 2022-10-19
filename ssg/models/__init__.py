@@ -3,7 +3,8 @@
 from .node_encoder import node_encoder_list
 from . import edge_encoder
 from .classifier import classifider_list
-from .network_GNN import GraphEdgeAttenNetworkLayers, JointGNN,TripletGCNModel,TripletIMP,TripletVGfM
+from .network_GNN import GraphEdgeAttenNetworkLayers,FAN_GRU,FAN_GRU_2, JointGNN,TripletGCNModel,TripletIMP,TripletVGfM
+from .network_GNN import *
 
 edge_encoder_list = {
     #'basic': edge_encoder.EdgeEncoder,
@@ -15,6 +16,8 @@ edge_encoder_list = {
 }
 gnn_list = {
     'fan': GraphEdgeAttenNetworkLayers,
+    'fan_gru': FAN_GRU,
+    'fan_gru_2': FAN_GRU_2,
     'triplet': TripletGCNModel,
     'imp': TripletIMP,
     'vgfm': TripletVGfM,

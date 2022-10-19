@@ -15,27 +15,29 @@ model:
  edge_encoder:
   method: sgfn #
  image_encoder:
-  method: mvcnn_res18 #[none,mvcnn,mean,mvcnn_res18]
   backend: res18 #[vgg16,res18]
   img_batch_size: 8 # this is the batch processing limit. if input is larger, the maximum batch process will still be 4.
   backend_finetune: false # only works for the standard backend
   use_global: false
   roi_region: [3,3]
-  aggr: max # aggrigation method [mean, max, sum]
+  aggr: max # aggrigation method [mean, max, add]
   with_bn: false
   hidden: 1024
   drop_out: 0.3
   local_feature_dim: 64
  gnn:
   method: jointgnn # [none, fan, triplet]
-  hidden_dim: 256
+  dim_atten: 256
   num_layers: 2
   num_heads: 8
   drop_out: 0.3
   node_from_gnn: true
+  use_bn: false
  node_classifier:
   with_bn: false
   dropout: 0.3
 data:
+ is_roi_img: true
  load_images: true
  load_points: true
+

@@ -1,4 +1,6 @@
+import importlib
 import os
+from codeLib.common import filter_args_create
 from codeLib.utils import onnx
 import torch
 from torch import nn
@@ -23,13 +25,13 @@ class JointSG(nn.Module):
         self.use_spatial = use_spatial = self.cfg.model.spatial_encoder.method != 'none'
         sptial_feature_dim=0
         if use_spatial:
-            if self.with_pts_encoder:
-                # # ignore centroid (11-3=8)
-                sptial_feature_dim = 8
-            elif self.with_img_encoder:
-                sptial_feature_dim = 6
-            node_feature_dim -= sptial_feature_dim
-            cfg.model.node_feature_dim = node_feature_dim
+            # if self.with_pts_encoder:
+            #     # # ignore centroid (11-3=8)
+            #     sptial_feature_dim = 8
+            # elif self.with_img_encoder:
+            sptial_feature_dim = 6
+            # node_feature_dim -= sptial_feature_dim
+            # cfg.model.node_feature_dim = node_feature_dim
         
         models = dict()
         '''point encoder'''
@@ -41,6 +43,7 @@ class JointSG(nn.Module):
                 
         '''image encoder'''
         if self.with_img_encoder:
+            
             if cfg.model.image_encoder.backend == 'res18':
                 if img_feature_dim != 512:
                     logger_py.warning('overwrite img_feature_dim from {} to {}'.format(img_feature_dim,512))
@@ -80,6 +83,8 @@ class JointSG(nn.Module):
                 logger_py.warning('freeze backend')
                 img_enc.eval()
                 for param in img_enc.parameters(): param.requires_grad = False
+                
+            node_feature_dim = img_feature_dim
             models['img_encoder'] = img_enc
             cfg.model.img_feature_dim = img_feature_dim
                 
@@ -89,6 +94,7 @@ class JointSG(nn.Module):
         else:
             models['rel_encoder'] = ssg.models.edge_encoder_list[self.cfg.model.edge_encoder.method](cfg,device)
         
+        '''spatial feature'''
         if use_spatial:
             if self.cfg.model.spatial_encoder.method == 'fc':
                 models['spatial_encoder'] = torch.nn.Linear(sptial_feature_dim, cfg.model.spatial_encoder.dim)
@@ -104,23 +110,43 @@ class JointSG(nn.Module):
                             
         cfg.model.node_feature_dim = node_feature_dim
         
+        '''initial node feature'''
+        args_jointgnn = cfg.model.gnn['jointgnn']
+        args_img_msg = cfg.model.gnn[args_jointgnn['img_msg_method']]#TODO: make the config here eaisre to udnrestand
+        gnn_modules = importlib.import_module('ssg.models.network_GNN').__dict__
+        img_model = gnn_modules[args_jointgnn['img_msg_method']]
+        models['msg_img'] = filter_args_create(img_model,
+                                               {**cfg.model.gnn,**args_img_msg,
+                                                'dim_node'  : 512,
+                                                'dim_edge'  : cfg.model.edge_feature_dim,
+                                                'dim_image' : cfg.model.img_feature_dim,}
+                                               )
+        
+        '''GNN'''
         if cfg.model.gnn.method != 'none': 
-            models['gnn'] = ssg.models.gnn_list[cfg.model.gnn.method.lower()](
-                dim_node=cfg.model.node_feature_dim,
-                dim_edge=cfg.model.edge_feature_dim,
-                dim_atten=cfg.model.gnn.hidden_dim,
-                dim_image=cfg.model.img_feature_dim,
-                num_layers=cfg.model.gnn.num_layers,
-                num_heads=cfg.model.gnn.num_heads,
-                aggr='max',
-                drop_out=cfg.model.gnn.drop_out,
-                use_bn = False
+            gnn_method = cfg.model.gnn.method.lower()
+            models['gnn'] = ssg.models.gnn_list[gnn_method](
+                dim_node  = cfg.model.node_feature_dim,
+                dim_edge  = cfg.model.edge_feature_dim,
+                dim_image = cfg.model.img_feature_dim,
+                **cfg.model.gnn
+                # dim_atten = cfg.model.gnn.hidden_dim,
+                # num_layers= cfg.model.gnn.num_layers,
+                # num_heads = cfg.model.gnn.num_heads,
+                # aggr      = 'max',
+                # drop_out  = cfg.model.gnn.drop_out,
+                
+                # **cfg.model.gnn[gnn_method]
                 )
         
-        '''build classifier'''
+        '''classifier'''
         with_bn =cfg.model.node_classifier.with_bn
-        models['obj_predictor'] = PointNetCls(num_obj_cls, in_size=node_feature_dim,
-                                     batch_norm=with_bn,drop_out=cfg.model.node_classifier.dropout)
+        
+        # models['obj_predictor'] = PointNetCls(num_obj_cls, in_size=node_feature_dim,
+        #                              batch_norm=with_bn,drop_out=cfg.model.node_classifier.dropout)
+        models['obj_predictor'] = ssg.models.classifider_list['res18'](
+            in_channels=node_feature_dim, 
+            out_channels=num_obj_cls)
         
         if cfg.model.multi_rel:
             models['rel_predictor'] = PointNetRelClsMulti(
@@ -150,6 +176,7 @@ class JointSG(nn.Module):
         '''shortcut'''
         descriptor =  data['node'].desp
         edge_indices_node_to_node = data['node','to','node'].edge_index
+        edge_index_image_2_ndoe = data['roi','sees','node'].edge_index
         
         has_edge = edge_indices_node_to_node.nelement()>0
         """reshape node edges if needed"""
@@ -159,30 +186,37 @@ class JointSG(nn.Module):
         '''Get 2D Features'''
         # Compute image feature
         if self.with_img_encoder:
-            data['roi'].x = self.img_encoder(data['roi'].img)
+            self.img_encoder.eval()
+            img_feature = self.img_encoder(data['roi'].img)
         
         '''Get 3D features'''
         # from pts
         if self.with_pts_encoder:
-            data['node'].x = self.obj_encoder(data['node'].pts)
+            geo_feature = self.obj_encoder(data['node'].pts)
+            
+        '''compute initial node feature'''
+        data['roi'].x = img_feature
+        # data['node'].x = geo_feature
+        data['node'].x = self.msg_img(geo_feature,img_feature,edge_index_image_2_ndoe)
             
         # froms spatial descriptor
         if self.use_spatial:
-            if self.with_pts_encoder:
-                tmp = descriptor[:,3:].clone()
-                tmp[:,6:] = tmp[:,6:].log() # only log on volume and length
-                tmp = self.spatial_encoder(tmp)
-            else:
-                # in R5            
-                tmp = descriptor[:,3:8].clone()
-                # log on volume and length
-                tmp[:,3:]=tmp[:,3:].log()
-                # x,y ratio in R1
-                xy_ratio = tmp[:,0].log() - tmp[:,1].log() # in log space for stability
-                xy_ratio = xy_ratio.view(-1,1)
-                # [:, 6] -> [:, N]
-                tmp = self.spatial_encoder(torch.cat([tmp,xy_ratio],dim=1))
+            # if self.with_pts_encoder:
+            #     tmp = descriptor[:,3:].clone()
+            #     tmp[:,6:] = tmp[:,6:].log() # only log on volume and length
+            #     tmp = self.spatial_encoder(tmp)
+            # else:
+            # in R5            
+            tmp = descriptor[:,3:8].clone()
+            # log on volume and length
+            tmp[:,3:]=tmp[:,3:].log()
+            # x,y ratio in R1
+            xy_ratio = tmp[:,0].log() - tmp[:,1].log() # in log space for stability
+            xy_ratio = xy_ratio.view(-1,1)
+            # [:, 6] -> [:, N]
+            tmp = self.spatial_encoder(torch.cat([tmp,xy_ratio],dim=1))
                 
+            # data['node'].spatial = tmp
             data['node'].x = torch.cat([data['node'].x, tmp],dim=1)
             
         '''compute edge feature'''

@@ -413,7 +413,11 @@ class SGFNDataset (data.Dataset):
 
         if self.mconfig.load_points:
             output['node'].pts = obj_points
-            output['node'].desp = descriptor
+            
+            
+            if 'edge_desc' not in self.mconfig or self.mconfig['edge_desc'] == 'pts':
+                output['node'].desp = descriptor
+                
             if self.mconfig.rel_data_type == 'points':
                 output['edge'].pts = rel_points
                 
@@ -422,8 +426,12 @@ class SGFNDataset (data.Dataset):
                 output['roi'].x = torch.zeros([roi_images.size(0),1])
                 output['roi'].img = roi_images
                 output['roi','sees','node'].edge_index = edge_indices_img_to_obj
-                if not self.mconfig.load_points:
+                
+                if 'edge_desc' not in self.mconfig or self.mconfig['edge_desc'] == 'roi':
                     output['node'].desp = node_descriptor_for_image
+                
+                # if not self.mconfig.load_points:
+                #     output['node'].desp = node_descriptor_for_image
             else:
                 output['roi'].x = torch.zeros([len(img_bounding_boxes),1])
                 output['roi'].y = gt_class_image
@@ -1140,12 +1148,12 @@ class SGFNDataset (data.Dataset):
         for mid, fid in enumerate(fids):
             '''read data'''
             kf = mv_kfs[str(fid)]
-            kf_oid2idx = {v[0]:v[1] for v in kf.attrs['seg2idx']}
+            kf_oid2idx = {v[0]:v[1] for v in kf.attrs['seg2idx']} # convert obj_idx to mask_idx
             
             '''get boxes of selected objects'''
             filtered_kf_oid2idx = dict()
             for k in kf_oid2idx:
-                if k in idx2oid.values():
+                if k in idx2oid.values(): # object should exist in selected object indices
                     filtered_kf_oid2idx[k] = kf_oid2idx[k]
             if len(filtered_kf_oid2idx)==0:continue
             

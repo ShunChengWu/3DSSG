@@ -4,6 +4,8 @@ training:
  data_workers: 4
 model:
  multi_rel: false # multiple relationship 
+eval: #evaluation
+ mode: instance #eval on [segment, instance].  
 wandb:
  dry_run: false
  tags: ["ssg", "vgfm",'orbslam','l20']

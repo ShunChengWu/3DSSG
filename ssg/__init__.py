@@ -35,7 +35,7 @@ def default_parser():
 def load_config(args):
     config_path = os.path.abspath(args.config)
     if not os.path.exists(config_path):
-        raise RuntimeError('Targer config file does not exist. {}' & config_path)
+        raise RuntimeError('Targer config file does not exist. {}'.format(config_path))
         
     # load config file
     config = codeLib.Config(config_path)

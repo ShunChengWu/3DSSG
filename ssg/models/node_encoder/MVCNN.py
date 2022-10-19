@@ -1,34 +1,15 @@
 import torch
-import torch.nn as nn
-from codeLib.common import filter_args_create
 from ssg.models.node_encoder.base import NodeEncoderBase
-import torch_geometric
-from torch_geometric.nn.conv import MessagePassing
+from ssg.models.network_GNN import MSG_MV_DIRECT
 import logging
 logger_py = logging.getLogger(__name__)
-
-
-class MSG_MV(MessagePassing):
-    def __init__(self, aggr:str):
-        super().__init__(aggr=aggr, flow='source_to_target')
-    def forward(self,x,edge_index):
-        node = torch.zeros([edge_index[1].max()+1,1]).to(x)
-        dummpy = (x, node)
-        return self.propagate(edge_index,x=dummpy)
-    def message(self, x_j):
-        """
-
-        Args:
-            x_j (_type_): image_feature
-        """
-        return x_j
-            
 
 class MVCNN(NodeEncoderBase):
     def __init__(self,cfg,backbone:str,device):
         super().__init__(cfg,backbone,device)
         self.global_pooling_method = cfg.model.image_encoder.aggr
-        self.mv_msg = MSG_MV(aggr=cfg.model.image_encoder.aggr)
+        self.mv_msg = MSG_MV_DIRECT(aggr=cfg.model.image_encoder.aggr)
+        
     def reset_parameters(self):
         pass
     def forward(self, images, **args):
@@ -39,8 +20,9 @@ class MVCNN(NodeEncoderBase):
         '''get image features'''
         images = self.preprocess(images)
         # images = self.postprocess(images,None).flatten(1)
-        '''agg'''
-        nodes_feature = self.mv_msg(images,edge_index)
+        '''aggr'''
+        node = torch.zeros([edge_index[1].max()+1,1]).to(images)
+        nodes_feature = self.mv_msg(node,images,edge_index)
         
         # node_indices = edge_index[1]
         # n_nodes = node_indices.max()+1

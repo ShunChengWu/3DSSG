@@ -62,7 +62,12 @@ def main():
         # )
         
         logger_py.info('create loader')
-        train_loader = torch_geometric.loader.DataLoader(dataset_train,batch_size=cfg.training.batch,num_workers=n_workers)
+        train_loader = torch_geometric.loader.DataLoader(
+            dataset_train,
+            batch_size=cfg.training.batch,
+            num_workers=n_workers,
+            pin_memory=True
+        )
         val_loader = torch_geometric.loader.DataLoader(
             dataset_val, batch_size=1, num_workers=0,
             shuffle=False,
@@ -126,7 +131,7 @@ def main():
         eval_mode = cfg.eval.mode
         assert eval_mode in ['segment','instance']
         if eval_mode == 'segment':
-            dataset_test  = config.get_dataset(cfg,'train')
+            dataset_test  = config.get_dataset(cfg,'test')
             val_loader = torch_geometric.loader.DataLoader(
                 dataset_test, batch_size=1, num_workers=cfg['eval']['data_workers'],
                 shuffle=False, drop_last=False,

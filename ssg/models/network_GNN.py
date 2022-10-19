@@ -3,6 +3,7 @@
 # Some codes here are modified from SuperGluePretrainedNetwork https://github.com/magicleap/SuperGluePretrainedNetwork/blob/master/models/superglue.py
 #
 import math
+import importlib
 import torch
 import torch_geometric
 from .network_util import build_mlp, Gen_Index, Aggre_Index, MLP
@@ -438,7 +439,7 @@ class TripletIMP(torch.nn.Module):
         
         '''process'''
         x = self.node_gru(x)
-        edge_feature = self.node_gru(edge_feature)
+        edge_feature = self.edge_gru(edge_feature)
         for i in range(self.num_layers):
             node_msg, edge_msg = self.msp_IMP(x=x, edge_feature=edge_feature,edge_index=edge_index)
             x = self.node_gru(node_msg,x)
@@ -479,7 +480,7 @@ class TripletVGfM(torch.nn.Module):
         
         '''process'''
         x = self.node_gru(x)
-        edge_feature = self.node_gru(edge_feature)
+        edge_feature = self.edge_gru(edge_feature)
         extended_geo_feature = self.edge_encoder(geo_feature,edge_index)
         for i in range(self.num_layers):
             node_msg, edge_msg = self.msg_vgfm(x=x, edge_feature=edge_feature,geo_feature=extended_geo_feature,edge_index=edge_index)
@@ -494,7 +495,28 @@ class TripletVGfM(torch.nn.Module):
             
         return x, edge_feature
     
-class MSG_MV(MessagePassing):
+class MSG_MV_DIRECT(MessagePassing):
+    def __init__(self, aggr:str,use_res:bool=True):
+        super().__init__(aggr=aggr, 
+                         flow='source_to_target')
+        self.use_res = use_res
+    def forward(self,node,images,edge_index):
+        dummpy = (images, node)
+        return self.propagate(edge_index,x=dummpy, node=node)
+    def message(self, x_j):
+        """
+
+        Args:
+            x_j (_type_): image_feature
+        """
+        return x_j
+    
+    def update(self,x, node):
+        if self.use_res:
+            x += node
+        return x
+    
+class MSG_MV_SDPA(MessagePassing):
     def __init__(self, dim_node:int,dim_image:int, num_heads:int):
         super().__init__(aggr='add',flow='source_to_target') # edges: [img_idx, obj_idx]
         assert dim_node % num_heads == 0 
@@ -536,6 +558,75 @@ class MSG_MV(MessagePassing):
         y = torch.einsum('nhm,mhk->nhk',att,v_mat)
         y = y.reshape(N,-1)
         return y
+    
+class MSG_MV_FAN(MessagePassing):
+    def __init__(self, dim_node:int,dim_image:int, num_heads:int):
+        super().__init__(aggr='add',flow='source_to_target') # edges: [img_idx, obj_idx]
+        assert dim_node % num_heads == 0 
+        self.num_heads = num_heads
+        self.d_k = dim_node // num_heads
+        self.sqrt_dk = math.sqrt(dim_node)
+        
+        self.proj_q = build_mlp([dim_node,dim_node])
+        self.proj_k = build_mlp([dim_image,dim_node])
+        self.proj_v = build_mlp([dim_image,dim_node])
+        pass
+    def forward(self,node,image,edge_index):
+        # source_to_target (j,i) # target_to_source
+        x = (image, node)
+        return self.propagate(edge_index, x=x)
+        
+    def message(self, x_i: Tensor, x_j: Tensor) -> Tensor:
+        """
+        Given image and node features, 
+        this layer estimates 
+
+        Args:
+            x_i (Tensor): object nodes
+            x_j (Tensor): image nodes
+        """
+        #TODO: may need to deal with multimodality
+        N = x_i.shape[0]
+        # n_obj = x_i.shape[0]
+        # n_img = x_j.shape[0]
+        
+        # proj
+        q_mat = self.proj_q(x_i).view(N, self.num_heads, self.d_k)
+        k_mat = self.proj_k(x_j).view(N, self.num_heads, self.d_k)
+        v_mat = self.proj_v(x_j).view(N, self.num_heads, self.d_k)
+        # dot product
+        att = torch.einsum('nhk,mhk->nhm',q_mat,k_mat)  / self.sqrt_dk
+        att = torch.nn.functional.softmax(att,dim=1)
+        
+        y = torch.einsum('nhm,mhk->nhk',att,v_mat)
+        y = y.reshape(N,-1)
+        return y
+    
+class MSG_MV_GAT(MessagePassing):
+    def __init__(self, dim_node:int,dim_image:int):
+        super().__init__(aggr='add',flow='source_to_target') # edges: [img_idx, obj_idx]
+        self.gate = nn.Sequential(nn.Linear(dim_node+dim_image,1),nn.Sigmoid())
+        
+    def forward(self,node,image,edge_index):
+        # source_to_target (j,i) # target_to_source
+        x = (image, node)
+        return self.propagate(edge_index, x=x, node=node)
+        
+    def message(self, x_i: Tensor, x_j: Tensor) -> Tensor:
+        """
+        Given image and node features, 
+        this layer estimates 
+
+        Args:
+            x_i (Tensor): object nodes
+            x_j (Tensor): image nodes
+        """
+        y = self.gate(torch.cat([x_i,x_j],dim=1)) * x_j
+        return y
+    
+    def update(self,x, node):
+        x += node
+        return x
     
 class MSG_FAN(MessagePassing):
     def __init__(self,
@@ -606,11 +697,19 @@ class MSG_FAN(MessagePassing):
         x[0] = self.update_node(torch.cat([x_ori,x[0]],dim=1))
         return x
     
-class JoingGNN_(torch.nn.Module):
+class JointGNN_v0(torch.nn.Module):
     def __init__(self, **args):
         super().__init__()
-        self.msg_fan = filter_args_create(MSG_FAN,args)
-        self.msg_img = filter_args_create(MSG_MV,args)
+        args_jointgnn = args['jointgnn']
+        gnn_modules = importlib.import_module('ssg.models.network_GNN').__dict__
+        pts_model = gnn_modules[args_jointgnn['pts_msg_method']]
+        img_model = gnn_modules[args_jointgnn['img_msg_method']]
+        
+        args_pts_msg = args[args_jointgnn['pts_msg_method']]
+        args_img_msg = args[args_jointgnn['img_msg_method']]
+        
+        self.msg_fan = filter_args_create(pts_model,{**args,**args_pts_msg})
+        self.msg_img = filter_args_create(img_model,{**args,**args_img_msg})
         
         dim_node  = args['dim_node'] 
         # dim_atten = args['dim_atten']
@@ -632,34 +731,133 @@ class JoingGNN_(torch.nn.Module):
         
         return node_update, edge_feature_msg, prob
     
+class JointGNN_v1(torch.nn.Module):
+    def __init__(self, **args):
+        '''
+        Use image feature as the initial node feature.
+        '''
+        super().__init__()
+        args_jointgnn = args['jointgnn']
+        gnn_modules = importlib.import_module('ssg.models.network_GNN').__dict__
+        pts_model = gnn_modules[args_jointgnn['pts_msg_method']]
+        img_model = gnn_modules[args_jointgnn['img_msg_method']]
+        
+        args_pts_msg = args[args_jointgnn['pts_msg_method']]
+        args_img_msg = args[args_jointgnn['img_msg_method']]
+        
+        self.msg_fan = filter_args_create(pts_model,{**args,**args_pts_msg})
+        self.msg_img = filter_args_create(img_model,{**args,**args_img_msg})
+        
+        dim_node  = args['dim_node'] 
+        # dim_atten = args['dim_atten']
+        # use_bn = args['use_bn']
+        
+        # self.node_gru = nn.GRUCell(input_size=dim_node, hidden_size=dim_node)
+        self.nn = build_mlp([dim_node*2,dim_node])
+        
+    def forward(self, node,image,edge,edge_index_node_2_node,edge_index_image_2_ndoe):
+        '''message passing between nodes and ndoes'''
+        image_msg = self.msg_img(node,image,edge_index_image_2_ndoe)
+        
+        '''message passing between image and nodes'''
+        node_to_node_msg, edge_feature_msg, prob = self.msg_fan(
+            x=image_msg,
+            edge_feature=edge,
+            edge_index=edge_index_node_2_node)
+        
+        '''merge'''
+        node_update = self.nn(torch.cat([node_to_node_msg,image_msg],dim=1))
+        
+        return node_update, edge_feature_msg, prob
+    
+class JointGNN_v2(torch.nn.Module):
+    def __init__(self, **args):
+        '''
+        Use image feature as the initial node feature.
+        '''
+        super().__init__()
+        args_jointgnn = args['jointgnn']
+        gnn_modules = importlib.import_module('ssg.models.network_GNN').__dict__
+        pts_model = gnn_modules[args_jointgnn['pts_msg_method']]
+        img_model = gnn_modules[args_jointgnn['img_msg_method']]
+        
+        args_pts_msg = args[args_jointgnn['pts_msg_method']]
+        args_img_msg = args[args_jointgnn['img_msg_method']]
+        
+        self.msg_fan = filter_args_create(pts_model,{**args,**args_pts_msg})
+        self.msg_img = filter_args_create(img_model,{**args,**args_img_msg})
+        
+        dim_node  = args['dim_node'] 
+        # dim_atten = args['dim_atten']
+        # use_bn = args['use_bn']
+        
+        # self.node_gru = nn.GRUCell(input_size=dim_node, hidden_size=dim_node)
+        # self.nn = build_mlp([dim_node*2,dim_node])
+        
+    def forward(self, node,image,edge,edge_index_node_2_node,edge_index_image_2_ndoe):
+        '''message passing between nodes and ndoes'''
+        image_msg = self.msg_img(node,image,edge_index_image_2_ndoe)
+        
+        '''message passing between image and nodes'''
+        node_to_node_msg, edge_feature_msg, prob = self.msg_fan(
+            x=image_msg,
+            edge_feature=edge,
+            edge_index=edge_index_node_2_node)
+        
+        '''merge'''
+        # node_update = self.nn(torch.cat([node_to_node_msg,image_msg],dim=1))
+        
+        return node_to_node_msg, edge_feature_msg, prob
+    
 class JointGNN(torch.nn.Module):
     def __init__(self, **kwargs):
         super().__init__()
         self.num_layers = kwargs['num_layers']
         self.num_heads = kwargs['num_heads']
-        self.drop_out = kwargs['drop_out']
+        drop_out_p = kwargs['drop_out']
         self.gconvs = torch.nn.ModuleList()
         
-        self.drop_out = None 
-        if 'DROP_OUT_ATTEN' in kwargs:
-            self.drop_out = torch.nn.Dropout(kwargs['DROP_OUT_ATTEN'])
+        # Get version
+        args_jointgnn = kwargs['jointgnn']
+        args_img_msg = kwargs[args_jointgnn['img_msg_method']]
         
+        gnn_modules = importlib.import_module('ssg.models.network_GNN').__dict__
+        # jointGNNModel = gnn_modules['JointGNN_{}'.format(args_jointgnn['version'].lower())]
+        img_model = gnn_modules[args_jointgnn['img_msg_method']]
+        self.msg_img = filter_args_create(img_model,{**kwargs,**args_img_msg})
+        
+        
+        self.drop_out = None 
+        if drop_out_p > 0:
+            self.drop_out = torch.nn.Dropout(drop_out_p)
+        
+        # for _ in range(self.num_layers):
+        #     self.gconvs.append(jointGNNModel(**kwargs))
+            
         for _ in range(self.num_layers):
-            self.gconvs.append(JoingGNN_(**kwargs))
-            # self.gconvs.append(GraphEdgeAttenNetwork(num_heads,dim_node,dim_edge,dim_atten,aggr, **kwargs))
+            self.gconvs.append(filter_args_create(MSG_FAN,{**kwargs, **kwargs['MSG_FAN']}))
 
     def forward(self, data):
         probs = list()
         node = data['node'].x
-        image = data['roi'].x
+        # image = data['roi'].x
         edge = data['edge'].x
+        # spatial = data['node'].spatial if 'spatial' in data['node'] else None
         edge_index_node_2_node = data['node','to','node'].edge_index
-        edge_index_image_2_ndoe = data['roi','sees','node'].edge_index
+        # edge_index_image_2_ndoe = data['roi','sees','node'].edge_index
+        
+        # Use image feature as the initial ndoe feature
+        # node = self.msg_img(node,image,edge_index_image_2_ndoe)
+        
+        # cat spatial if exist
+        # if spatial is not None:
+        #     node = torch.cat([node,spatial],dim=1)
         
         #TODO: use GRU?
         for i in range(self.num_layers):
             gconv = self.gconvs[i]
-            node, edge, prob = gconv(node,image,edge,edge_index_node_2_node,edge_index_image_2_ndoe)
+            # node, edge, prob = gconv(node,image,edge,edge_index_node_2_node,edge_index_image_2_ndoe)
+            node, edge, prob = gconv(node, edge, edge_index_node_2_node)
             
             if i < (self.num_layers-1) or self.num_layers==1:
                 node = torch.nn.functional.relu(node)
@@ -711,6 +909,111 @@ class GraphEdgeAttenNetworkLayers(torch.nn.Module):
             else:
                 probs.append(None)
         return node_feature, edge_feature, probs
+    
+class FAN_GRU(torch.nn.Module):
+    """ A sequence of scene graph convolution layers  """
+    def __init__(self, **kwargs):
+        super().__init__()
+        self.num_layers = kwargs['num_layers']
+        
+        self.gconvs = torch.nn.ModuleList()
+        self.drop_out = None 
+        if 'DROP_OUT_ATTEN' in kwargs:
+            self.drop_out = torch.nn.Dropout(kwargs['DROP_OUT_ATTEN'])
+            
+            
+        dim_node = kwargs['dim_node']
+        dim_edge = kwargs['dim_edge']
+        self.node_gru = nn.GRUCell(input_size=dim_node, hidden_size=dim_node)
+        self.edge_gru = nn.GRUCell(input_size=dim_edge, hidden_size=dim_edge)
+        
+        
+        for _ in range(self.num_layers):
+            self.gconvs.append(filter_args_create(MSG_FAN,kwargs))
+
+    def forward(self, data):
+        probs = list()
+        node_feature = data['node'].x
+        edge_feature = data['edge'].x
+        edges_indices = data['node','to','node'].edge_index
+        
+        # Init GRU
+        node_feature = self.node_gru(node_feature)
+        edge_feature = self.edge_gru(edge_feature)
+        
+        for i in range(self.num_layers):
+            gconv = self.gconvs[i]
+            node_msg, edge_msg, prob = gconv(node_feature, edge_feature, edges_indices)
+            
+            if i < (self.num_layers-1) or self.num_layers==1:
+                node_msg = torch.nn.functional.relu(node_msg)
+                edge_msg = torch.nn.functional.relu(edge_msg)
+                
+                if self.drop_out:
+                    node_msg = self.drop_out(node_msg)
+                    edge_msg = self.drop_out(edge_msg)
+                    
+            node_feature = self.node_gru(node_msg,node_feature)
+            edge_feature = self.edge_gru(edge_msg,edge_feature)
+                
+            if prob is not None:
+                probs.append(prob.cpu().detach())
+            else:
+                probs.append(None)
+        return node_feature, edge_feature, probs
+    
+class FAN_GRU_2(torch.nn.Module):
+    """ A sequence of scene graph convolution layers  """
+    def __init__(self, **kwargs):
+        super().__init__()
+        self.num_layers = kwargs['num_layers']
+        
+        self.gconvs = torch.nn.ModuleList()
+        self.drop_out = None 
+        if 'DROP_OUT_ATTEN' in kwargs:
+            self.drop_out = torch.nn.Dropout(kwargs['DROP_OUT_ATTEN'])
+            
+            
+        dim_node = kwargs['dim_node']
+        dim_edge = kwargs['dim_edge']
+        self.node_gru = nn.GRUCell(input_size=dim_node, hidden_size=dim_node)
+        self.edge_gru = nn.GRUCell(input_size=dim_edge, hidden_size=dim_edge)
+        
+        
+        for _ in range(self.num_layers):
+            self.gconvs.append(filter_args_create(MSG_FAN,kwargs))
+
+    def forward(self, data):
+        probs = list()
+        node_feature = data['node'].x
+        edge_feature = data['edge'].x
+        edges_indices = data['node','to','node'].edge_index
+        
+        # Init GRU
+        node_feature = self.node_gru(node_feature)
+        edge_feature = self.edge_gru(edge_feature)
+        
+        for i in range(self.num_layers):
+            gconv = self.gconvs[i]
+            node_msg, edge_msg, prob = gconv(node_feature, edge_feature, edges_indices)
+            
+            # if i < (self.num_layers-1) or self.num_layers==1:
+            #     node_msg = torch.nn.functional.relu(node_msg)
+            #     edge_msg = torch.nn.functional.relu(edge_msg)
+                
+            #     if self.drop_out:
+            #         node_msg = self.drop_out(node_msg)
+            #         edge_msg = self.drop_out(edge_msg)
+                    
+            node_feature = self.node_gru(node_msg,node_feature)
+            edge_feature = self.edge_gru(edge_msg,edge_feature)
+                
+            if prob is not None:
+                probs.append(prob.cpu().detach())
+            else:
+                probs.append(None)
+        return node_feature, edge_feature, probs
+
 
 if __name__ == '__main__':
     TEST_FORWARD=True

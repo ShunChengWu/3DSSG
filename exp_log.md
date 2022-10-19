@@ -1,4 +1,38 @@
-# New
+# Abla GRU SGFN
+try replacing updating method to GRU. 
+- v1: with GRU
+- v2: remove relu and dropout
+
+exp:
+- [x] config_SGFN_full_l20_3: v1. this was a bug with edge_gru. it was initialized with node gru. but the edge prediction is much better
+- [x] config_SGFN_full_l20_3_1: v2. same bug as in the previous one
+- [x] config_SGFN_full_l20_3_2: v2. fixed the bug and retrain. ->worse. without GRU is better
+
+# Dev: JointSG
+- [x] JointSSG_orbslam_l20_1: v1. has problem in node update. node feature wasn't really updated.
+- [x] JointSSG_orbslam_l20_1_1: v1. fixed above
+- [x] JointSSG_orbslam_l20_3: SDPA. use geo_f as query to get img_f as the node initial feature. -> doesn't work. it feels like the geo_f is too bad for SDPA.
+- [x] JointSSG_orbslam_l20_4: use MSG_MV_DIRECT. doesn't work. try to without the residual from geo feature. This should make this method equivalent to 2DSSG.
+- [x] JointSSG_orbslam_l20_5: performance is worse than 2DSSG. the impl. it nos identical.
+- [x] JointSSG_orbslam_l20_6: try to fix impl. but not fixed.
+- [x] JointSSG_orbslam_l20_6_1: replace classifier to res18. and set img_enc to eval. -> fixed. it was the issue of both.
+- [x] JointSSG_orbslam_l20_6_2: use mean aggr -> better than using max
+- [x] JointSSG_orbslam_l20_6_3: add geo_f as res. -> obj. cls. worse.
+- [x] JointSSG_orbslam_l20_7:  all worse.
+- [x] JointSSG_orbslam_l20_8: use FAN with max aggr.
+- [x] JointSSG_orbslam_l20_8_1: use FAN with mean aggr.
+- [ ] JointSSG_orbslam_l20_8_2: use FAN with add aggr.
+report: (jointssg_v1)[https://wandb.ai/shunchengwu/ssg/reports/JointSG-v-s-2DSSG--VmlldzoyODA1ODc4/edit?firstReport&runsetFilter]
+
+| method                 | Trip      | Obj       | Pred      | mRecall_O | mRecall_P |
+| ---------------------- | --------- | --------- | --------- | --------- | --------- |
+| 2DSSG_orbslam_l20_0    | 8.6/26.0  | 26.9/44.2 | 89.7/98.3 | 26.4/48.6 | 19.7/81.5 |
+| JointSSG_orbslam_l20_0 | 7.1/27.1  | 24.7/45.0 | 90.4/98.3 | 21.4/49.5 | 16.6/81.5 |
+| 2DSSG_full_l20_4       | 57.8/97.0 | 76.3/97.9 | 92.3/99.7 | 82.8/98.1 | 75.2/95.4 |
+| JointSSG_full_l20_2    | 45.2/100  | 66.3/100  | 94.7/100  | 59.8/100  | 56.1/100  |
+
+
+# Baseline
 There was a problem with the edge connection and network setup. 
 3DSSG should have exactly the same parameters apart from the use of input rel. representation and the GNN architecture. 
 The edge connection for multi-predicate estimation should be fully connected. For this need to redo experiments
@@ -35,23 +69,32 @@ Test new loader
 ScanNet20, Single, Full
 - [x] IMP (IMP_full_l20_4)
 - [x] IMP (IMP_full_l20_5)
+- [ ] IMP (IMP_full_l20_6) # fix gate.
 - [x] VGfM (VGfM_full_l20_6)
 - [x] VGfM (VGfM_full_l20_7)
+- [ ] VGfM (VGfM_full_l20_8)
 - [x] 3DSSG (3DSSG_full_l20_3)
 - [x] SGFN (SGFN_full_l20_2)
 - [x] 2DSSG (2DSSG_full_l20_4)
+- [ ] 2DSSG (2DSSG_full_l20_4_1) # use aggr:mean (was max)
 ScanNet20, Single, Inseg
 - [x] IMP (IMP_INSEG_l20_2)
+- [ ] IMP (IMP_INSEG_l20_3)
 - [x] VGfM (VGfM_inseg_l20_0)
+- [ ] VGfM (VGfM_inseg_l20_1)
 - [x] 3DSSG (3DSSG_INSEG_l20_2)
 - [x] SGFN (SGFN_inseg_l20_0)
 - [x] 2DSSG (2DSSG_inseg_l20_0)
 ScanNet20, Single, ORBSLAM
 - [x] IMP (IMP_orbslam_l20_0)
+- [ ] IMP (IMP_orbslam_l20_1)
 - [x] VGfM (VGfM_orbslam_l20_0)
+- [ ] VGfM (VGfM_orbslam_l20_1)
 - [x] 3DSSG (3DSSG_3rscan_orbslam_l20_0)
 - [x] SGFN (SGFN_3rscan_orbslam_l20_0) 
 - [x] 2DSSG (2DSSG_orbslam_l20_0)
+
+# TODO: there was a bug in the edge gate
 
 ## 3RScan160, Multiple Predicates
 with(*) is including none estimation
@@ -81,7 +124,7 @@ with(*) is including none estimation
 | method            | Trip      | Obj       | Pred      | mRecall_O | mRecall_P |
 | ----------------- | --------- | --------- | --------- | --------- | --------- |
 | IMP_INSEG_l20_2   | 0.2/6.2   | 4.3/23.7  | 89.6/98.7 | 1.7/21.0  | 12.4/87.2 |
-| VGfM_inseg_l20_0  | /6.2      | /23.7     | /98.7     | /21.0     | /87.2     |
+| VGfM_inseg_l20_0  | 0.3/6.2   | 4.0/23.7  | 89.7/98.7 | 1.6/21.0  | 12.5/87.2 |
 | 3DSSG_INSEG_l20_2 | 3.5/63.1  | 37.9/75.1 | 41.1/98.7 | 28.1/75.7 | 25.6/86.9 |
 | SGFN_inseg_l20_0  | 31.0/63.1 | 54.9/75.1 | 89.6/98.7 | 38.3/75.7 | 30.5/86.9 |
 | 2DSSG_inseg_l20_0 | 31.1/63.0 | 55.4/74.9 | 88.1/98.7 | 46.9/75.6 | 33.9/86.9 |
@@ -93,6 +136,8 @@ with(*) is including none estimation
 | 3DSSG_3rscan_orbslam_l20_0 | 0.9/25.9 | 10.0/44.2 | 88.3/98.3 | 7.0/48.6  | 16.0/81.2 |
 | SGFN_3rscan_orbslam_l20_0  | 3.8/25.9 | 17.2/44.2 | 90.0/98.3 | 10.2/48.6 | 14.3/81.2 |
 | 2DSSG_orbslam_l20_0        | 8.6/26.0 | 26.9/44.2 | 89.7/98.3 | 26.4/48.6 | 19.7/81.5 |
+
+
 
 # ============= OLD ===================
 ## 3RScan160, Multiple Predicates
@@ -151,26 +196,6 @@ TODO: investigate why IMP and VGfM have so low upper bound
 | SGFN_3rscan_orbslam_l20_0  | 2.8/25.9 | 16.4/44.2 | 90.1/98.3 | 9.7/48.6  | 14.3/81.2 |
 | 2DSSG_ORBSLAM3_l20_6_1     | 8.7/25.5 | 27.0/44.2 | 93.2/96.1 | 25.1/48.6 | 19.6/35.2 |
 | 2DSSG_orbslam_l20_0        | 8.0/26.0 | 26.544.2  | 89.0/98.3 | 26.1/48.6 | 19.6/81.5 |
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 
 ##
 segment-level, instance-level
