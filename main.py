@@ -13,6 +13,9 @@ import matplotlib
 import PIL
 import copy
 import codeLib.utils.string_numpy as snp
+# disable GUI
+matplotlib.pyplot.switch_backend('agg')
+# change log setting
 matplotlib.pyplot.set_loglevel("CRITICAL")
 logging.getLogger('PIL').setLevel('CRITICAL')
 logging.getLogger('trimesh').setLevel('CRITICAL')
