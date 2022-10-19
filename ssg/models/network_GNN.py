@@ -814,6 +814,8 @@ class JointGNN(torch.nn.Module):
         super().__init__()
         self.num_layers = kwargs['num_layers']
         self.num_heads = kwargs['num_heads']
+        dim_node = kwargs['dim_node']
+        dim_edge = kwargs['dim_edge']
         drop_out_p = kwargs['drop_out']
         self.gconvs = torch.nn.ModuleList()
         
@@ -826,6 +828,8 @@ class JointGNN(torch.nn.Module):
         img_model = gnn_modules[args_jointgnn['img_msg_method']]
         self.msg_img = filter_args_create(img_model,{**kwargs,**args_img_msg})
         
+        self.node_gru = nn.GRUCell(input_size=dim_node, hidden_size=dim_node)
+        self.edge_gru = nn.GRUCell(input_size=dim_edge, hidden_size=dim_edge)
         
         self.drop_out = None 
         if drop_out_p > 0:
@@ -846,26 +850,24 @@ class JointGNN(torch.nn.Module):
         edge_index_node_2_node = data['node','to','node'].edge_index
         # edge_index_image_2_ndoe = data['roi','sees','node'].edge_index
         
-        # Use image feature as the initial ndoe feature
-        # node = self.msg_img(node,image,edge_index_image_2_ndoe)
-        
-        # cat spatial if exist
-        # if spatial is not None:
-        #     node = torch.cat([node,spatial],dim=1)
-        
         #TODO: use GRU?
+        node = self.node_gru(node)
+        edge = self.edge_gru(edge)
         for i in range(self.num_layers):
             gconv = self.gconvs[i]
             # node, edge, prob = gconv(node,image,edge,edge_index_node_2_node,edge_index_image_2_ndoe)
-            node, edge, prob = gconv(node, edge, edge_index_node_2_node)
+            node_msg, edge_msg, prob = gconv(node, edge, edge_index_node_2_node)
             
             if i < (self.num_layers-1) or self.num_layers==1:
-                node = torch.nn.functional.relu(node)
-                edge = torch.nn.functional.relu(edge)
+                node_msg = torch.nn.functional.relu(node_msg)
+                edge_msg = torch.nn.functional.relu(edge_msg)
                 
                 if self.drop_out:
-                    node = self.drop_out(node)
-                    edge = self.drop_out(edge)
+                    node_msg = self.drop_out(node_msg)
+                    edge_msg = self.drop_out(edge_msg)
+            
+            node = self.node_gru(node_msg, node)
+            edge = self.edge_gru(edge_msg, edge)
                 
             if prob is not None:
                 probs.append(prob.cpu().detach())

@@ -196,7 +196,6 @@ class JointSG(nn.Module):
             
         '''compute initial node feature'''
         data['roi'].x = img_feature
-        # data['node'].x = geo_feature
         data['node'].x = self.msg_img(geo_feature,img_feature,edge_index_image_2_ndoe)
             
         '''compute edge feature'''

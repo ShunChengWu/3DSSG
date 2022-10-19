@@ -22,7 +22,11 @@ exp:
 - [x] JointSSG_orbslam_l20_8: use FAN with max aggr.
 - [x] JointSSG_orbslam_l20_8_1: use FAN with mean aggr.
 - [x] JointSSG_orbslam_l20_8_2: use FAN with add aggr. -> all the same. useing FAN is not a good idea
-- [x] JointSSG_orbslam_l20_9: move spatial feature before classifier. The absolute spatial scale is only needed before classification. MV_DIRECT w/o res. -> similar performance as cat. spatial feature  before GCN.
+- [x] JointSSG_orbslam_l20_9: move spatial feature before classifier. The absolute spatial scale is only needed before classification. MV_DIRECT w/o res. -> similar performance as cat. spatial feature  before
+- [x] JointSSG_orbslam_l20_9_1: use GRU -> better in training. can handle this later. at least it shows better learability. 
+- [ ] 
+
+
 report: (jointssg_v1)[https://wandb.ai/shunchengwu/ssg/reports/JointSG-v-s-2DSSG--VmlldzoyODA1ODc4/edit?firstReport&runsetFilter]
 
 | method                 | Trip      | Obj       | Pred      | mRecall_O | mRecall_P |
@@ -65,17 +69,17 @@ Test new loader
 - [x] IMP (IMP_FULL_l160_2_3)
 - [ ] IMP (IMP_FULL_l160_2_34)# train on Windows
 - [x] VGfM (VGfM_FULL_l160_3_1)
-- [ ] VGfM (VGfM_FULL_l160_3_2)#train on windows
+- [ ] VGfM (VGfM_FULL_l160_3_2) #train on windows
 - [x] 3DSSG (3DSSG_full_l160_1)
 - [x] SGFN (SGFN_full_l160_4)
 - [x] 2DSSG (2DSSG_full_l160_2)
 ScanNet20, Single, Full
 - [x] IMP (IMP_full_l20_4)
 - [x] IMP (IMP_full_l20_5)
-- [ ] IMP (IMP_full_l20_6) # fix gate.
+- [ ] IMP (IMP_full_l20_6) # fix gate. #train on windows
 - [x] VGfM (VGfM_full_l20_6)
 - [x] VGfM (VGfM_full_l20_7)
-- [ ] VGfM (VGfM_full_l20_8)
+- [ ] VGfM (VGfM_full_l20_8) #train on windows
 - [x] 3DSSG (3DSSG_full_l20_3)
 - [x] SGFN (SGFN_full_l20_2)
 - [x] 2DSSG (2DSSG_full_l20_4)
