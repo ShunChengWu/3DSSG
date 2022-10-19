@@ -155,10 +155,16 @@ class SGFNDataset (data.Dataset):
                     else:
                         # check image exist
                         filtered_data = raw_to_data(self.filtered_data[scan_id])[define.NAME_FILTERED_KF_INDICES]
-                        for kfId in filtered_data:
-                            if str(kfId) not in image_feature[scan_id]:
-                                should_compute_image_feature=True
-                                break
+                        
+                        # try to open it
+                        try:
+                            for kfId in filtered_data:
+                                if str(kfId) not in image_feature[scan_id]:
+                                    should_compute_image_feature=True
+                                    break
+                        except:
+                            should_compute_image_feature=True
+                            
                     if should_compute_image_feature: break
             if should_compute_image_feature:
                 # Try to generate

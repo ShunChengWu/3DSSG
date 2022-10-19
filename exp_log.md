@@ -16,12 +16,13 @@ exp:
 - [x] JointSSG_orbslam_l20_5: performance is worse than 2DSSG. the impl. it nos identical.
 - [x] JointSSG_orbslam_l20_6: try to fix impl. but not fixed.
 - [x] JointSSG_orbslam_l20_6_1: replace classifier to res18. and set img_enc to eval. -> fixed. it was the issue of both.
-- [x] JointSSG_orbslam_l20_6_2: use mean aggr -> better than using max
+- [x] JointS12: use mean aggr -> better than using max
 - [x] JointSSG_orbslam_l20_6_3: add geo_f as res. -> obj. cls. worse.
 - [x] JointSSG_orbslam_l20_7:  all worse.
 - [x] JointSSG_orbslam_l20_8: use FAN with max aggr.
 - [x] JointSSG_orbslam_l20_8_1: use FAN with mean aggr.
-- [ ] JointSSG_orbslam_l20_8_2: use FAN with add aggr.
+- [x] JointSSG_orbslam_l20_8_2: use FAN with add aggr. -> all the same. useing FAN is not a good idea
+- [x] JointSSG_orbslam_l20_9: move spatial feature before classifier. The absolute spatial scale is only needed before classification. MV_DIRECT w/o res. -> similar performance as cat. spatial feature  before GCN.
 report: (jointssg_v1)[https://wandb.ai/shunchengwu/ssg/reports/JointSG-v-s-2DSSG--VmlldzoyODA1ODc4/edit?firstReport&runsetFilter]
 
 | method                 | Trip      | Obj       | Pred      | mRecall_O | mRecall_P |
@@ -62,7 +63,9 @@ Test new loader
 # TODO: there was a bug in the GT rel generator. for single prediction.
 3RScan160, Multi-Pred.
 - [x] IMP (IMP_FULL_l160_2_3)
+- [ ] IMP (IMP_FULL_l160_2_34)# train on Windows
 - [x] VGfM (VGfM_FULL_l160_3_1)
+- [ ] VGfM (VGfM_FULL_l160_3_2)#train on windows
 - [x] 3DSSG (3DSSG_full_l160_1)
 - [x] SGFN (SGFN_full_l160_4)
 - [x] 2DSSG (2DSSG_full_l160_2)

@@ -22,17 +22,6 @@ class JointSG(nn.Module):
         edge_feature_dim = cfg.model.edge_feature_dim
         img_feature_dim  = cfg.model.img_feature_dim
         
-        self.use_spatial = use_spatial = self.cfg.model.spatial_encoder.method != 'none'
-        sptial_feature_dim=0
-        if use_spatial:
-            # if self.with_pts_encoder:
-            #     # # ignore centroid (11-3=8)
-            #     sptial_feature_dim = 8
-            # elif self.with_img_encoder:
-            sptial_feature_dim = 6
-            # node_feature_dim -= sptial_feature_dim
-            # cfg.model.node_feature_dim = node_feature_dim
-        
         models = dict()
         '''point encoder'''
         if self.with_pts_encoder:
@@ -43,7 +32,6 @@ class JointSG(nn.Module):
                 
         '''image encoder'''
         if self.with_img_encoder:
-            
             if cfg.model.image_encoder.backend == 'res18':
                 if img_feature_dim != 512:
                     logger_py.warning('overwrite img_feature_dim from {} to {}'.format(img_feature_dim,512))
@@ -93,20 +81,6 @@ class JointSG(nn.Module):
             models['rel_encoder'] = ssg.models.edge_encoder_list['sgfn'](cfg,device)
         else:
             models['rel_encoder'] = ssg.models.edge_encoder_list[self.cfg.model.edge_encoder.method](cfg,device)
-        
-        '''spatial feature'''
-        if use_spatial:
-            if self.cfg.model.spatial_encoder.method == 'fc':
-                models['spatial_encoder'] = torch.nn.Linear(sptial_feature_dim, cfg.model.spatial_encoder.dim)
-                node_feature_dim+=cfg.model.spatial_encoder.dim
-            elif self.cfg.model.spatial_encoder.method == 'identity':
-                models['spatial_encoder'] = torch.nn.Identity()
-                node_feature_dim+=sptial_feature_dim
-            else:
-                raise NotImplementedError()
-        else:
-            models['spatial_encoder'] = torch.nn.Identity()
-            node_feature_dim += sptial_feature_dim
                             
         cfg.model.node_feature_dim = node_feature_dim
         
@@ -138,6 +112,32 @@ class JointSG(nn.Module):
                 
                 # **cfg.model.gnn[gnn_method]
                 )
+            
+            
+        
+        '''spatial feature'''
+        self.use_spatial = use_spatial = self.cfg.model.spatial_encoder.method != 'none'
+        sptial_feature_dim=0
+        if use_spatial:
+            # if self.with_pts_encoder:
+            #     # # ignore centroid (11-3=8)
+            #     sptial_feature_dim = 8
+            # elif self.with_img_encoder:
+            sptial_feature_dim = 6
+            # node_feature_dim -= sptial_feature_dim
+            # cfg.model.node_feature_dim = node_feature_dimZ
+        if use_spatial:
+            if self.cfg.model.spatial_encoder.method == 'fc':
+                models['spatial_encoder'] = torch.nn.Linear(sptial_feature_dim, cfg.model.spatial_encoder.dim)
+                node_feature_dim+=cfg.model.spatial_encoder.dim
+            elif self.cfg.model.spatial_encoder.method == 'identity':
+                models['spatial_encoder'] = torch.nn.Identity()
+                node_feature_dim+=sptial_feature_dim
+            else:
+                raise NotImplementedError()
+        else:
+            models['spatial_encoder'] = torch.nn.Identity()
+            node_feature_dim += sptial_feature_dim
         
         '''classifier'''
         with_bn =cfg.model.node_classifier.with_bn
@@ -199,6 +199,19 @@ class JointSG(nn.Module):
         # data['node'].x = geo_feature
         data['node'].x = self.msg_img(geo_feature,img_feature,edge_index_image_2_ndoe)
             
+        '''compute edge feature'''
+        if has_edge:
+            data['edge'].x = self.rel_encoder(descriptor,edge_indices_node_to_node)
+            
+        '''Message Passing''' 
+        if has_edge:
+            ''' GNN '''
+            probs=None
+            if hasattr(self, 'gnn') and self.gnn is not None:
+                gnn_nodes_feature, gnn_edges_feature, probs = self.gnn(data)
+                data['node'].x = gnn_nodes_feature
+                data['edge'].x = gnn_edges_feature
+        
         # froms spatial descriptor
         if self.use_spatial:
             # if self.with_pts_encoder:
@@ -218,19 +231,7 @@ class JointSG(nn.Module):
                 
             # data['node'].spatial = tmp
             data['node'].x = torch.cat([data['node'].x, tmp],dim=1)
-            
-        '''compute edge feature'''
-        if has_edge:
-            data['edge'].x = self.rel_encoder(descriptor,edge_indices_node_to_node)
-            
-        '''Message Passing''' 
-        if has_edge:
-            ''' GNN '''
-            probs=None
-            if hasattr(self, 'gnn') and self.gnn is not None:
-                gnn_nodes_feature, gnn_edges_feature, probs = self.gnn(data)
-                data['node'].x = gnn_nodes_feature
-                data['edge'].x = gnn_edges_feature
+        
         
         '''Classification'''
         # Node
