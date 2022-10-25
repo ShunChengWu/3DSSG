@@ -70,7 +70,7 @@ Test new loader
 - [x] IMP (IMP_FULL_l160_2_3)
 - [x] IMP (IMP_FULL_l160_2_4)
 - [x] VGfM (VGfM_FULL_l160_3_1)
-- [ ] VGfM (VGfM_FULL_l160_3_2) 
+- [ ] VGfM (VGfM_FULL_l160_3_2)  # windows
 - [x] 3DSSG (3DSSG_full_l160_1)
 - [x] SGFN (SGFN_full_l160_4)
 - [x] 2DSSG (2DSSG_full_l160_2)
@@ -81,11 +81,11 @@ ScanNet20, Single, Full
 - [x] IMP (IMP_full_l20_6) # fix gate.  #train on deep
 - [x] VGfM (VGfM_full_l20_6)
 - [x] VGfM (VGfM_full_l20_7)
-- [ ] VGfM (VGfM_full_l20_8) #train on deep
+- [x] VGfM (VGfM_full_l20_8) #train on deep
 - [x] 3DSSG (3DSSG_full_l20_3)
 - [x] SGFN (SGFN_full_l20_2)
 - [x] 2DSSG (2DSSG_full_l20_4)
-- [ ] 2DSSG (2DSSG_full_l20_4_1) # use aggr:mean (was max)
+- [x] 2DSSG (2DSSG_full_l20_4_1) # use aggr:mean (was max)
 - [x] Joint (JointSSG_full_l20_4)
 ScanNet20, Single, Inseg
 - [x] IMP (IMP_INSEG_l20_2)
@@ -93,7 +93,7 @@ ScanNet20, Single, Inseg
 - [x] VGfM (VGfM_inseg_l20_0)
 - [x] VGfM (VGfM_inseg_l20_1)
 - [x] 3DSSG (3DSSG_INSEG_l20_2)
-- [ ] 3DSSG (3DSSG_INSEG_l20_3) # need to retrian. the nubmer is too low.
+- [x] 3DSSG (3DSSG_INSEG_l20_3) # need to retrian. the nubmer is too low.
 - [x] SGFN (SGFN_inseg_l20_0)
 - [x] 2DSSG (2DSSG_inseg_l20_0) # train on deep
 ScanNet20, Single, ORBSLAM
@@ -114,7 +114,7 @@ with(*) is including none estimation
 | ------------------- | --------- | --------- | --------- | --------- | --------- |
 | IMP_FULL_l160_2_3   | 5.2/84.6  | 43.8/89.0 | 15.1/98.7 | 18.7/89.7 | 4.9/98.2  |
 | IMP_FULL_l160_2_3*  | 42.1/84.6 | 43.8/89.0 | 15.1/98.7 | 18.7/89.7 | 4.9/98.2  |
-| IMP_FULL_l160_2_4*   | 41.6/90.4 | 42.1/89.0 | 15.1/98.7 | 16.2/89.7 | 4.0/98.2  |
+| IMP_FULL_l160_2_4*  | 41.6/90.4 | 42.1/89.0 | 15.1/98.7 | 16.2/89.7 | 4.0/98.2  |
 | VGfM_FULL_l160_3_1  | 5.2/78.6  | 45.5/85.3 | 15.6/98.8 | 19.3/83.0 | 6.4/98.6  |
 | VGfM_FULL_l160_3_1* | 42.0/78.6 | 45.5/85.3 | 15.6/98.8 | 17.4/83.0 | 6.5/98.6  |
 | 3DSSG_full_l160_1   | 7.8/100   | 28.8/100  | 68.3/100  | 11.3/100  | 25.1/100  |
@@ -123,24 +123,25 @@ with(*) is including none estimation
 | SGFN_full_l160_4*   | 42.2/100  | 32.1/100  | 49.3/100  | 11.8/100  | 13.5/100  |
 | 2DSSG_full_l160_2   | 12.9/95.8 | 51.4/95.9 | 44.9/99.9 | 29.7/94.5 | 30.2/99.9 |
 | 2DSSG_full_l160_2*  | 46.8/95.8 | 51.4/95.9 | 44.9/99.9 | 29.7/94.5 | 30.2/99.9 |
+| Joint               |
 
 ## ScanNet20, Single Predicate, full
 | method              | Trip      | Obj       | Pred      | mRecall_O | mRecall_P |
 | ------------------- | --------- | --------- | --------- | --------- | --------- |
 | IMP_full_l20_6      | 49.2/89.8 | 68.6/94.4 | 94.3/98.8 | 53.0/95.9 | 38.1/88.5 |
-| VGfM_full_l20_7     | 47.5/87.3 | 66.8/91.9 | 94.4/98.9 | 56.7/93.0 | 36.4/87.6 |
-| VGfM_full_l20_8     |
+| VGfM_full_l20_8     | 49.1/91.4 | 68.5/95.2 | 94.8/95.9 | 57.5/98.8 | 44.6/88.5 |
 | 3DSSG_full_l20_3    | 34.8/100  | 57.5/100  | 95.2/100  | 46.0/100  | 58.7/100  |
 | SGFN_full_l20_2     | 42.5/100  | 63.0/100  | 94.3/100  | 57.7/100  | 65.5/100  |
 | 2DSSG_full_l20_4    | 57.8/97.0 | 76.3/97.9 | 92.3/99.7 | 82.8/98.1 | 75.2/95.4 |
 | JointSSG_full_l20_4 | 64.9/100  | 79.3/100  | 95.3/100  | 74.6/100  | 71.5/100  |
 
 ## ScanNet20, Single Predicate, inseg
-| method            | Trip      | Obj       | Pred      | mRecall_O | mRecall_P |
-| ----------------- | --------- | --------- | --------- | --------- | --------- |
-| IMP_INSEG_l20_3   | 24.6/58.9 | 49.1/73.1 | 90.0/98.6 | 30.0/72.5 | 23.0/87.5 |
-| VGfM_inseg_l20_1  | 26.7/58.9 | 50.6/93.1 | 90.4/98.6 | 31.6/72.5 | 24.4/87.5 |
-| 3DSSG_INSEG_l20_2 | 3.5/63.1  | 37.9/75.1 | 41.1/98.7 | 28.1/75.7 | 25.6/86.9 |
+| method           | Trip      | Obj       | Pred      | mRecall_O | mRecall_P |
+| ---------------- | --------- | --------- | --------- | --------- | --------- |
+| IMP_INSEG_l20_3  | 24.6/58.9 | 49.1/73.1 | 90.0/98.6 | 30.0/72.5 | 23.0/87.5 |
+| VGfM_inseg_l20_1 | 26.7/58.9 | 50.6/93.1 | 90.4/98.6 | 31.6/72.5 | 24.4/87.5 |
+
+| 3DSSG_INSEG_l20_3 | 17.0/65.0 | 41.4/76.4 | 88.2/98.7 | 31.9/76.9 | 26.6/88.2 |
 | SGFN_inseg_l20_0  | 31.0/63.1 | 54.9/75.1 | 89.6/98.7 | 38.3/75.7 | 30.5/86.9 |
 | 2DSSG_inseg_l20_0 | 31.1/63.0 | 55.4/74.9 | 88.1/98.7 | 46.9/75.6 | 33.9/86.9 |
 | Joint_inseg_l20_0 | 33.6/65.0 | 56.3/76.4 | 89.7/98.7 | 43.7/76.9 | 32.9/88.2 |
@@ -153,6 +154,11 @@ with(*) is including none estimation
 | SGFN_3rscan_orbslam_l20_0  | 3.8/25.9  | 17.2/44.2 | 90.0/98.3 | 10.2/48.6 | 14.3/81.2 |
 | 2DSSG_orbslam_l20_0        | 8.6/26.0  | 26.9/44.2 | 89.7/98.3 | 26.4/48.6 | 19.7/81.5 |
 | Joint_orbslam_l20_10       | 11.0/27.1 | 30.1/45.0 | 90.2/98.3 | 23.2/49.5 | 16.3/81.5 |
+
+
+## Conclusion
+The mRecall_P is closer in sparser setup cuz the amount of missing edges increase. (GT>InSEG>ORBSLAM3).
+
 
 # ============= OLD ===================
 ## 3RScan160, Multiple Predicates
@@ -173,7 +179,7 @@ with(*) is including none estimation
 | IMP_full_l20_5     | 43.8/87.3 | 65.3/97.9 | 93.9/98.9 | 51.2/93.0 | 42.1/87.6 |
 | VGfM_full_l20_5    | 16.8/97.3 | 38.4/97.9 | 94.3/99.9 | 24.1/98.1 | 18.9/98.2 |
 | VGfM_full_l20_6    | 35.6/86.9 | 67.6/92.2 | 60.1/98.6 | 55.5/92.1 | 25.5/98.0 |
-| VGfM_full_l20_7    | 44.2/87.3 | 64.3/91.9 | 94.4/98.9 | 55.2/93.0 | 37.7/87.6 |
+| VGfM_full_l20_7    | 47.5/87.3 | 66.8/91.9 | 94.4/98.9 | 56.7/93.0 | 36.4/87.6 |
 | 3DSSG_full_l20_2   | 10.9/100  | 35.1/100  | 88.1/100  | 17.3/100  | 28.3/100  |
 | 3DSSG_full_l20_3   | 34.1/100  | 57.8/100  | 95.1/100  | 47.0/100  | 57.8/100  |
 | SGFN_full_0_3      | 35.6/100  | 59.8/100  | 89.3/100  | 53.0/100  | 66.1/100  |
