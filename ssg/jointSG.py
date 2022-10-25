@@ -187,12 +187,15 @@ class JointSG(nn.Module):
         # Compute image feature
         if self.with_img_encoder:
             self.img_encoder.eval()
-            img_feature = self.img_encoder(data['roi'].img)
+            img_batch_size = self.cfg.model.image_encoder.img_batch_size
+            img_feature = torch.cat([ self.img_encoder(p_split)  for p_split in torch.split(data['roi'].img,int(img_batch_size), dim=0) ], dim=0)
+            # img_feature = self.img_encoder(data['roi'].img)
         
         '''Get 3D features'''
         # from pts
         if self.with_pts_encoder:
             geo_feature = self.obj_encoder(data['node'].pts)
+            data['geo_feature'].x = geo_feature
             
         '''compute initial node feature'''
         data['roi'].x = img_feature

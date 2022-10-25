@@ -137,7 +137,7 @@ class SGFNDataset (data.Dataset):
         self.scans = snp.pack([k for k in self.filtered_data.keys()])
         self.size = len(self.filtered_data)
             
-        '''check if pre-computed global image featur eexist'''
+        '''check if pre-computed global image featur exist'''
         # if self.for_eval and not self.mconfig.is_roi_img and self.mconfig.load_images: # train mode can't use precmopute feature. need to do img. aug.
         if not self.mconfig.is_roi_img and self.mconfig.load_images and self.cfg.data.use_precompute_img_feature: # loading and memory issue. try to use precomputed
             # self.open_filtered()
