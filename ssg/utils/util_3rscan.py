@@ -50,3 +50,24 @@ def load_semseg(json_file, name_mapping_dict=None, mapping = True):
 
             instance2labelName[segGroups["id"]] = labelName.lower()#segGroups["label"].lower()
     return instance2labelName
+
+def get_train_val_split(pth_3rscan_json):
+    with open(pth_3rscan_json,'r') as f:
+        scan3r = json.load(f)
+    
+    train_list = list()
+    val_list  = list()
+    for scan in scan3r:
+        ref_id = scan['reference']
+
+        if scan['type'] == 'train':
+            l = train_list
+        elif scan['type'] == 'validation':
+            l = val_list
+        else:
+            continue
+        l.append(ref_id)
+        for sscan in scan['scans']:
+            l.append(sscan['reference'])
+    
+    return train_list ,val_list

@@ -94,9 +94,13 @@ class Trainer_SGFN(BaseTrainer, EvalInst):
         self.optimizer.zero_grad()
         logs = self.compute_loss(data, it=it, eval_tool = self.eva_tool)
         if 'loss' not in logs: return logs
-        logs['loss'].backward()
-        check_weights(self.model.state_dict())
-        self.optimizer.step()
+        
+        if not check_valid(logs):
+            logs['loss'].backward()
+            check_weights(self.model.state_dict())
+            self.optimizer.step()
+        else:
+            logger_py.info('skip loss backward due to nan occurs')
         return logs
     
     def eval_step(self,data, eval_tool=None):
@@ -192,9 +196,9 @@ class Trainer_SGFN(BaseTrainer, EvalInst):
                           mask2instance,
                           edge_indices_node_to_node)
             
-        if check_valid(logs):
-            raise RuntimeWarning()
-            print('has nan')
+        # if check_valid(logs):
+        #     raise RuntimeWarning()
+        #     print('has nan')
         return logs
         # return loss if eval_mode else loss['loss']
 

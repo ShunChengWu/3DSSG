@@ -667,9 +667,8 @@ class SGFNDataset (data.Dataset):
                 #TODO: also filter out nodes when only with points input. this gives fair comparison on points and images methods.
                 filtered_sg_data = dict()
                 self.open_filtered()
-                filtered = self.filtered_data.keys()
-                for scan_id in filtered:
-                    filtered_data = raw_to_data(filtered[scan_id])
+                for scan_id in self.filtered_data.keys():
+                    filtered_data = raw_to_data(self.filtered_data[scan_id])
                     node_indices = filtered_data[define.NAME_FILTERED_OBJ_INDICES]
                     
                     # mv_node_ids = [int(x) for x in self.mv_data[scan_id]['nodes'].keys()]

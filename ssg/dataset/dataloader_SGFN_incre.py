@@ -593,12 +593,6 @@ class SGFNIDataset (data.Dataset):
             ''' to tensor '''
             gt_class = torch.from_numpy(np.array(cat))
             edge_indices = torch.tensor(edge_indices,dtype=torch.long)
-            
-            
-        
-            
-        
-        
         
             output = dict()
             output['fid'] = key

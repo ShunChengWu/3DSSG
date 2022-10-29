@@ -6,6 +6,7 @@ Created on Tue Oct 12 17:19:08 2021
 @author: sc
 """
 import os
+from codeLib.common import check_valid
 from codeLib.utils import onnx
 import torch
 from torch import nn

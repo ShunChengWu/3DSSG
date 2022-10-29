@@ -21,7 +21,7 @@ exe_path='/home/sc/research/ORB_SLAM3/bin/orbslam3'
 parser = argparse.ArgumentParser(description='Generate InSeg segmentation on 3RScan or ScanNet dataset.',
                                  formatter_class=argparse.ArgumentDefaultsHelpFormatter)
 parser.add_argument('--config','-c', type=str, default='/home/sc/research/ORB_SLAM3/configurations/config_3rscan_rgb.toml', help='', required=False)
-parser.add_argument('--save_name_seq', type=str, default='graph_2dssg_seq.json', help='', required=False)
+parser.add_argument('--save_name_seq', type=str, default='2dssg_seq', help='', required=False)
 parser.add_argument('--dataset',type=str,choices=['3RScan'],default='3RScan', help='type of dataset', required=False)
 parser.add_argument('--type', type=str, default='validation', choices=['validation'], help="which split of scans to use",required=False)
 
