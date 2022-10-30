@@ -102,18 +102,17 @@ ScanNet20, Single, Inseg
 ScanNet20, Single, ORBSLAM
 - [x] IMP (IMP_orbslam_l20_0)
 - [x] IMP (IMP_orbslam_l20_1)
-- [ ] IMP (IMP_orbslam_l20_2)
 - [x] VGfM (VGfM_orbslam_l20_0)
 - [x] VGfM (VGfM_orbslam_l20_1)
-- [ ] VGfM (VGfM_orbslam_l20_2)
+- [x] VGfM (VGfM_orbslam_l20_2)
 - [x] 3DSSG (3DSSG_3rscan_orbslam_l20_0)
-- [ ] 3DSSG (3DSSG_3rscan_orbslam_l20_1)
+- [x] 3DSSG (3DSSG_3rscan_orbslam_l20_1)
 - [x] SGFN (SGFN_3rscan_orbslam_l20_0) 
-- [ ] SGFN (SGFN_3rscan_orbslam_l20_1)
+- [x] SGFN (SGFN_3rscan_orbslam_l20_1)
 - [x] 2DSSG (2DSSG_orbslam_l20_0)
 - [x] Joint (Joint_orbslam_l20_10)
 - [ ] Joint (Joint_orbslam_l20_10_1) # test plane descriptor
-- [ ] Joint_orbslam_l20_11_1
+- [x] Joint_orbslam_l20_11_1
 
 # TODO: there was a bug in the edge gate
 
@@ -157,13 +156,12 @@ with(*) is including none estimation
 ## ScanNet20, Single Predicate, ORBSLAM3
 | method                     | Trip      | Obj       | Pred      | mRecall_O | mRecall_P |
 | -------------------------- | --------- | --------- | --------- | --------- | --------- |
-| IMP_orbslam_l20_1          | 9.7/24.3  | 29.3/43.0 | 90.7/98.1 | 20.3/48.6 | 15.3/80.6 |
-| VGfMorbslam_l20_1          | 9.8/24.3  | 28.6/43.0 | 90.6/98.1 | 19.6/48.6 | 15.1/80.6 |
-| 3DSSG_3rscan_orbslam_l20_0 | 0.9/25.9  | 10.0/44.2 | 88.3/98.3 | 7.0/48.6  | 16.0/81.2 |
-| SGFN_3rscan_orbslam_l20_0  | 3.8/25.9  | 17.2/44.2 | 90.0/98.3 | 10.2/48.6 | 14.3/81.2 |
+| IMP_orbslam_l20_2          | 7.6/20.1  | 26.4/38.9 | 90.7/98.2 | 20.6/41.0 | 14.0/81.1 |
+| VGfM_orbslam_l20_2         | 7.3/20.1  | 25.9/38.9 | 90.8/98.2 | 17.6/41.0 | 15.4/81.1 |
+| 3DSSG_3rscan_orbslam_l20_1 | 0.9/26.0  | 9.1/43.1  | 87.9/98.3 | 5.9/47.2  | 15.1/81.4 |
+| SGFN_3rscan_orbslam_l20_1  | 1.7/26.0  | 12.3/43.1 | 88.9/98.3 | 8.3/47.2  | 14.4/81.4 |
 | 2DSSG_orbslam_l20_0        | 8.6/26.0  | 26.9/44.2 | 89.7/98.3 | 26.4/48.6 | 19.7/81.5 |
-| Joint_orbslam_l20_10       | 11.0/27.1 | 30.1/45.0 | 90.2/98.3 | 23.2/49.5 | 16.3/81.5 |
-
+| Joint_orbslam_l20_11_1     | 10.2/26.0 | 28.9/43.1 | 90.3/98.3 | 23.4/47.2 | 16.4/81.4 |
 
 ## Conclusion
 The mRecall_P is closer in sparser setup cuz the amount of missing edges increase. (GT>InSEG>ORBSLAM3).
@@ -220,14 +218,18 @@ TODO: investigate why IMP and VGfM have so low upper bound
 | IMP_orbslam_l20_0          | 0.0/0.2  | 0.9/3.2   | 90.8/98.1 | 0.5/2.3   | 12.5/80.0 |
 | IMP_ORBSLAM3_l20_1         | 0.0/0.1  | 0.8/3.2   | 94.3/94.4 | 0.1/2.3   | 12.5/12.6 |
 | IMP_orbslam_l20_0          | 0.0/0.2  | 0.9/3.2   | 90.8/98.1 | 0.5/2.3   | 12.5/80.0 |
+| IMP_orbslam_l20_1          | 9.7/24.3  | 29.3/43.0 | 90.7/98.1 | 20.3/48.6 | 15.3/80.6 |
 | VGfM_ORBSLAM3_l20_3        | 0.0/0.1  | 1.0/3.2   | 94.3/94.4 | 0.6/2.3   | 12.5/12.6 |
 | VGfM_orbslam_l20_0         | 0.0/0.2  | 0.9/3.2   | 90.8/98.1 | 0.7/2.3   | 2.3/80.0  |
+| VGfM_orbslam_l20_1         | 9.8/24.3  | 28.6/43.0 | 90.6/98.1 | 19.6/48.6 | 15.1/80.6 |
 | 3DSSG_ORBSLAM3_l20_0       | 1.8/25.5 | 12.9/44.2 | 93.2/96.1 | 8.7/48.6  | 17.5/35.2 |
-| 3DSSG_3rscan_orbslam_l20_0 | 0.8/25.9 | 10.0/44.2 | 88.4/98.3 | 7.3/48.6  | 15.6/81.2 |
+| 3DSSG_3rscan_orbslam_l20_0 | 0.9/25.9  | 10.0/44.2 | 88.3/98.3 | 7.0/48.6  | 16.0/81.2 |
 | SGFN_ORBSLAM3_l20_0        | 2.5/25.5 | 15.5/44.2 | 94.0/96.1 | 6.9/48.6  | 13.2/35.2 |
+| SGFN_3rscan_orbslam_l20_0  | 3.8/25.9  | 17.2/44.2 | 90.0/98.3 | 10.2/48.6 | 14.3/81.2 |
 | SGFN_3rscan_orbslam_l20_0  | 2.8/25.9 | 16.4/44.2 | 90.1/98.3 | 9.7/48.6  | 14.3/81.2 |
 | 2DSSG_ORBSLAM3_l20_6_1     | 8.7/25.5 | 27.0/44.2 | 93.2/96.1 | 25.1/48.6 | 19.6/35.2 |
 | 2DSSG_orbslam_l20_0        | 8.0/26.0 | 26.544.2  | 89.0/98.3 | 26.1/48.6 | 19.6/81.5 |
+| Joint_orbslam_l20_10       | 11.0/27.1 | 30.1/45.0 | 90.2/98.3 | 23.2/49.5 | 16.3/81.5 |
 
 ##
 segment-level, instance-level
