@@ -862,6 +862,8 @@ class JointGNN(torch.nn.Module):
             gconv = self.gconvs[i]
             
             geo_msg = self.geo_gate(torch.cat((node,geo_feature),dim=1)) * torch.sigmoid(geo_feature)
+            # geo_msg = self.geo_gate(torch.cat((node,geo_feature),dim=1)) * geo_feature
+            
             node += geo_msg
             
             # node, edge, prob = gconv(node,image,edge,edge_index_node_2_node,edge_index_image_2_ndoe)

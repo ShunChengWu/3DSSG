@@ -29,17 +29,25 @@ exp:
 - [ ] JointSSG_orbslam_l20_10_1: was planning to try with proposed edge desc
 - [ ] JointSSG_orbslam_l20_11: use new training data config_base_3RScan_orbslam_l20_2.yaml. There may have a problem with the previous one.
 - [ ] JointSSG_orbslam_l20_11_1: found the correct data generation. should use `gen_data_obj.py`. trying out training.
+- [x] JointSSG_orbslam_l20_11_2: try with relative rotaional descriptr -> overfit issue
+- [x] JointSSG_orbslam_l20_11_3: without sigomid in geo. descriptor. -> overfit
+- [x] JointSSG_orbslam_l20_11_4: try to modify rot. desp. to (x/y).abs().log()
+- [x] JointSSG_orbslam_l20_11_5: try to modify rot. desp. to (x/y).abs().log(). use sigmoid for pt feature entirely.
 
 
 report: (jointssg_v1)[https://wandb.ai/shunchengwu/ssg/reports/JointSG-v-s-2DSSG--VmlldzoyODA1ODc4/edit?firstReport&runsetFilter]
 
-| method                 | Trip      | Obj       | Pred      | mRecall_O | mRecall_P |
-| ---------------------- | --------- | --------- | --------- | --------- | --------- |
-| 2DSSG_orbslam_l20_0    | 8.6/26.0  | 26.9/44.2 | 89.7/98.3 | 26.4/48.6 | 19.7/81.5 |
-| JointSSG_orbslam_l20_0 | 7.1/27.1  | 24.7/45.0 | 90.4/98.3 | 21.4/49.5 | 16.6/81.5 |
-| 2DSSG_full_l20_4       | 57.8/97.0 | 76.3/97.9 | 92.3/99.7 | 82.8/98.1 | 75.2/95.4 |
-| JointSSG_full_l20_2    | 45.2/100  | 66.3/100  | 94.7/100  | 59.8/100  | 56.1/100  |
-
+| method                    | Trip      | Obj       | Pred      | mRecall_O | mRecall_P |
+| ------------------------- | --------- | --------- | --------- | --------- | --------- |
+| 2DSSG_orbslam_l20_0       | 8.6/26.0  | 26.9/44.2 | 89.7/98.3 | 26.4/48.6 | 19.7/81.5 |
+| JointSSG_orbslam_l20_0    | 7.1/27.1  | 24.7/45.0 | 90.4/98.3 | 21.4/49.5 | 16.6/81.5 |
+| 2DSSG_full_l20_4          | 57.8/97.0 | 76.3/97.9 | 92.3/99.7 | 82.8/98.1 | 75.2/95.4 |
+| JointSSG_full_l20_2       | 45.2/100  | 66.3/100  | 94.7/100  | 59.8/100  | 56.1/100  |
+| Joint_orbslam_l20_11_1    | 10.2/26.0 | 28.9/43.1 | 90.3/98.3 | 23.4/47.2 | 16.4/81.4 |
+| JointSSG_orbslam_l20_11_2 | 9.1/      | 27.7      | 90.2      | 22.0      | 15.7      |
+| JointSSG_orbslam_l20_11_3 | 8.6       | 26.9      | 90.5      | 24.4      | 15.6      |
+| JointSSG_orbslam_l20_11_4 | 9.8       | 28.6      | 89.4      | 27.1      | 17.6      |
+| JointSSG_orbslam_l20_11_5 | 8.7       | 26.9      | 90.2      | 26.5      | 16.9      |
 
 # Baseline
 There was a problem with the edge connection and network setup. 
@@ -113,6 +121,7 @@ ScanNet20, Single, ORBSLAM
 - [x] Joint (Joint_orbslam_l20_10)
 - [ ] Joint (Joint_orbslam_l20_10_1) # test plane descriptor
 - [x] Joint_orbslam_l20_11_1
+- [x] JointSSG_orbslam_l20_11_4
 
 # TODO: there was a bug in the edge gate
 
@@ -143,6 +152,7 @@ with(*) is including none estimation
 | SGFN_full_l20_2     | 42.5/100  | 63.0/100  | 94.3/100  | 57.7/100  | 65.5/100  |
 | 2DSSG_full_l20_4    | 57.8/97.0 | 76.3/97.9 | 92.3/99.7 | 82.8/98.1 | 75.2/95.4 |
 | JointSSG_full_l20_4 | 64.9/100  | 79.3/100  | 95.3/100  | 74.6/100  | 71.5/100  |
+| JointSSG_full_l20_5 | 
 
 ## ScanNet20, Single Predicate, inseg
 | method               | Trip      | Obj       | Pred      | mRecall_O | mRecall_P |
@@ -153,6 +163,7 @@ with(*) is including none estimation
 | SGFN_inseg_l20_0     | 31.0/63.1 | 54.9/75.1 | 89.6/98.7 | 38.3/75.7 | 30.5/86.9 |
 | 2DSSG_inseg_l20_0    | 31.1/63.0 | 55.4/74.9 | 88.1/98.7 | 46.9/75.6 | 33.9/86.9 |
 | JointSSG_inseg_l20_0 | 33.6/65.0 | 56.3/76.4 | 89.7/98.7 | 43.7/76.9 | 32.9/88.2 |
+| JointSSG_inseg_l20_1 | 
 ## ScanNet20, Single Predicate, ORBSLAM3
 | method                     | Trip      | Obj       | Pred      | mRecall_O | mRecall_P |
 | -------------------------- | --------- | --------- | --------- | --------- | --------- |
@@ -162,7 +173,7 @@ with(*) is including none estimation
 | SGFN_3rscan_orbslam_l20_1  | 1.7/26.0  | 12.3/43.1 | 88.9/98.3 | 8.3/47.2  | 14.4/81.4 |
 | 2DSSG_orbslam_l20_0        | 8.6/26.0  | 26.9/44.2 | 89.7/98.3 | 26.4/48.6 | 19.7/81.5 |
 | Joint_orbslam_l20_11_1     | 10.2/26.0 | 28.9/43.1 | 90.3/98.3 | 23.4/47.2 | 16.4/81.4 |
-
+| JointSSG_orbslam_l20_11_4  | 9.8       | 28.6      | 89.4      | 27.1      | 17.6      |
 ## Conclusion
 The mRecall_P is closer in sparser setup cuz the amount of missing edges increase. (GT>InSEG>ORBSLAM3).
 
@@ -213,22 +224,22 @@ The mRecall_P is closer in sparser setup cuz the amount of missing edges increas
 TODO: investigate why IMP and VGfM have so low upper bound
 
 ## ScanNet20, Single Predicate, ORBSLAM3
-| method                     | Trip     | Obj       | Pred      | mRecall_O | mRecall_P |
-| -------------------------- | -------- | --------- | --------- | --------- | --------- |
-| IMP_orbslam_l20_0          | 0.0/0.2  | 0.9/3.2   | 90.8/98.1 | 0.5/2.3   | 12.5/80.0 |
-| IMP_ORBSLAM3_l20_1         | 0.0/0.1  | 0.8/3.2   | 94.3/94.4 | 0.1/2.3   | 12.5/12.6 |
-| IMP_orbslam_l20_0          | 0.0/0.2  | 0.9/3.2   | 90.8/98.1 | 0.5/2.3   | 12.5/80.0 |
+| method                     | Trip      | Obj       | Pred      | mRecall_O | mRecall_P |
+| -------------------------- | --------- | --------- | --------- | --------- | --------- |
+| IMP_orbslam_l20_0          | 0.0/0.2   | 0.9/3.2   | 90.8/98.1 | 0.5/2.3   | 12.5/80.0 |
+| IMP_ORBSLAM3_l20_1         | 0.0/0.1   | 0.8/3.2   | 94.3/94.4 | 0.1/2.3   | 12.5/12.6 |
+| IMP_orbslam_l20_0          | 0.0/0.2   | 0.9/3.2   | 90.8/98.1 | 0.5/2.3   | 12.5/80.0 |
 | IMP_orbslam_l20_1          | 9.7/24.3  | 29.3/43.0 | 90.7/98.1 | 20.3/48.6 | 15.3/80.6 |
-| VGfM_ORBSLAM3_l20_3        | 0.0/0.1  | 1.0/3.2   | 94.3/94.4 | 0.6/2.3   | 12.5/12.6 |
-| VGfM_orbslam_l20_0         | 0.0/0.2  | 0.9/3.2   | 90.8/98.1 | 0.7/2.3   | 2.3/80.0  |
+| VGfM_ORBSLAM3_l20_3        | 0.0/0.1   | 1.0/3.2   | 94.3/94.4 | 0.6/2.3   | 12.5/12.6 |
+| VGfM_orbslam_l20_0         | 0.0/0.2   | 0.9/3.2   | 90.8/98.1 | 0.7/2.3   | 2.3/80.0  |
 | VGfM_orbslam_l20_1         | 9.8/24.3  | 28.6/43.0 | 90.6/98.1 | 19.6/48.6 | 15.1/80.6 |
-| 3DSSG_ORBSLAM3_l20_0       | 1.8/25.5 | 12.9/44.2 | 93.2/96.1 | 8.7/48.6  | 17.5/35.2 |
+| 3DSSG_ORBSLAM3_l20_0       | 1.8/25.5  | 12.9/44.2 | 93.2/96.1 | 8.7/48.6  | 17.5/35.2 |
 | 3DSSG_3rscan_orbslam_l20_0 | 0.9/25.9  | 10.0/44.2 | 88.3/98.3 | 7.0/48.6  | 16.0/81.2 |
-| SGFN_ORBSLAM3_l20_0        | 2.5/25.5 | 15.5/44.2 | 94.0/96.1 | 6.9/48.6  | 13.2/35.2 |
+| SGFN_ORBSLAM3_l20_0        | 2.5/25.5  | 15.5/44.2 | 94.0/96.1 | 6.9/48.6  | 13.2/35.2 |
 | SGFN_3rscan_orbslam_l20_0  | 3.8/25.9  | 17.2/44.2 | 90.0/98.3 | 10.2/48.6 | 14.3/81.2 |
-| SGFN_3rscan_orbslam_l20_0  | 2.8/25.9 | 16.4/44.2 | 90.1/98.3 | 9.7/48.6  | 14.3/81.2 |
-| 2DSSG_ORBSLAM3_l20_6_1     | 8.7/25.5 | 27.0/44.2 | 93.2/96.1 | 25.1/48.6 | 19.6/35.2 |
-| 2DSSG_orbslam_l20_0        | 8.0/26.0 | 26.544.2  | 89.0/98.3 | 26.1/48.6 | 19.6/81.5 |
+| SGFN_3rscan_orbslam_l20_0  | 2.8/25.9  | 16.4/44.2 | 90.1/98.3 | 9.7/48.6  | 14.3/81.2 |
+| 2DSSG_ORBSLAM3_l20_6_1     | 8.7/25.5  | 27.0/44.2 | 93.2/96.1 | 25.1/48.6 | 19.6/35.2 |
+| 2DSSG_orbslam_l20_0        | 8.0/26.0  | 26.544.2  | 89.0/98.3 | 26.1/48.6 | 19.6/81.5 |
 | Joint_orbslam_l20_10       | 11.0/27.1 | 30.1/45.0 | 90.2/98.3 | 23.2/49.5 | 16.3/81.5 |
 
 ##

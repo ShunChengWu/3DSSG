@@ -53,7 +53,8 @@ class EdgeDescriptor_plane(MessagePassing):
         about target_to_source or source_to_target. check https://pytorch-geometric.readthedocs.io/en/latest/notes/create_gnn.html
         '''
         super().__init__(flow=flow)
-        self.dim=18
+        # self.dim=18
+        self.dim=18-6
 
     def forward(self, descriptor, edges_indices):
         size = self.__check_input__(edges_indices, None)
@@ -78,7 +79,7 @@ class EdgeDescriptor_plane(MessagePassing):
         # (j, i)
         # 0-2: centroid, 3-5:dims, 6:volume, 7:length
         # to
-        # 0-2: offset centroid, 3-5: dim log ratio, 96 volume log ratio, 7: length log ratio
+        # 0-2: offset centroid, 3-5: dim log ratio, 6 volume log ratio, 7: length log ratio
         
         # 0-2:center, 3-5:dims,6:volume,7:length, 
         # 8-10: x_max,11-13:x_min,14-16:y_max,17-19:y_min,20-22:z_max,23-25:z_min
@@ -121,7 +122,7 @@ class EdgeDescriptor_plane(MessagePassing):
         d_i = torch.cat(get_max_min(d_x_i,d_y_i,d_z_i),dim=1)
         d_j = torch.cat(get_max_min(d_x_j,d_y_j,d_z_j),dim=1)
         
-        d_ij = torch.cat([d_i,d_j],dim=1)
+        # d_ij = torch.cat([d_i,d_j],dim=1)
         
         
         edge_feature = torch.zeros([batch,self.dim]).to(x_i.device)
@@ -130,7 +131,7 @@ class EdgeDescriptor_plane(MessagePassing):
         # dim log ratio
         edge_feature[:,3:6] = torch.log(x_i[:,3:6] / x_j[:,3:6])
         
-        edge_feature[:,6:] = d_ij
+        edge_feature[:,6:] =(d_i.abs()/(d_j.abs()+1e-12)).log()# d_ij
         
         # # volume log ratio
         # edge_feature[:,6] = torch.log( x_i[:,6] / x_j[:,6])

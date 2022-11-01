@@ -196,6 +196,8 @@ class JointSG(nn.Module):
         if self.with_pts_encoder:
             geo_feature = self.obj_encoder(data['node'].pts)
             data['geo_feature'].x = geo_feature
+            # data['geo_feature'].x = torch.sigmoid(geo_feature)
+            
             
         '''compute initial node feature'''
         data['roi'].x = img_feature
