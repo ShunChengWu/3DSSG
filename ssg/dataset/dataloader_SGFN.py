@@ -481,53 +481,6 @@ class SGFNDataset (data.Dataset):
         points /= furthest_distance
         return points
 
-    def read_relationship_json(self, data, selected_scans:list):
-        rel = dict()
-        objs = dict()
-        scans = list()
-        nns = None
-        
-        if 'neighbors' in data:
-            nns = data['neighbors']
-        for scan in data['scans']:
-            if scan["scan"] == 'fa79392f-7766-2d5c-869a-f5d6cfb62fc6':
-                if self.label_file == "labels.instances.align.annotated.v2.ply":
-                    '''
-                    In the 3RScanV2, the segments on the semseg file and its ply file mismatch. 
-                    This causes error in loading data.
-                    To verify this, run check_seg.py
-                    '''
-                    continue
-            if scan['scan'] not in selected_scans:
-                continue
-                
-            relationships = []
-            for realationship in scan["relationships"]:
-                relationships.append(realationship)
-                
-            objects = {}
-            for k, v in scan["objects"].items():
-                objects[int(k)] = v
-                
-            # filter scans that doesn't have the classes we care
-            instances_id = list(objects.keys())
-            valid_counter = 0
-            for instance_id in instances_id:
-                instance_labelName = objects[instance_id]
-                if instance_labelName in self.classNames: # is it a class we care about?
-                    valid_counter+=1
-                    # break
-            if valid_counter < 2: # need at least two nodes
-                continue
-
-            rel[scan["scan"] + "_" + str(scan["split"])] = relationships
-            scans.append(scan["scan"] + "_" + str(scan["split"]))
-
-            
-            objs[scan["scan"]+"_"+str(scan['split'])] = objects
-
-        return rel, objs, scans, nns
-    
     def data_augmentation(self, points):
         # random rotate
         matrix= np.eye(3)
@@ -1302,84 +1255,6 @@ def load_mesh(path,label_file,use_rgb,use_normal):
         result['instances']=instances
     
     return result
-
-def read_relationship_json(data, selected_scans:list, classNames:dict, isV2:bool=True):
-    rel = dict()
-    objs = dict()
-    scans = list()
-    nns = None
-    
-    if 'neighbors' in data:
-        nns = data['neighbors']
-    for scan in data['scans']:
-        if scan["scan"] == 'fa79392f-7766-2d5c-869a-f5d6cfb62fc6':
-            if isV2 == "labels.instances.align.annotated.v2.ply":
-                '''
-                In the 3RScanV2, the segments on the semseg file and its ply file mismatch. 
-                This causes error in loading data.
-                To verify this, run check_seg.py
-                '''
-                continue
-        if scan['scan'] not in selected_scans:
-            continue
-            
-        relationships = []
-        for realationship in scan["relationships"]:
-            relationships.append(realationship)
-            
-        objects = {}
-        for k, v in scan["objects"].items():
-            objects[int(k)] = v
-            
-        # filter scans that doesn't have the classes we care
-        instances_id = list(objects.keys())
-        valid_counter = 0
-        for instance_id in instances_id:
-            instance_labelName = objects[instance_id]
-            if instance_labelName in classNames: # is it a class we care about?
-                valid_counter+=1
-                # break
-        if valid_counter < 2: # need at least two nodes
-            continue
-
-        rel[scan["scan"] + "_" + str(scan["split"])] = relationships
-        scans.append(scan["scan"] + "_" + str(scan["split"]))
-
-        
-        objs[scan["scan"]+"_"+str(scan['split'])] = objects
-
-    return rel, objs, scans, nns
-
-def dataset_loading_3RScan(root:str, pth_selection:str,mode:str,class_choice:list=None):
-    
-    pth_catfile = os.path.join(pth_selection, 'classes.txt')
-    classNames = read_txt_to_list(pth_catfile)
-    
-    pth_relationship = os.path.join(pth_selection, 'relationships.txt')
-    check_file_exist(pth_relationship)
-    relationNames = read_txt_to_list(pth_relationship)
-    
-    selected_scans=set()
-    
-    selected_scans = selected_scans.union( read_txt_to_list(os.path.join(root,'%s_scans.txt' % (mode))) )
-    # if split == 'train_scans' :
-    #     selected_scans = selected_scans.union(read_txt_to_list(os.path.join(pth_selection,'train_scans.txt')))
-    # elif split == 'validation_scans':
-    #     selected_scans = selected_scans.union(read_txt_to_list(os.path.join(pth_selection,'validation_scans.txt')))
-    # elif split == 'test_scans':
-    #     selected_scans = selected_scans.union(read_txt_to_list(os.path.join(pth_selection,'test_scans.txt')))
-    # else:
-    #     raise RuntimeError('unknown split type.')
-
-    with open(os.path.join(root, 'relationships_train.json'), "r") as read_file:
-        data1 = json.load(read_file)
-    with open(os.path.join(root, 'relationships_validation.json'), "r") as read_file:
-        data2 = json.load(read_file)
-    data = dict()
-    data['scans'] = data1['scans'] + data2['scans']
-    if 'neighbors' in data1:
-        data['neighbors'] = {**data1['neighbors'], **data2['neighbors']}
-    return  classNames, relationNames, data, selected_scans
 
 def zero_mean(point, normalize:bool):
     mean = torch.mean(point, dim=0)

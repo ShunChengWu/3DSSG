@@ -33,6 +33,9 @@ exp:
 - [x] JointSSG_orbslam_l20_11_3: without sigomid in geo. descriptor. -> overfit
 - [x] JointSSG_orbslam_l20_11_4: try to modify rot. desp. to (x/y).abs().log()
 - [x] JointSSG_orbslam_l20_11_5: try to modify rot. desp. to (x/y).abs().log(). use sigmoid for pt feature entirely.
+- [ ] JointSSG_orbslam_l20_11_6: withotu geo, without pose descriptor.
+- [ ] JointSSG_orbslam_l20_11_6: with geo, without pose descriptor.
+- [ ] JointSSG_orbslam_l20_11_6: withotu geo, with pose descriptor.
 
 
 report: (jointssg_v1)[https://wandb.ai/shunchengwu/ssg/reports/JointSG-v-s-2DSSG--VmlldzoyODA1ODc4/edit?firstReport&runsetFilter]
@@ -97,7 +100,10 @@ ScanNet20, Single, Full
 - [x] SGFN (SGFN_full_l20_2)
 - [x] 2DSSG (2DSSG_full_l20_4)
 - [x] 2DSSG (2DSSG_full_l20_4_1) # use aggr:mean (was max)
-- [x] Joint (JointSSG_full_l20_4)
+- [x] Joint (JointSSG_full_l20_4) # with geo, w/o pose desc.
+- [x] JointSSG_full_l20_5 # with geo. with pose desc
+- [ ] JointSSG_full_l20_5_1 # wo geo, wo pose desc
+- [ ] JointSSG_full_l20_5_2 # wo geo, with pose desc
 ScanNet20, Single, Inseg
 - [x] IMP (IMP_INSEG_l20_2)
 - [x] IMP (IMP_INSEG_l20_3)
@@ -152,7 +158,7 @@ with(*) is including none estimation
 | SGFN_full_l20_2     | 42.5/100  | 63.0/100  | 94.3/100  | 57.7/100  | 65.5/100  |
 | 2DSSG_full_l20_4    | 57.8/97.0 | 76.3/97.9 | 92.3/99.7 | 82.8/98.1 | 75.2/95.4 |
 | JointSSG_full_l20_4 | 64.9/100  | 79.3/100  | 95.3/100  | 74.6/100  | 71.5/100  |
-| JointSSG_full_l20_5 | 
+| JointSSG_full_l20_5 | 66.5      | 80.6      | 95.5      | 77.4      | 68.3      |
 
 ## ScanNet20, Single Predicate, inseg
 | method               | Trip      | Obj       | Pred      | mRecall_O | mRecall_P |
@@ -163,7 +169,7 @@ with(*) is including none estimation
 | SGFN_inseg_l20_0     | 31.0/63.1 | 54.9/75.1 | 89.6/98.7 | 38.3/75.7 | 30.5/86.9 |
 | 2DSSG_inseg_l20_0    | 31.1/63.0 | 55.4/74.9 | 88.1/98.7 | 46.9/75.6 | 33.9/86.9 |
 | JointSSG_inseg_l20_0 | 33.6/65.0 | 56.3/76.4 | 89.7/98.7 | 43.7/76.9 | 32.9/88.2 |
-| JointSSG_inseg_l20_1 | 
+| JointSSG_inseg_l20_1 |
 ## ScanNet20, Single Predicate, ORBSLAM3
 | method                     | Trip      | Obj       | Pred      | mRecall_O | mRecall_P |
 | -------------------------- | --------- | --------- | --------- | --------- | --------- |

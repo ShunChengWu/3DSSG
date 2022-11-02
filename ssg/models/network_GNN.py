@@ -812,6 +812,7 @@ class JointGNN_v2(torch.nn.Module):
 class JointGNN(torch.nn.Module):
     def __init__(self, **kwargs):
         super().__init__()
+        self.with_geo = kwargs['with_geo']
         self.num_layers = kwargs['num_layers']
         self.num_heads = kwargs['num_heads']
         dim_node = kwargs['dim_node']
@@ -833,7 +834,8 @@ class JointGNN(torch.nn.Module):
         self.edge_gru = nn.GRUCell(input_size=dim_edge, hidden_size=dim_edge)
         
         # gate
-        self.geo_gate = nn.Sequential(nn.Linear(dim_node * 2, 1), nn.Sigmoid())
+        if self.with_geo:
+            self.geo_gate = nn.Sequential(nn.Linear(dim_node * 2, 1), nn.Sigmoid())
         
         self.drop_out = None 
         if drop_out_p > 0:
@@ -848,7 +850,8 @@ class JointGNN(torch.nn.Module):
     def forward(self, data):
         probs = list()
         node = data['node'].x
-        geo_feature = data['geo_feature'].x
+        if self.with_geo:
+            geo_feature = data['geo_feature'].x
         # image = data['roi'].x
         edge = data['edge'].x
         # spatial = data['node'].spatial if 'spatial' in data['node'] else None
@@ -861,10 +864,10 @@ class JointGNN(torch.nn.Module):
         for i in range(self.num_layers):
             gconv = self.gconvs[i]
             
-            geo_msg = self.geo_gate(torch.cat((node,geo_feature),dim=1)) * torch.sigmoid(geo_feature)
-            # geo_msg = self.geo_gate(torch.cat((node,geo_feature),dim=1)) * geo_feature
-            
-            node += geo_msg
+            if self.with_geo:
+                geo_msg = self.geo_gate(torch.cat((node,geo_feature),dim=1)) * torch.sigmoid(geo_feature)
+                # geo_msg = self.geo_gate(torch.cat((node,geo_feature),dim=1)) * geo_feature
+                node += geo_msg
             
             # node, edge, prob = gconv(node,image,edge,edge_index_node_2_node,edge_index_image_2_ndoe)
             node_msg, edge_msg, prob = gconv(node, edge, edge_index_node_2_node)

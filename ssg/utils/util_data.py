@@ -6,7 +6,7 @@ from ssg.objects import Node
 import codeLib.utils.string_numpy as snp
 from ssg import define
 import ast
-
+import copy
 # def merge_batch_seg2idx(seg2idxs):
 #     idx2seg=dict()
 #     # idx2seg[0]=[0]
@@ -161,7 +161,7 @@ def load_graph(data, box_filter_size: list=[]):
     #     print('before,filtered',len(data['nodes']), len(nodes))
         
     output = dict()        
-    output = data
+    output = copy.deepcopy(data)
     output['nodes'] = nodes
     output['kfs'] = data['kfs']
     return output 

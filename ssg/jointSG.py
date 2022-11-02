@@ -100,6 +100,7 @@ class JointSG(nn.Module):
         if cfg.model.gnn.method != 'none': 
             gnn_method = cfg.model.gnn.method.lower()
             models['gnn'] = ssg.models.gnn_list[gnn_method](
+                with_geo = self.with_pts_encoder,
                 dim_node  = cfg.model.node_feature_dim,
                 dim_edge  = cfg.model.edge_feature_dim,
                 dim_image = cfg.model.img_feature_dim,
@@ -197,6 +198,9 @@ class JointSG(nn.Module):
             geo_feature = self.obj_encoder(data['node'].pts)
             data['geo_feature'].x = geo_feature
             # data['geo_feature'].x = torch.sigmoid(geo_feature)
+        else:
+            geo_feature = torch.zeros([edge_index_image_2_ndoe[1].max()+1,1]).to(img_feature)
+            # geo_feature = torch.zeros_like(img_feature)
             
             
         '''compute initial node feature'''
