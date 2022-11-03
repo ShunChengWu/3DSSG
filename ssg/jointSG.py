@@ -114,8 +114,6 @@ class JointSG(nn.Module):
                 # **cfg.model.gnn[gnn_method]
                 )
             
-            
-        
         '''spatial feature'''
         self.use_spatial = use_spatial = self.cfg.model.spatial_encoder.method != 'none'
         sptial_feature_dim=0

@@ -33,9 +33,9 @@ exp:
 - [x] JointSSG_orbslam_l20_11_3: without sigomid in geo. descriptor. -> overfit
 - [x] JointSSG_orbslam_l20_11_4: try to modify rot. desp. to (x/y).abs().log()
 - [x] JointSSG_orbslam_l20_11_5: try to modify rot. desp. to (x/y).abs().log(). use sigmoid for pt feature entirely.
-- [ ] JointSSG_orbslam_l20_11_6: withotu geo, without pose descriptor.
-- [ ] JointSSG_orbslam_l20_11_6: with geo, without pose descriptor.
-- [ ] JointSSG_orbslam_l20_11_6: withotu geo, with pose descriptor.
+- [x] JointSSG_orbslam_l20_11_6: withotu geo, without pose descriptor.
+- [ ] JointSSG_orbslam_l20_11_7: with geo, without pose descriptor.
+- [ ] JointSSG_orbslam_l20_11_8: withotu geo, with pose descriptor.
 
 
 report: (jointssg_v1)[https://wandb.ai/shunchengwu/ssg/reports/JointSG-v-s-2DSSG--VmlldzoyODA1ODc4/edit?firstReport&runsetFilter]
@@ -51,6 +51,9 @@ report: (jointssg_v1)[https://wandb.ai/shunchengwu/ssg/reports/JointSG-v-s-2DSSG
 | JointSSG_orbslam_l20_11_3 | 8.6       | 26.9      | 90.5      | 24.4      | 15.6      |
 | JointSSG_orbslam_l20_11_4 | 9.8       | 28.6      | 89.4      | 27.1      | 17.6      |
 | JointSSG_orbslam_l20_11_5 | 8.7       | 26.9      | 90.2      | 26.5      | 16.9      |
+| JointSSG_orbslam_l20_11_6 | 9.6       | 28.6      | 90.0      | 25.6      | 17.7      |
+| JointSSG_orbslam_l20_11_7 |
+| JointSSG_orbslam_l20_11_8 |
 
 # Baseline
 There was a problem with the edge connection and network setup. 

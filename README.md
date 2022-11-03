@@ -1,3 +1,7 @@
+# TODO
+- [ ] write a loader that load the sequential data
+- [ ] allow jointSSG takes not cropped ROI input.
+
 # SceneGraphFusion
 ![teaser](img/teaser.png)
 **Authors**: [Shun-Cheng Wu][sc], [Johanna Wald][jojo], [Keisuke Tateno][keisu], [Nassir Navab][nassir] and [Federico Tombari][fede]

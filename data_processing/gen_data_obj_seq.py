@@ -61,7 +61,7 @@ def process_one(args,
                 data,
                 instance2labelName,
                 target_relationships,
-                gt_relationships):
+                gt_relationships) -> dict:
     '''Process One'''
     graph = util_data.load_graph(data,box_filter_size=[int(args.bbox_min_size)])
     nodes = graph['nodes']
@@ -72,7 +72,7 @@ def process_one(args,
     pth_ply = os.path.join(pth_3RScan,scan_id,args.scan_name+'_'+timestamp+'.ply')
     if not os.path.isfile(pth_ply):
         logger_py.info('skip {} due to no ply file exists'.format(scan_id))
-        return [], []
+        return {}
         # raise RuntimeError('cannot find file {}'.format(pth_ply))
     # Load
     cloud_pd = trimesh.load(pth_ply, process=False)
@@ -140,7 +140,7 @@ def process_one(args,
             
     if len(segment_ids) < args.min_entity_num:
         if debug: print('num of entities ({}) smaller than {}'.format(len(segment_ids),args.min_entity_num))
-        return [],{}
+        return {}
     
     
         
@@ -214,7 +214,8 @@ def process(args:dict,
             target_relationships,
             gt_relationships
             )
-        outputs[timestamp]= output
+        if len(output)>0:
+            outputs[timestamp]= output
     return outputs
 
 

@@ -13,6 +13,10 @@ import matplotlib
 import PIL
 import copy
 import codeLib.utils.string_numpy as snp
+import torch_geometric
+# disable GUI
+matplotlib.pyplot.switch_backend('agg')
+# change log setting
 matplotlib.pyplot.set_loglevel("CRITICAL")
 logging.getLogger('PIL').setLevel('CRITICAL')
 logging.getLogger('trimesh').setLevel('CRITICAL')
@@ -20,7 +24,7 @@ logger_py = logging.getLogger(__name__)
 
 
 def main():
-    cfg = parse()
+    cfg = ssg.Parse()
     
     # Shorthands
     out_dir = os.path.join(cfg['training']['out_dir'], cfg.name)
@@ -36,25 +40,25 @@ def main():
     logger_py.setLevel(cfg.log_level)
 
     ''' Get segment dataset '''
-    cfg.data.input_type = 'sgfn_incre'
+    logger_py.info('create loader')
+    cfg.data.input_type = 'sgfn_seq'
+    # cfg.data.is_roi_img=True
     dataset_seg  = config.get_dataset(cfg,'test')    
     
-    ''' Get instance dataset'''
-    # tmp_cfg = copy.deepcopy(cfg)
-    # tmp_cfg.model.use_rgb = False
-    # tmp_cfg.model.use_normal = False
-    # tmp_cfg.data.input_type = 'sgfn'
-    # tmp_cfg.data.load_images=False
-    # tmp_cfg.data.load_points=False
-    # tmp_cfg.data.path = cfg.data.path_gt
-    # tmp_cfg.data.label_file = cfg.data.label_file_gt
-    # tmp_cfg.data.path_gt = cfg.data.path_gt
-    # dataset_inst  = config.get_dataset(tmp_cfg,'test')
-    # # write back
+    dataset_inst = config.get_dataset_inst(cfg,'test')
+    
+    logger_py.info('test loader')
+    dataset_seg.__getitem__(0)
+    for i,data in enumerate(dataset_seg):
+        # print(i)
+        break
+    dataset_inst.__getitem__(0)
+    for i,data in enumerate(dataset_inst):
+        # print(i)
+        break
     
     '''check'''
-    # assert len(dataset_seg.relationNames) == len(dataset_inst.relationNames)+1
-    # assert len(dataset_seg.classNames)==len(dataset_inst.classNames)
+    assert len(dataset_seg.classNames)==len(dataset_inst.classNames)
     
     ''' Get logger '''
     logger = config.get_logger(cfg)
@@ -81,23 +85,28 @@ def main():
     logger_py.info('start evaluation')
     pr = cProfile.Profile()
     pr.enable()    
-    eval_dict, eval_tool = model_trainer.evaluate_inst_incre(dataset_seg, topk=cfg.eval.topK)
+    eval_dict, eval_tools,eval_tool_upperbound = model_trainer.evaluate_inst_incre(dataset_seg,dataset_inst, topk=cfg.eval.topK)
     pr.disable()
-    logger_py.info('save time profile to {}'.format(os.path.join(out_dir,'tp_eval_inst.dmp')))
-    pr.dump_stats(os.path.join(out_dir,'tp_eval_inst.dmp'))
+    logger_py.info('save time profile to {}'.format(os.path.join(out_dir,'tp_eval_incre.dmp')))
+    pr.dump_stats(os.path.join(out_dir,'tp_eval_incre.dmp'))
     
     '''log'''
     # ignore_missing=cfg.eval.ignore_missing
     prefix='incre_inst' if not cfg.eval.ignore_missing else 'incre_inst_ignore'
     
-    print(eval_tool.gen_text())
-    _ = eval_tool.write(out_dir, prefix)
-    if logger:
-        for k,v in eval_dict['visualization'].items(): 
-            logger.add_figure('test/'+prefix+'_'+k, v, global_step=it)
-        for k, v in eval_dict.items():
-            if isinstance(v,dict): continue
-            logger.add_scalar('test/'+prefix+'_'+'%s' % k, v, it)
+    eval_tool_upperbound.write(out_dir,'incre_upper_bound')
+    
+    for eval_type, eval_tool in eval_tools.items():
+        print('======={}======'.format(eval_type))
+        print(eval_tool.gen_text())
+        _ = eval_tool.write(out_dir, eval_type+'_'+prefix)
+    
+    # if logger:
+    #     for k,v in eval_dict['visualization'].items(): 
+    #         logger.add_figure('test/'+prefix+'_'+k, v, global_step=it)
+    #     for k, v in eval_dict.items():
+    #         if isinstance(v,dict): continue
+    #         logger.add_scalar('test/'+prefix+'_'+'%s' % k, v, it)
 
 
 def parse():
