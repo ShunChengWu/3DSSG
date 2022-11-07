@@ -302,6 +302,18 @@ class Trainer_SGFN(BaseTrainer, EvalInst):
                 logs = {}
                 data_inst = self.process_data_dict(data_inst)
                 
+                
+                # use the latest timestamp to calculate the upperbound
+                if data_seq_seq is not None:    
+                    key_int = sorted([int(t) for t in data_seq_seq])
+                    latest_t = max(key_int)
+                    data_lastest = self.process_data_dict(data_seq_seq[str(latest_t)])
+                    
+                else:
+                    data_lastest = None
+                eval_UpperBound(data_lastest,data_inst,is_eval_image)
+                # continue
+                
                 # Shortcuts
                 scan_id = data_inst['scan_id']
                 inst_mask2instance = data_inst['node'].idx2oid[0]#data_inst['mask2instance']
@@ -310,7 +322,7 @@ class Trainer_SGFN(BaseTrainer, EvalInst):
                 inst_node_edges = data_inst['node','to','node'].edge_index#data_inst['node_edges']
                 
                 if data_seq_seq is None:
-                    break
+                    # break
                     node_pred = torch.zeros_like(torch.nn.functional.one_hot(inst_gt_cls, len(node_cls_names))).float()
                     node_pred[:,noneidx_node_cls] = 1.0
                 
@@ -330,14 +342,6 @@ class Trainer_SGFN(BaseTrainer, EvalInst):
                             inst_node_edges)
                     continue
                 
-                # use the latest timestamp to calculate the upperbound
-                key_int = sorted([int(t) for t in data_seq_seq])
-                latest_t = max(key_int)
-                
-                # record in eval_UB
-
-                eval_UpperBound(self.process_data_dict(data_seq_seq[str(latest_t)]),data_inst,is_eval_image)
-                
                 predictions_weights = dict()
                 predictions_weights['node'] = dict()
                 predictions_weights['edge'] = dict()
@@ -352,6 +356,7 @@ class Trainer_SGFN(BaseTrainer, EvalInst):
                     merged_edge_cls_gt = inst_gt_rel.clone().float()
                 
                 for timestamp in key_int:
+                    timestamp = key_int[-1]
                     timestamp = str(timestamp)
                     data_seg = self.process_data_dict(data_seq_seq[timestamp])
                     
@@ -495,7 +500,7 @@ class Trainer_SGFN(BaseTrainer, EvalInst):
                         merged_edge_cls=merged_edge_cls[:counter]
                         merged_edge_cls_gt = merged_edge_cls_gt[:counter]
                     merged_node_edges = torch.tensor(merged_node_edges,dtype=torch.long)
-                
+                    break
                 merged_node_edges=merged_node_edges.t().contiguous()
                 
             for eval_tool in eval_tools.values():

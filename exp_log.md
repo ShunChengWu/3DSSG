@@ -34,9 +34,9 @@ exp:
 - [x] JointSSG_orbslam_l20_11_4: try to modify rot. desp. to (x/y).abs().log()
 - [x] JointSSG_orbslam_l20_11_5: try to modify rot. desp. to (x/y).abs().log(). use sigmoid for pt feature entirely.
 - [x] JointSSG_orbslam_l20_11_6: withotu geo, without pose descriptor.
-- [ ] JointSSG_orbslam_l20_11_7: with geo, without pose descriptor.
-- [ ] JointSSG_orbslam_l20_11_8: withotu geo, with pose descriptor.
-
+- [x] JointSSG_orbslam_l20_11_7: with geo, without pose descriptor.
+- [x] JointSSG_orbslam_l20_11_8: withotu geo, with pose descriptor.**
+**
 
 report: (jointssg_v1)[https://wandb.ai/shunchengwu/ssg/reports/JointSG-v-s-2DSSG--VmlldzoyODA1ODc4/edit?firstReport&runsetFilter]
 
@@ -52,8 +52,8 @@ report: (jointssg_v1)[https://wandb.ai/shunchengwu/ssg/reports/JointSG-v-s-2DSSG
 | JointSSG_orbslam_l20_11_4 | 9.8       | 28.6      | 89.4      | 27.1      | 17.6      |
 | JointSSG_orbslam_l20_11_5 | 8.7       | 26.9      | 90.2      | 26.5      | 16.9      |
 | JointSSG_orbslam_l20_11_6 | 9.6       | 28.6      | 90.0      | 25.6      | 17.7      |
-| JointSSG_orbslam_l20_11_7 |
-| JointSSG_orbslam_l20_11_8 |
+| JointSSG_orbslam_l20_11_7 | 9.8       | 28.5      | 90.0      | 25.7      | 18.1      |
+| JointSSG_orbslam_l20_11_8 | 9.6       | 28.1      | 90.2      | 23.3      | 16.9      |
 
 # Baseline
 There was a problem with the edge connection and network setup. 
@@ -105,8 +105,9 @@ ScanNet20, Single, Full
 - [x] 2DSSG (2DSSG_full_l20_4_1) # use aggr:mean (was max)
 - [x] Joint (JointSSG_full_l20_4) # with geo, w/o pose desc.
 - [x] JointSSG_full_l20_5 # with geo. with pose desc
-- [ ] JointSSG_full_l20_5_1 # wo geo, wo pose desc
-- [ ] JointSSG_full_l20_5_2 # wo geo, with pose desc
+- [x] JointSSG_full_l20_5_1 # wo geo, wo pose desc
+- [x] JointSSG_full_l20_5_2 # with geo, wo pose desc
+- [ ] JointSSG_full_l20_5_3 # wo geo, with pose desc
 ScanNet20, Single, Inseg
 - [x] IMP (IMP_INSEG_l20_2)
 - [x] IMP (IMP_INSEG_l20_3)
@@ -116,6 +117,11 @@ ScanNet20, Single, Inseg
 - [x] 3DSSG (3DSSG_INSEG_l20_3) # need to retrian. the nubmer is too low.
 - [x] SGFN (SGFN_inseg_l20_0)
 - [x] 2DSSG (2DSSG_inseg_l20_0) # train on deep
+- [x] JointSSG_inseg_l20_0 # with geo. wo pose desc.
+- [x] JointSSG_inseg_l20_1 # with geo. with pose desc.
+- [x] JointSSG_inseg_l20_2 # with geo, wo pose desc.
+- [ ] JointSSG_inseg_l20_3 # wo geo, with pose des.
+- [ ] JointSSG_inseg_l20_4 # wo geo, wo pose desc.
 ScanNet20, Single, ORBSLAM
 - [x] IMP (IMP_orbslam_l20_0)
 - [x] IMP (IMP_orbslam_l20_1)
@@ -153,15 +159,17 @@ with(*) is including none estimation
 | JointSSG_full_l160_0* | 49.9/100  | 56.7/100  | 50.2/100  | 27.2/100  | 23.9/100  |
 
 ## ScanNet20, Single Predicate, full
-| method              | Trip      | Obj       | Pred      | mRecall_O | mRecall_P |
-| ------------------- | --------- | --------- | --------- | --------- | --------- |
-| IMP_full_l20_6      | 49.2/89.8 | 68.6/94.4 | 94.3/98.8 | 53.0/95.9 | 38.1/88.5 |
-| VGfM_full_l20_8     | 49.1/91.4 | 68.5/95.2 | 94.8/95.9 | 57.5/98.8 | 44.6/88.5 |
-| 3DSSG_full_l20_3    | 34.8/100  | 57.5/100  | 95.2/100  | 46.0/100  | 58.7/100  |
-| SGFN_full_l20_2     | 42.5/100  | 63.0/100  | 94.3/100  | 57.7/100  | 65.5/100  |
-| 2DSSG_full_l20_4    | 57.8/97.0 | 76.3/97.9 | 92.3/99.7 | 82.8/98.1 | 75.2/95.4 |
-| JointSSG_full_l20_4 | 64.9/100  | 79.3/100  | 95.3/100  | 74.6/100  | 71.5/100  |
-| JointSSG_full_l20_5 | 66.5      | 80.6      | 95.5      | 77.4      | 68.3      |
+| method                | Trip      | Obj       | Pred      | mRecall_O | mRecall_P |
+| --------------------- | --------- | --------- | --------- | --------- | --------- |
+| IMP_full_l20_6        | 49.2/89.8 | 68.6/94.4 | 94.3/98.8 | 53.0/95.9 | 38.1/88.5 |
+| VGfM_full_l20_8       | 49.1/91.4 | 68.5/95.2 | 94.8/95.9 | 57.5/98.8 | 44.6/88.5 |
+| 3DSSG_full_l20_3      | 34.8/100  | 57.5/100  | 95.2/100  | 46.0/100  | 58.7/100  |
+| SGFN_full_l20_2       | 42.5/100  | 63.0/100  | 94.3/100  | 57.7/100  | 65.5/100  |
+| 2DSSG_full_l20_4      | 57.8/97.0 | 76.3/97.9 | 92.3/99.7 | 82.8/98.1 | 75.2/95.4 |
+| JointSSG_full_l20_4   | 64.9/100  | 79.3/100  | 95.3/100  | 74.6/100  | 71.5/100  |
+| JointSSG_full_l20_5   | 66.5      | 80.6      | 95.5      | 77.4      | 68.3      |
+| JointSSG_full_l20_5_1 | 61.9      | 76.4      | 95.6      | 74.3      | 69.2      |
+| JointSSG_full_l20_5_2 | 62.9      | 77.9      | 95.9      | 74.2      | 64.3      |
 
 ## ScanNet20, Single Predicate, inseg
 | method               | Trip      | Obj       | Pred      | mRecall_O | mRecall_P |
@@ -172,17 +180,20 @@ with(*) is including none estimation
 | SGFN_inseg_l20_0     | 31.0/63.1 | 54.9/75.1 | 89.6/98.7 | 38.3/75.7 | 30.5/86.9 |
 | 2DSSG_inseg_l20_0    | 31.1/63.0 | 55.4/74.9 | 88.1/98.7 | 46.9/75.6 | 33.9/86.9 |
 | JointSSG_inseg_l20_0 | 33.6/65.0 | 56.3/76.4 | 89.7/98.7 | 43.7/76.9 | 32.9/88.2 |
-| JointSSG_inseg_l20_1 |
+| JointSSG_inseg_l20_1 | 33.9      | 56.4      | 90.0      | 43.0      | 33.3      |
+| JointSSG_inseg_l20_2 | 33.9      | 56.4      | 89.7      | 45.7      | 33.8      |
 ## ScanNet20, Single Predicate, ORBSLAM3
-| method                     | Trip      | Obj       | Pred      | mRecall_O | mRecall_P |
-| -------------------------- | --------- | --------- | --------- | --------- | --------- |
-| IMP_orbslam_l20_2          | 7.6/20.1  | 26.4/38.9 | 90.7/98.2 | 20.6/41.0 | 14.0/81.1 |
-| VGfM_orbslam_l20_2         | 7.3/20.1  | 25.9/38.9 | 90.8/98.2 | 17.6/41.0 | 15.4/81.1 |
-| 3DSSG_3rscan_orbslam_l20_1 | 0.9/26.0  | 9.1/43.1  | 87.9/98.3 | 5.9/47.2  | 15.1/81.4 |
-| SGFN_3rscan_orbslam_l20_1  | 1.7/26.0  | 12.3/43.1 | 88.9/98.3 | 8.3/47.2  | 14.4/81.4 |
-| 2DSSG_orbslam_l20_0        | 8.6/26.0  | 26.9/44.2 | 89.7/98.3 | 26.4/48.6 | 19.7/81.5 |
-| Joint_orbslam_l20_11_1     | 10.2/26.0 | 28.9/43.1 | 90.3/98.3 | 23.4/47.2 | 16.4/81.4 |
-| JointSSG_orbslam_l20_11_4  | 9.8       | 28.6      | 89.4      | 27.1      | 17.6      |
+| method                       | Trip      | Obj       | Pred      | mRecall_O | mRecall_P |
+| ---------------------------- | --------- | --------- | --------- | --------- | --------- |
+| IMP_orbslam_l20_2            | 7.6/20.1  | 26.4/38.9 | 90.7/98.2 | 20.6/41.0 | 14.0/81.1 |
+| VGfM_orbslam_l20_2           | 7.3/20.1  | 25.9/38.9 | 90.8/98.2 | 17.6/41.0 | 15.4/81.1 |
+| 3DSSG_3rscan_orbslam_l20_1   | 0.9/26.0  | 9.1/43.1  | 87.9/98.3 | 5.9/47.2  | 15.1/81.4 |
+| SGFN_3rscan_orbslam_l20_1    | 1.7/26.0  | 12.3/43.1 | 88.9/98.3 | 8.3/47.2  | 14.4/81.4 |
+| 2DSSG_orbslam_l20_0          | 8.6/26.0  | 26.9/44.2 | 89.7/98.3 | 26.4/48.6 | 19.7/81.5 |
+| Joint_orbslam_l20_11_1       | 10.2/26.0 | 28.9/43.1 | 90.3/98.3 | 23.4/47.2 | 16.4/81.4 |
+| JointSSG_orbslam_l20_11_4    | 10.1      | 28.9      | 90.3      | 23.5      | 16.5      |
+| JointSSG_orbslam_l20_11_4(i) | 10.5      | 30.2      | 90.1      | 24.5      | 15.9      |
+
 ## Conclusion
 The mRecall_P is closer in sparser setup cuz the amount of missing edges increase. (GT>InSEG>ORBSLAM3).
 

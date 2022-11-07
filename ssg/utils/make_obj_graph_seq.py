@@ -223,14 +223,15 @@ if __name__ == '__main__':
     
     '''read scenes'''
     fdata = os.path.join('data','3RScan',"data","3RScan")# os.path.join(define.DATA_PATH)
-    train_ids = read_txt_to_list(os.path.join('files','train_scans.txt'))
-    val_ids = read_txt_to_list(os.path.join('files','validation_scans.txt'))
+    # train_ids = read_txt_to_list(os.path.join('files','train_scans.txt'))
+    # val_ids = read_txt_to_list(os.path.join('files','validation_scans.txt'))
     test_ids = read_txt_to_list(os.path.join('files','test_scans.txt'))
     
-    print(len(train_ids))
-    print(len(val_ids))
+    # print(len(train_ids))
+    # print(len(val_ids))
     print(len(test_ids))
-    scan_ids  = sorted( train_ids + val_ids + test_ids)
+    # scan_ids  = sorted( train_ids + val_ids + test_ids)
+    scan_ids  = sorted( test_ids)
     print(len(scan_ids))
     
     pbar = tqdm(scan_ids)

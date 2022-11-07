@@ -323,8 +323,10 @@ def draw(scan_id,scan_data, T,node_pds,node_gts,seg2iid):
     meshes.append(mesh)
     
     pth_ply ='/media/sc/SSD1TB/dataset/3RScan/data/3RScan/'+scan_id+'/2dssg_orbslam3.ply'
-    pth_ply = '/home/sc/research/ORB_SLAM3/bin/15/map.ply'
+    # pth_ply = '/home/sc/research/ORB_SLAM3/bin/15/map.ply'
     mesh = trimesh.load(pth_ply, process=False)
+    
+    
     # unique_colors = np.unique(mesh.visual.vertex_colors,axis=0)
     meshes.append(mesh)
     # x = trimesh.util.concatenate( meshes )
@@ -334,7 +336,7 @@ def draw(scan_id,scan_data, T,node_pds,node_gts,seg2iid):
 
 
 # Read predictions
-path_pd = '/home/sc/research/PersistentSLAM/python/3DSSG/experiments/2DSSG_ORBSLAM3_l20_6/predictions.json'
+path_pd = '/home/sc/research/PersistentSLAM/python/3DSSG/experiments/JointSSG_orbslam_l20_11_4/predictions.json'
 with open(path_pd,'r') as f:
     data_pds = json.load(f)
 
@@ -365,7 +367,7 @@ for scan_id in test_scans:
     else:
         T = np.eye(4,4)
     pth_json='/media/sc/SSD1TB/dataset/3RScan/data/3RScan/'+scan_id+'/graph_2dssg_orbslam3.json'
-    pth_json = '/home/sc/research/ORB_SLAM3/bin/15/graph.json'
+    # pth_json = '/home/sc/research/ORB_SLAM3/bin/15/graph.json'
     
     
     '''Load bounding box data'''

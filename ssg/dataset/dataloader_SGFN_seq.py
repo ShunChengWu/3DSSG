@@ -265,7 +265,10 @@ class Dataset (data.Dataset):
         
         '''process each timestamp'''
         output_seq = defaultdict(HeteroData)
-        for timestamp in filtered_data_seq:    
+        
+        sorted_keys = [str(k) for k in sorted([int(k) for k in filtered_data_seq])]
+        # sorted_keys = sorted_keys[-1:]
+        for timestamp in sorted_keys:    
             scan_data = scan_data_seq[timestamp]
             filtered_data = filtered_data_seq[timestamp]
             mv_data = mv_data_seq[timestamp]
@@ -366,6 +369,7 @@ class Dataset (data.Dataset):
                                            mv_nodes,
                                            mv_kfs,
                                            filtered_instances,
+                                           filtered_kf_indices,
                                            object_data)
                 
                 # descriptor_generator = util_data.Node_Descriptor_24(with_bbox=self.mconfig.img_desc_6_pts)
@@ -1052,6 +1056,7 @@ class Dataset (data.Dataset):
                           mv_nodes:dict,
                           mv_kfs:dict,
                           filtered_instances:list,
+                          filtered_kf_indices:list,
                           object_data):
         descriptor_generator = util_data.Node_Descriptor_24(with_bbox=self.mconfig.img_desc_6_pts)
         node_descriptor_for_image = torch.zeros([len(cat), len(descriptor_generator)])
