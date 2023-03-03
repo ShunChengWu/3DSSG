@@ -107,7 +107,7 @@ ScanNet20, Single, Full
 - [x] JointSSG_full_l20_5 # with geo. with pose desc
 - [x] JointSSG_full_l20_5_1 # wo geo, wo pose desc
 - [x] JointSSG_full_l20_5_2 # with geo, wo pose desc
-- [ ] JointSSG_full_l20_5_3 # wo geo, with pose desc
+- [x] JointSSG_full_l20_5_3 # wo geo, with pose desc
 ScanNet20, Single, Inseg
 - [x] IMP (IMP_INSEG_l20_2)
 - [x] IMP (IMP_INSEG_l20_3)
@@ -120,8 +120,8 @@ ScanNet20, Single, Inseg
 - [x] JointSSG_inseg_l20_0 # with geo. wo pose desc.
 - [x] JointSSG_inseg_l20_1 # with geo. with pose desc.
 - [x] JointSSG_inseg_l20_2 # with geo, wo pose desc.
-- [ ] JointSSG_inseg_l20_3 # wo geo, with pose des.
-- [ ] JointSSG_inseg_l20_4 # wo geo, wo pose desc.
+- [x] JointSSG_inseg_l20_3 # wo geo, with pose des.
+- [x] JointSSG_inseg_l20_4 # wo geo, wo pose desc.
 ScanNet20, Single, ORBSLAM
 - [x] IMP (IMP_orbslam_l20_0)
 - [x] IMP (IMP_orbslam_l20_1)
@@ -170,6 +170,7 @@ with(*) is including none estimation
 | JointSSG_full_l20_5   | 66.5      | 80.6      | 95.5      | 77.4      | 68.3      |
 | JointSSG_full_l20_5_1 | 61.9      | 76.4      | 95.6      | 74.3      | 69.2      |
 | JointSSG_full_l20_5_2 | 62.9      | 77.9      | 95.9      | 74.2      | 64.3      |
+| JointSSG_full_l20_5_3 | 60.4      | 76.3      | 95.0      | 75.3      | 73.2      |
 
 ## ScanNet20, Single Predicate, inseg
 | method               | Trip      | Obj       | Pred      | mRecall_O | mRecall_P |
@@ -182,6 +183,8 @@ with(*) is including none estimation
 | JointSSG_inseg_l20_0 | 33.6/65.0 | 56.3/76.4 | 89.7/98.7 | 43.7/76.9 | 32.9/88.2 |
 | JointSSG_inseg_l20_1 | 33.9      | 56.4      | 90.0      | 43.0      | 33.3      |
 | JointSSG_inseg_l20_2 | 33.9      | 56.4      | 89.7      | 45.7      | 33.8      |
+| JointSSG_inseg_l20_3 | 28.7      | 52.7      | 88.2      | 47.5      | 34.3      |
+| JointSSG_inseg_l20_4 | 30.2      | 54.0      | 88.5      | 44.9      | 33.2      |
 ## ScanNet20, Single Predicate, ORBSLAM3
 | method                       | Trip      | Obj       | Pred      | mRecall_O | mRecall_P |
 | ---------------------------- | --------- | --------- | --------- | --------- | --------- |
