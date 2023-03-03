@@ -48,6 +48,8 @@ class SGFNDataset (data.Dataset):
         self.pth_filtered = os.path.join(self.path,'filtered_scans_detection_%s.h5' % (mode))
         self.pth_node_weights = os.path.join(self.path,'node_weights.txt')
         self.pth_edge_weights = os.path.join(self.path,'edge_weights.txt')
+        self.pth_node_occ = os.path.join(self.path,'node_occ.txt')
+        self.pth_edge_occ = os.path.join(self.path,'edge_occ.txt')
         try:
             self.root_scannet = config.data.path_scannet
         except:
@@ -652,11 +654,18 @@ class SGFNDataset (data.Dataset):
                             print('ignore object ',obj_cls_name)
                         wobjs[idx]=0
                         
+                with open(self.pth_node_occ,'w') as f:
+                    for idx, obj_cls_name in enumerate(self.classNames):
+                        f.write('{}\t{}\n'.format(obj_cls_name,o_obj_cls[idx]))
+                with open(self.pth_edge_occ,'w') as f:
+                    for idx, rel_cls_name in enumerate(self.relationNames):
+                        f.write('{}\t{}\n'.format(rel_cls_name,o_rel_cls[idx]))
+                        
                 wobjs = np.array(wobjs)
                 wrels = np.array(wrels)
                 np.savetxt(pth_node_weights,wobjs)
                 np.savetxt(pth_edge_weights,wrels)
-                
+                        
                 # test
                 w_node_cls = np.loadtxt(pth_node_weights)
                 w_edge_cls = np.loadtxt(pth_edge_weights)
