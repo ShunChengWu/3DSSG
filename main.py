@@ -72,7 +72,7 @@ def main():
             pin_memory=True
         )
         val_loader = torch_geometric.loader.DataLoader(
-            dataset_val, batch_size=1, num_workers=0,
+            dataset_val, batch_size=1, num_workers=n_workers,
             shuffle=False,
             drop_last=False,
             pin_memory=False,
@@ -138,7 +138,7 @@ def main():
             val_loader = torch_geometric.loader.DataLoader(
                 dataset_test, batch_size=1, num_workers=cfg['eval']['data_workers'],
                 shuffle=False, drop_last=False,
-                pin_memory=True,
+                pin_memory=False,
                 # collate_fn=graph_collate,
             )
             dataset_test.__getitem__(0)
