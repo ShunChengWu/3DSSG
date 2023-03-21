@@ -1,8 +1,8 @@
 model:
  method: jointsg
  multi_rel: false # multiple relationship 
- use_rgb: true
- use_normal: true
+ use_rgb: false
+ use_normal: false
  use_spatial: true
  img_feature_dim: 256
  node_feature_dim: 256
@@ -40,4 +40,4 @@ data:
  is_roi_img: true
  load_images: true
  load_points: true
-
+ rel_data_type: points

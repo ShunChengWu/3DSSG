@@ -108,6 +108,9 @@ ScanNet20, Single, Full
 - [x] JointSSG_full_l20_5_1 # wo geo, wo pose desc
 - [x] JointSSG_full_l20_5_2 # with geo, wo pose desc
 - [x] JointSSG_full_l20_5_3 # wo geo, with pose desc
+- [x] JointSSG_full_l20_5_4 # geo wo gate
+- [x] JointSSG_full_l20_6 # use point as edge feature & wo geo gate
+- [x] JointSSG_full_l20_6_1 # use point as edge feature
 ScanNet20, Single, Inseg
 - [x] IMP (IMP_INSEG_l20_2)
 - [x] IMP (IMP_INSEG_l20_3)
@@ -122,6 +125,8 @@ ScanNet20, Single, Inseg
 - [x] JointSSG_inseg_l20_2 # with geo, wo pose desc.
 - [x] JointSSG_inseg_l20_3 # wo geo, with pose des.
 - [x] JointSSG_inseg_l20_4 # wo geo, wo pose desc.
+- [x] JointSSG_inseg_l20_5 # geo wo gate
+- [ ] JointSSG_inseg_l20_6 # use union point edge input
 ScanNet20, Single, ORBSLAM
 - [x] IMP (IMP_orbslam_l20_0)
 - [x] IMP (IMP_orbslam_l20_1)
@@ -137,6 +142,7 @@ ScanNet20, Single, ORBSLAM
 - [ ] Joint (Joint_orbslam_l20_10_1) # test plane descriptor
 - [x] Joint_orbslam_l20_11_1
 - [x] JointSSG_orbslam_l20_11_4
+- [x] JointSSG_orbslam_l20_11_9 # use union point edge input
 
 # TODO: there was a bug in the edge gate
 
@@ -171,6 +177,9 @@ with(*) is including none estimation
 | JointSSG_full_l20_5_1 | 61.9      | 76.4      | 95.6      | 74.3      | 69.2      |
 | JointSSG_full_l20_5_2 | 62.9      | 77.9      | 95.9      | 74.2      | 64.3      |
 | JointSSG_full_l20_5_3 | 60.4      | 76.3      | 95.0      | 75.3      | 73.2      |
+| JointSSG_full_l20_5_4 | 61.5      | 77.1      | 95.3      | 77.1      | 70.9      |
+| JointSSG_full_l20_6   | 62.0      | 77.9      | 95.9      | 68.4      | 59.0      |
+| JointSSG_full_l20_6_1 | 66.5      | 81.0      | 95.3      | 78.0      | 73.4      |
 
 ## ScanNet20, Single Predicate, inseg
 | method               | Trip      | Obj       | Pred      | mRecall_O | mRecall_P |
@@ -185,6 +194,8 @@ with(*) is including none estimation
 | JointSSG_inseg_l20_2 | 33.9      | 56.4      | 89.7      | 45.7      | 33.8      |
 | JointSSG_inseg_l20_3 | 28.7      | 52.7      | 88.2      | 47.5      | 34.3      |
 | JointSSG_inseg_l20_4 | 30.2      | 54.0      | 88.5      | 44.9      | 33.2      |
+| JointSSG_inseg_l20_5 | 32.1      | 55.5      | 89.1      | 41.0      | 31.4      |
+| JointSSG_inseg_l20_6 |
 ## ScanNet20, Single Predicate, ORBSLAM3
 | method                       | Trip      | Obj       | Pred      | mRecall_O | mRecall_P |
 | ---------------------------- | --------- | --------- | --------- | --------- | --------- |
@@ -196,6 +207,7 @@ with(*) is including none estimation
 | Joint_orbslam_l20_11_1       | 10.2/26.0 | 28.9/43.1 | 90.3/98.3 | 23.4/47.2 | 16.4/81.4 |
 | JointSSG_orbslam_l20_11_4    | 10.1      | 28.9      | 90.3      | 23.5      | 16.5      |
 | JointSSG_orbslam_l20_11_4(i) | 10.5      | 30.2      | 90.1      | 24.5      | 15.9      |
+| JointSSG_orbslam_l20_11_9    | 10.0      | 28.7      | 90.6      | 21.1      | 16.3      |
 
 ## Conclusion
 The mRecall_P is closer in sparser setup cuz the amount of missing edges increase. (GT>InSEG>ORBSLAM3).

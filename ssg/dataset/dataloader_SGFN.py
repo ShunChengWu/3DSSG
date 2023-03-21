@@ -422,7 +422,6 @@ class SGFNDataset (data.Dataset):
         if self.mconfig.load_points:
             output['node'].pts = obj_points
             
-            
             if 'edge_desc' not in self.mconfig or self.mconfig['edge_desc'] == 'pts':
                 output['node'].desp = descriptor
                 

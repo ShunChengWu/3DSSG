@@ -207,7 +207,10 @@ class JointSG(nn.Module):
             
         '''compute edge feature'''
         if has_edge:
-            data['edge'].x = self.rel_encoder(descriptor,edge_indices_node_to_node)
+            if self.cfg.model.edge_encoder.method == 'sgpn':
+                data['edge'].x = self.rel_encoder(data['edge'].pts)
+            else:
+                data['edge'].x = self.rel_encoder(descriptor,edge_indices_node_to_node)
             
         '''Message Passing''' 
         if has_edge:

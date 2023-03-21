@@ -865,7 +865,7 @@ class JointGNN(torch.nn.Module):
             gconv = self.gconvs[i]
             
             if self.with_geo:
-                geo_msg = self.geo_gate(torch.cat((node,geo_feature),dim=1)) * torch.sigmoid(geo_feature)
+                geo_msg = self.geo_gate(torch.cat((node,geo_feature),dim=1)) * torch.sigmoid(geo_feature)#TODO:put the gate back
                 # geo_msg = self.geo_gate(torch.cat((node,geo_feature),dim=1)) * geo_feature
                 node += geo_msg
             

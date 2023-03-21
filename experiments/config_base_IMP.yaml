@@ -19,7 +19,7 @@ model:
   method: imp # [none, fan, triplet]
   hidden_dim: 512
   num_layers: 2
-  aggr: sum
+  aggr: mean
 data:
  use_precompute_img_feature: true
  is_roi_img: false
