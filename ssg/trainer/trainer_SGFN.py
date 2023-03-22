@@ -320,6 +320,7 @@ class Trainer_SGFN(BaseTrainer, EvalInst):
                 inst_gt_cls = data_inst['node'].y#data_inst['gt_cls']
                 inst_gt_rel = data_inst['edge'].y#data_inst['seg_gt_rel']
                 inst_node_edges = data_inst['node','to','node'].edge_index#data_inst['node_edges']
+                gt_relationships = data_inst['relationships']
                 
                 if data_seq_seq is None:
                     # break
@@ -339,7 +340,8 @@ class Trainer_SGFN(BaseTrainer, EvalInst):
                             edge_pred,
                             inst_gt_rel,
                             [inst_mask2instance],
-                            inst_node_edges)
+                            inst_node_edges,
+                            gt_relationships)
                     continue
                 
                 predictions_weights = dict()
@@ -510,7 +512,8 @@ class Trainer_SGFN(BaseTrainer, EvalInst):
                             merged_edge_cls,
                             merged_edge_cls_gt,
                             [merged_mask2instance],
-                            merged_node_edges)
+                            merged_node_edges,
+                            gt_relationships)
         
         eval_dict = dict()
         eval_dict['visualization'] = dict()

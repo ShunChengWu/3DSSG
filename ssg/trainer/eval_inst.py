@@ -86,6 +86,8 @@ class EvalInst(object):
                 inst_gt_cls = data_inst['node'].y#data_inst['gt_cls']
                 inst_gt_rel = data_inst['edge'].y#data_inst['seg_gt_rel']
                 inst_node_edges = data_inst['node','to','node'].edge_index#data_inst['node_edges']
+                # edge_index_has_gt = data_inst['node','to','node'].edge_index_has_gt
+                gt_relationships = data_inst['relationships']
                 
                 if data_seg is None:
                     node_pred = torch.zeros_like(torch.nn.functional.one_hot(inst_gt_cls, len(node_cls_names))).float()
@@ -104,7 +106,8 @@ class EvalInst(object):
                             edge_pred,
                             inst_gt_rel,
                             [inst_mask2instance],
-                            inst_node_edges)
+                            inst_node_edges,
+                            gt_relationships)
                     continue
                 
                 if not is_eval_image:
@@ -260,7 +263,8 @@ class EvalInst(object):
                             merged_edge_cls,
                             merged_edge_cls_gt,
                             [merged_mask2instance],
-                            merged_node_edges)
+                            merged_node_edges,
+                            gt_relationships=gt_relationships)
             # break
         
         eval_dict = dict()

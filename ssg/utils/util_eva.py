@@ -1,3 +1,4 @@
+import copy
 import os,math,json,pathlib,torch
 import numpy as np
 # import ssg
@@ -47,6 +48,42 @@ def evaluate_topk_single_prediction(gts, pds, k=-1):
         gt = gts[obj].cpu()
         if gt in sorted_args:
             index = sorted(torch.where(sorted_args == gt)[0])[0].item()+1
+        else:
+            index = maxk+1
+        top_k.append(index)
+
+    return top_k
+
+def evaluate_topk_recall_single_prediction(gts:dict, pds, mask2inst:dict, k=-1):
+    top_k=list()
+    pds = pds.detach().cpu()
+    size_o = len(gts)
+    
+    # calculate topk
+    if k<1:
+        maxk=min(len(pds.shape[1]),1)
+    else:
+        maxk=k
+    
+    # Put prediction to a dict for easy query
+    pds_inst = dict()
+    for mask,inst in mask2inst.items():
+        assert inst not in pds_inst
+        pds_inst[inst] = pds[mask]
+    
+    for inst, label in gts.items():
+        if inst not in pds_inst:
+            top_k.append(maxk+1)
+            continue
+
+        pd = pds_inst[inst]
+        sorted_conf, sorted_args = torch.sort(pd, descending=True) # 1D
+        
+        # sorted_conf=sorted_conf[:maxk]
+        sorted_args=sorted_args[:maxk]
+        
+        if label in sorted_args:
+            index = sorted(torch.where(sorted_args == label)[0])[0].item()+1
         else:
             index = maxk+1
         top_k.append(index)
@@ -116,34 +153,104 @@ def evaluate_topk_predicate(gt_edges, rels_pred, threshold=0.5,k=-1):
             sorted_args=sorted_args[:maxk]
         
         
-        # if len(rels_target) == 0:# Ground truth is None
-        #     continue
-        #     '''If gt is none, find the first prediction that is below threshold (which predicts "no relationship")'''
-        #     indices = torch.where(sorted_conf < threshold)[0]
-        #     if len(indices) == 0:
-        #         index = maxk+1
-        #     else:
-        #         index = sorted(indices)[0].item()+1
-        #     temp_topk.append(index)
-        # else:
-        for gt in rels_target:
-            '''if has gt, find the location of the gt label prediction.'''
-            if gt in sorted_args:
-                index = sorted(torch.where(sorted_args == gt)[0])[0].item()+1
-                index = math.ceil(index / len(rels_target))
-            else:
+        if len(rels_target) == 0:# Ground truth is None
+            # continue
+            '''If gt is none, find the first prediction that is below threshold (which predicts "no relationship")'''
+            indices = torch.where(sorted_conf < threshold)[0]
+            if len(indices) == 0:
                 index = maxk+1
-                
-            
-            # if index != 1:
-            #     print('hallo')
-                
-            # if len(indices) == 0:
-            #     index = len(sorted_conf)+1
-            # else:
-            #     index = sorted(indices)[0].item()+1
+            else:
+                index = sorted(indices)[0].item()+1
             temp_topk.append(index)
+        else:
+            for gt in rels_target:
+                '''if has gt, find the location of the gt label prediction.'''
+                if gt in sorted_args:
+                    index = sorted(torch.where(sorted_args == gt)[0])[0].item()+1
+                    index = math.ceil(index / len(rels_target))
+                else:
+                    index = maxk+1
+                    
+                # if index != 1:
+                #     print('hallo')
+                    
+                # if len(indices) == 0:
+                #     index = len(sorted_conf)+1
+                # else:
+                #     index = sorted(indices)[0].item()+1
+                temp_topk.append(index)
         temp_topk = sorted(temp_topk)  # ascending I hope/think
+        top_k += temp_topk
+    return top_k
+
+def evaluate_topk_recall_predicate(gt_rel, rels_pred,edges,  mask2inst:dict, threshold=0.5,k=-1):
+    top_k=list()
+    rels_pred = rels_pred.detach().cpu()
+    
+    assert edges.shape[0] == 2
+    num_edges = edges.shape[1]
+    all_indices = [idx for idx in range(num_edges)]
+    
+    '''convert edge_index from mask to instance id'''
+    edges = edges.tolist()
+    edge_index_inst = list()
+    for idx in all_indices:
+        o_m = edges[0][idx]
+        s_m = edges[1][idx]
+        o_i = mask2inst[o_m]
+        s_i = mask2inst[s_m]
+        edge_index_inst.append((o_i,s_i))
+    # edge_index_inst = [(mask2inst[edges[0,idx].item()], mask2inst[edges[1,idx].item()]) for idx in all_indices]
+    
+    '''calculate max k'''
+    if k<1:
+        maxk=min(rels_pred.shape[1],1) # take top1
+    else:
+        maxk=k
+    
+    '''build lookup table'''
+    for line in gt_rel:
+        sub_index = line[0]
+        obj_index = line[1]
+        sub_cls_index = line[2]
+        obj_cls_index = line[3]
+        gt_r = line[4]
+        
+        key = (sub_index,obj_index)
+        if key not in edge_index_inst:
+            #TODO: append maxk
+            for _ in gt_r: # for the multi rel case
+                top_k += [maxk+1]
+            continue
+        
+        # Get predicate prediction
+        edge_index = edge_index_inst.index(key)
+        rel_pred = rels_pred[edge_index]
+        
+        sorted_conf, sorted_args = torch.sort(rel_pred, descending=True)  # 1D
+        # sorted_conf=sorted_conf[:maxk]
+        sorted_args=sorted_args[:maxk]
+        
+        temp_topk = []
+        if len(gt_r) == 0:# Ground truth is None
+            # continue
+            '''If gt is none, find the first prediction that is below threshold (which predicts "no relationship")'''
+            indices = torch.where(sorted_conf < threshold)[0]
+            if len(indices) == 0:
+                index = maxk+1
+            else:
+                index = sorted(indices)[0].item()+1
+            temp_topk.append(index)
+        else:
+            for gt in gt_r:
+                '''if has gt, find the location of the gt label prediction.'''
+                if gt in sorted_args:
+                    index = sorted(torch.where(sorted_args == gt)[0])[0].item()+1
+                    index = math.ceil(index / len(gt_r))
+                else:
+                    index = maxk+1
+                temp_topk.append(index)
+            temp_topk = sorted(temp_topk)  # ascending I hope/think
         top_k += temp_topk
     return top_k
 
@@ -227,13 +334,12 @@ def evaluate_topk(gt_rel, objs_pred, rels_pred, edges, threshold=0.5, k=40, igno
         sorted_conf_matrix=sorted_conf_matrix[:,:maxk]
         sorted_args_1d=sorted_args_1d[:,:maxk]
         
-        temp_topk = []
-        
         for mask, idx in enumerate(indices):
             e = gt_rel[idx]
             gt_s = e[0]
             gt_t = e[1]
             gt_r = e[2]
+            temp_topk = []
             if len(gt_r) == 0:
                 if ignore_none:
                     continue
@@ -244,18 +350,18 @@ def evaluate_topk(gt_rel, objs_pred, rels_pred, edges, threshold=0.5, k=40, igno
                 else:
                     index = sorted(indices)[0].item()+1
                 temp_topk.append(index)
-            for predicate in gt_r: # for the multi rel case
-                index_1d = (gt_s*dim_m+gt_t)*dim_k+predicate
-                indices = torch.where(sorted_args_1d[mask] == index_1d)[0]
-                if len(indices) == 0:
-                    index = maxk+1
-                else:
-                    index = sorted(indices)[0].item()+1
-                    index = math.ceil(index/len(gt_r))
-                temp_topk.append(index)
+            else:
+                for predicate in gt_r: # for the multi rel case
+                    index_1d = (gt_s*dim_m+gt_t)*dim_k+predicate
+                    indices = torch.where(sorted_args_1d[mask] == index_1d)[0]
+                    if len(indices) == 0:
+                        index = maxk+1
+                    else:
+                        index = sorted(indices)[0].item()+1
+                        index = math.ceil(index/len(gt_r))
+                    temp_topk.append(index)
             temp_topk = sorted(temp_topk)
             top_k += temp_topk
-        
     # for idx in range(len(edges)):
     #     edge_from = edges[idx][0]
     #     edge_to = edges[idx][1]
@@ -303,18 +409,105 @@ def evaluate_topk(gt_rel, objs_pred, rels_pred, edges, threshold=0.5, k=40, igno
     #     temp_topk = sorted(temp_topk)
     #     top_k += temp_topk
     return top_k
-
-def evaluate_topk_recall(
-        top_k, top_k_obj, top_k_predicate, 
-        objs_pred:torch.tensor, objs_target:torch.tensor,
-        rels_pred:torch.tensor, rels_target:torch.tensor, 
-        edges, instance2mask):
+            
+def evaluate_topk_recall(gt_rel, objs_pred, rels_pred, edges, mask2inst:dict, threshold=0.5, k=40, ignore_none:bool=False):
+    top_k=list()
+    device = objs_pred.device
+    objs_pred = objs_pred.detach().cpu()
+    rels_pred = rels_pred.detach().cpu()
     
-    gt_edges = get_gt(objs_target, rels_target, edges, instance2mask)
-    top_k += evaluate_topk(gt_edges, objs_pred, rels_pred, edges) # class_labels, relationships_dict)
-    top_k_obj += evaluate_topk_single_prediction(objs_target, objs_pred)
-    top_k_predicate += evaluate_topk_predicate(gt_edges, rels_pred)
-    return top_k, top_k_obj, top_k_predicate
+    batch_size = 64
+    assert edges.shape[0] == 2
+    num_edges = edges.shape[1]
+    all_indices = [idx for idx in range(num_edges)]
+    
+    '''convert edge_index from mask to instance id'''
+    edges = edges.tolist()
+    edge_index_inst = list()
+    for idx in all_indices:
+        o_m = edges[0][idx]
+        s_m = edges[1][idx]
+        o_i = mask2inst[o_m]
+        s_i = mask2inst[s_m]
+        edge_index_inst.append((o_i,s_i))
+    # edge_index_inst = [(mask2inst[edges[0,idx].item()], mask2inst[edges[1,idx].item()]) for idx in all_indices]
+    
+    '''calculate max k'''
+    if k<1:
+        maxk=min(sub_preds.shape[1]*2+rel_preds.shape[1],1) # take top1
+    else:
+        maxk=k
+    
+    '''build lookup table'''
+    for line in gt_rel:
+        sub_index = line[0]
+        obj_index = line[1]
+        sub_cls_index = line[2]
+        obj_cls_index = line[3]
+        gt_r = line[4]
+        
+        key = (sub_index,obj_index)
+        if key not in edge_index_inst:
+            #TODO: append maxk
+            for _ in gt_r: # for the multi rel case
+                top_k += [maxk+1]
+            continue
+        
+        '''calculate topK'''
+        edge_index = edge_index_inst.index(key)
+        sub_preds = objs_pred[edges[0][edge_index]]
+        obj_preds = objs_pred[edges[1][edge_index]]
+        rel_preds = rels_pred[edge_index]
+        
+        so_preds = torch.einsum('n,m->nm',sub_preds,obj_preds)
+        conf_matrix = torch.einsum('nm, k->nmk',so_preds,rel_preds)
+        dim_n, dim_m, dim_k = conf_matrix.shape
+        
+        conf_matrix = conf_matrix.reshape(-1).to(device) # use CUDA if available
+        torch.cuda.empty_cache()
+        sorted_conf_matrix, sorted_args_1d = torch.sort(conf_matrix, descending=True) # 1D
+        sorted_conf_matrix, sorted_args_1d=sorted_conf_matrix.cpu(),sorted_args_1d.cpu()
+        torch.cuda.empty_cache()
+        
+        sorted_conf_matrix=sorted_conf_matrix[:maxk]
+        sorted_args_1d=sorted_args_1d[:maxk]
+        
+        temp_topk = []
+        if len(gt_r) == 0:
+            if ignore_none:
+                continue
+            # Ground truth is None
+            indices = torch.where(sorted_conf_matrix < threshold)[0]
+            if len(indices) == 0:
+                index = maxk+1 # 
+            else:
+                index = sorted(indices)[0].item()+1
+            temp_topk.append(index)
+        else:
+            for predicate in gt_r: # for the multi rel case
+                index_1d = (sub_cls_index*dim_m+obj_cls_index)*dim_k+predicate
+                indices = torch.where(sorted_args_1d == index_1d)[0]
+                if len(indices) == 0:
+                    index = maxk+1
+                else:
+                    index = sorted(indices)[0].item()+1
+                    index = math.ceil(index/len(gt_r))
+                temp_topk.append(index)
+            temp_topk = sorted(temp_topk)
+        top_k += temp_topk
+    return top_k
+
+# def evaluate_topk_recall(
+#         top_k, top_k_obj, top_k_predicate, 
+#         objs_pred:torch.tensor, objs_target:torch.tensor,
+#         rels_pred:torch.tensor, rels_target:torch.tensor, 
+#         edges, instance2mask):
+    
+#     gt_edges = get_gt(objs_target, rels_target, edges, instance2mask)
+#     top_k += evaluate_topk(gt_edges, objs_pred, rels_pred, edges) # class_labels, relationships_dict)
+#     top_k_obj += evaluate_topk_single_prediction(objs_target, objs_pred)
+#     top_k_predicate += evaluate_topk_predicate(gt_edges, rels_pred)
+#     return top_k, top_k_obj, top_k_predicate
 
 def cal_mean(values,VALID_CLASS_IDS:list, CLASS_LABELS:list):
     if len(VALID_CLASS_IDS) == 0:
@@ -885,8 +1078,11 @@ class EvalSceneGraphBase():
         self.eva_o_cls=ConfusionMatrix(['node'])
         self.eva_p_cls=ConfusionMatrix(['none'])
         self.top_k_triplet=list()
+        self.top_k_triplet_recall=list()
         self.top_k_obj=list()
+        self.top_k_obj_recall=list()
         self.top_k_rel=list()
+        self.top_k_rel_recall=list()
         self.ignore_none=False
         
     def get_recall(self):
@@ -925,7 +1121,6 @@ class EvalSceneGraphBase():
                 R = (ntop_k_obj <= k).sum() / len(ntop_k_obj)
                 # print("top-k R@" + str(k), "\t", R)
                 txt += "top-k R@{}\t {}".format(k,R)+'\n'
-            # print(len(self.top_k_obj))
             txt += str(len(self.top_k_obj)) +'\n'
 
             # print("Recall@k for predicates: ")
@@ -940,6 +1135,39 @@ class EvalSceneGraphBase():
                 txt += "top-k R@{}\t {}".format(k,R)+'\n'
             # print(len(self.top_k_rel))
             txt += str(len(self.top_k_rel)) +'\n'
+            
+            txt += "New Recall@k for relationship triplets: "+'\n'
+            ntop_k = np.asarray(self.top_k_triplet_recall)
+            ks = set([1,2,3,5,10,50,100])
+            for i in [0,0.05,0.1,0.2,0.5,0.9]:
+                ks.add( int(math.ceil(self.k*i+1e-9)) )
+            for k in sorted(ks):
+                R = (ntop_k <= k).sum() / len(ntop_k)
+                # print("top-k R@" + str(k), "\t", R)
+                txt += "top-k R@{}\t {}".format(k,R)+'\n'
+            txt += str(len(self.top_k_triplet_recall)) +'\n'
+            
+            txt+='Mew Recall@k for objects: \n'
+            ntop_k_obj = np.asarray(self.top_k_obj_recall)
+            ks = set([1,2,3,4,5,10,50,100])
+            for i in [0,0.05,0.1,0.2,0.5]:
+                ks.add( int(math.ceil(len(self.obj_class_names)*i+1e-9)) )
+            for k in sorted(ks):
+                R = (ntop_k_obj <= k).sum() / len(ntop_k_obj)
+                # print("top-k R@" + str(k), "\t", R)
+                txt += "top-k R@{}\t {}".format(k,R)+'\n'
+            txt += str(len(self.top_k_obj_recall)) +'\n'
+            
+            txt += "New Recall@k for predicates: \n"
+            ntop_k_predicate = np.asarray(self.top_k_rel_recall)
+            ks = set([1,2,3,4,5,10])
+            for i in [0,0.05,0.1,0.2,0.5]:
+                ks.add( int(math.ceil(len(self.rel_class_names)*i +1e-9)) )
+            for k in sorted(ks):
+                R = (ntop_k_predicate <= k).sum() / len(ntop_k_predicate)
+                # print("top-k R@" + str(k), "\t", R)
+                txt += "top-k R@{}\t {}".format(k,R)+'\n'
+            txt += str(len(self.top_k_rel_recall)) +'\n'
         return txt
     
     def draw(self, **args):
@@ -1010,19 +1238,26 @@ class EvalSceneGraphBatch(EvalSceneGraphBase):
         self.eva_p_cls = EvaClassificationSimple(rel_class_names) if not multi_rel_prediction else EvaMultiBinaryClassification(rel_class_names)
         
         self.top_k_triplet=list()
+        self.top_k_triplet_recall = list()
         self.top_k_obj=list()
+        self.top_k_obj_recall=list()
         self.top_k_rel=list()
+        self.top_k_rel_recall=list()
         self.predictions=dict()
         
     def reset(self):
         self.eva_o_cls.reset()
         self.eva_p_cls.reset()
         self.top_k_triplet=list()
+        self.top_k_triplet_recall = list()
         self.top_k_obj=list()
+        self.top_k_obj_recall=list()
         self.top_k_rel=list()
+        self.top_k_rel_recall=list()
         self.predictions=dict()
         
-    def add(self,scan_id:str, obj_pds, bobj_gts, rel_pds, brel_gts, mask2insts:dict, edge_indices):
+    def add(self,scan_id:str, obj_pds, bobj_gts, rel_pds, brel_gts, mask2insts:dict, edge_indices,
+            gt_relationships):
         '''
         obj_pds: [n, n_cls]: softmax
         obj_gts: [n, 1]: long tensor
@@ -1032,14 +1267,24 @@ class EvalSceneGraphBatch(EvalSceneGraphBase):
         obj_pds=obj_pds.detach()
         has_rel = rel_pds is not None and len(rel_pds)>0 and rel_pds.shape[0] > 0
         if has_rel:
-            rel_pds=rel_pds.detach()
+            if self.ignore_none and not self.multi_rel_prediction:
+                none_index = self.rel_class_names.index(self.none_name)
+                non_none_index = torch.where(brel_gts != none_index)
+                brel_gts = brel_gts[non_none_index]
+                rel_pds = rel_pds[non_none_index]
+                
+                edge_indices_bk = copy.copy(edge_indices)
+                edge_indices = edge_indices[:,non_none_index[0]]
+            has_rel = rel_pds is not None and len(rel_pds)>0 and rel_pds.shape[0] > 0
+            if has_rel:
+                rel_pds=rel_pds.detach()
         
         # Obj 
         o_pds = obj_pds.max(1)[1]
         self.eva_o_cls(o_pds, bobj_gts)
         
         # Rel
-        if has_rel:
+        if has_rel:            
             r_pds = rel_pds > self.multi_rel_threshold if self.multi_rel_prediction else rel_pds.max(1)[1]
             self.eva_p_cls(r_pds, brel_gts)
             
@@ -1048,6 +1293,17 @@ class EvalSceneGraphBatch(EvalSceneGraphBase):
             self.top_k_obj += evaluate_topk_single_prediction(bobj_gts, obj_pds,k=self.k)
             
             if has_rel:
+                
+                # if self.ignore_none:
+                #     # Filter out none predictions
+                #     none_index = self.rel_class_names.index(self.none_name)
+                #     non_none_index = torch.where(brel_gts != none_index)
+                #     non_none_brel_gts = brel_gts[non_none_index]
+                #     non_none_brel_pds = rel_pds[non_none_index]
+                    
+                #     self.top_k_rel += evaluate_topk_single_prediction(non_none_brel_gts,non_none_brel_pds,k=self.k)
+                
+                
                 if not self.multi_rel_prediction:
                     self.top_k_rel += evaluate_topk_single_prediction(brel_gts,rel_pds,k=self.k)
                 else:
@@ -1057,6 +1313,31 @@ class EvalSceneGraphBatch(EvalSceneGraphBase):
                 
                 self.top_k_triplet += evaluate_topk(gt_rel_triplet, obj_pds, rel_pds, edge_indices, 
                                         threshold=self.multi_rel_threshold, k=self.k, ignore_none=self.ignore_none) # class_labels, relationships_dict)
+                
+        
+        '''calculate topK recall'''
+        # Collect object list
+        gt_obj_ids = dict()
+        for line in gt_relationships:
+            (sub_o,tgt_o,sub_cls_id,tgt_cls_id,_) = line
+            if sub_o not in gt_obj_ids:
+                gt_obj_ids[sub_o] = sub_cls_id
+            else: # check is label consistent
+                assert gt_obj_ids[sub_o] == sub_cls_id
+            if tgt_o not in gt_obj_ids:
+                gt_obj_ids[tgt_o] = tgt_cls_id
+            else:
+                assert gt_obj_ids[tgt_o] == tgt_cls_id
+        if self.k>0:
+            # compute object topk recall 
+            self.top_k_obj_recall += evaluate_topk_recall_single_prediction(gt_obj_ids,obj_pds,mask2insts[0],self.k)
+            if has_rel:
+                # compute predicate topk recall
+                self.top_k_rel_recall += evaluate_topk_recall_predicate(gt_relationships,rel_pds, edge_indices,mask2insts[0],threshold=self.multi_rel_threshold,k=self.k)
+                
+                # compute triplet
+                self.top_k_triplet_recall += evaluate_topk_recall(gt_relationships, obj_pds, rel_pds, edge_indices, mask2insts[0],
+                                    threshold=self.multi_rel_threshold, k=self.k, ignore_none=self.ignore_none)
             
         # Write prediction
         if self.save_prediction:
@@ -1099,12 +1380,14 @@ class EvalSceneGraph(EvalSceneGraphBase):
         self.predictions=dict()
         self.top_k_triplet=list()
         self.top_k_obj=list()
+        self.top_k_obj_recall=list()
         self.top_k_rel=list()
     def reset(self):
         self.eva_o_cls.reset()
         self.eva_p_cls.reset()
         self.top_k_triplet=list()
         self.top_k_obj=list()
+        self.top_k_obj_recall=list()
         self.top_k_rel=list()
         self.predictions=dict()
         
@@ -1242,6 +1525,7 @@ class EvalUpperBound():
         inst_gt_cls = data_inst['node'].y#data_inst['gt_cls']
         inst_gt_rel = data_inst['edge'].y#data_inst['gt_rel']
         inst_node_edges = data_inst['node','to','node'].edge_index#data_inst['node_edges']
+        gt_relationships = data_inst['relationships']
         
         if data_seg is None:
             node_pred = torch.zeros_like(torch.nn.functional.one_hot(inst_gt_cls, len(self.node_cls_names))).float()
@@ -1259,7 +1543,8 @@ class EvalUpperBound():
                           edge_pred,
                           inst_gt_rel,
                           [inst_mask2instance],
-                          inst_node_edges)
+                          inst_node_edges,
+                          gt_relationships)
             return 
         
         # seg_gt_cls = data_seg['node'].y
@@ -1336,7 +1621,8 @@ class EvalUpperBound():
                           edge_pred,
                           inst_gt_rel,
                           [inst_mask2instance],
-                          inst_node_edges)
+                          inst_node_edges,
+                          gt_relationships = gt_relationships)
         
         return len(missing_nodes)/len(seg_instance_set), len(missing_edges)/len(inst_gt_rel)
 

@@ -1,3 +1,52 @@
+# CVPR23_5050 results
+- [x] IMP_full_l20_6
+- [x] VGfM_full_l20_8
+- [x] 3DSSG_full_l20_3
+- [x] SGFN_full_l20_2
+- [x] 2DSSG_full_l20_4
+- [x] JointSSG_full_l20_5
+- [ ] IMP_INSEG_l20_3  # windows
+- [ ] VGfM_inseg_l20_1  # windows
+- [x] 3DSSG_INSEG_l20_3
+- [x] SGFN_inseg_l20_0
+- [ ] 2DSSG_inseg_l20_0
+- [x] Joint_inseg_l20_1
+- [x] IMP_orbslam_l20_1
+- [x] VGfM_orbslam_l20_1
+- [x] 3DSSG_3rscan_orbslam_l20_1
+- [x] SGFN_3rscan_orbslam_l20_1
+- [ ] 2DSSG_orbslam_l20_0
+- [x] JointSSG_orbslam_l20_11_4
+- [ ] JointSSG_orbslam_l20_11_4 (i)
+- [x] IMP_FULL_l160_2_3
+- [x] VGfM_FULL_l160_3_1
+- [x] 3DSSG_full_l160_1
+- [ ] SGFN_full_l160_4 #??
+- [ ] 2DSSG_full_l160_2
+- [ ] JointSSG_full_l160_0
+| method                       | PrecTrip | PrecObj | PrecPred | RecallTrip | RecallObj | RecallPred |
+| ---------------------------- | -------- | ------- | -------- | ---------- | --------- | ---------- |
+| IMP_full_l20_6               | 49.8     | 68.6    | 94.3     | 43.5       | 70.1      | 54.2       |
+| VGfM_full_l20_8              | 49.3     | 68.5    | 94.8     | 49.0       | 69.4      | 61.9       |
+| 3DSSG_full_l20_3             | 34.6     | 57.5    | 95.2     | 40.4       | 58.0      | 69.3       |
+| SGFN_full_l20_2              | 41.8     | 63.0    | 94.3     | 47.2       | 63.8      | 71.4       |
+| 2DSSG_full_l20_4             | 57.3     | 76.3    | 92.3     | 61.5       | 76.3      | 79.2       |
+| JointSSG_full_l20_5          | 66.1     | 80.3    | 95.6     | 64.8       | 81.2      | 76.8       |
+| IMP_INSEG_l20_3              |
+| VGfM_inseg_l20_1             |
+| 3DSSG_INSEG_l20_3            | 17.5     | 41.4    | 88.2     | 15.1       | 41.4      | 26.1       |
+| SGFN_inseg_l20_0             | 31.4     | 54.9    | 89.6     | 24.4       | 56.7      | 27.2       |
+| Joint_inseg_l20_1            | 34.1     | 56.5    | 89.9     | 25.5       | 58.1      | 27.3       |
+| IMP_orbslam_l20_1            | 8.2      | 26.4    | 90.7     | 3.5        | 27.5      | 4.0        |
+| VGfM_orbslam_l20_1           | 7.9      | 25.9    | 90.8     | 3.7        | 26.9      | 4.2        |
+| 3DSSG_3rscan_orbslam_l20_1   | 0.9      | 9.1     | 87.9     | 1.0        | 9.7       | 9.2        |
+| SGFN_3rscan_orbslam_l20_1    | 1.7      | 12.3    | 88.9     | 2.3        | 12.6      | 7.0        |
+| JointSSG_orbslam_l20_11_4    | 9.9      | 28.3    | 90.4     | 6.9        | 29.5      | 8.1        |
+| JointSSG_orbslam_l20_11_4(i) | 10.7     | 29.4    | 90.4     | 7.1        | 30.2      | 8.4        |
+| IMP_FULL_l160_2_3            | 44.5     | 36.0    | 9.0      | 3.3        | 35.9      | 9.0        |
+| VGfM_FULL_l160_3_1           | 3.4      | 37.7    | 14.7     | 3.4        | 37.9      | 14.7       |
+| 3DSSG_full_l160_1            | 7.3      | 29.5    | 68.8     | 7.3        | 29.6      | 68.8       |
+| 
 # Abla GRU SGFN
 try replacing updating method to GRU. 
 - v1: with GRU
@@ -113,9 +162,9 @@ ScanNet20, Single, Full
 - [x] JointSSG_full_l20_6_1 # use point as edge feature
 ScanNet20, Single, Inseg
 - [x] IMP (IMP_INSEG_l20_2)
-- [x] IMP (IMP_INSEG_l20_3)
+- [x] IMP (IMP_INSEG_l20_3) # windows
 - [x] VGfM (VGfM_inseg_l20_0)
-- [x] VGfM (VGfM_inseg_l20_1)
+- [x] VGfM (VGfM_inseg_l20_1) # windows
 - [x] 3DSSG (3DSSG_INSEG_l20_2)
 - [x] 3DSSG (3DSSG_INSEG_l20_3) # need to retrian. the nubmer is too low.
 - [x] SGFN (SGFN_inseg_l20_0)

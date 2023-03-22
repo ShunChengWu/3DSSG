@@ -319,8 +319,29 @@ class SGFNDataset (data.Dataset):
         
         '''extract relationships data'''
         timer.tic()
-        relationships_3D = self.__extract_relationship_data(relationships_data)
+        relationships_3D = self.__extract_relationship_data(relationships_data,oid2idx)
         timers['extract_relationship_data'] = timer.tocvalue()
+        
+        relationships_3D_mask = [] # change obj idx to obj mask idx
+        '''sample training set'''  
+        instance2labelName  = { int(key): node['label'] for key,node in object_data.items()}
+        # instances_ids = list(instance2labelName.keys())
+        # if 0 in instances_ids: instances_ids.remove(0)
+        for key, value in relationships_3D.items():
+            sub_o = key[0]
+            tgt_o = key[1]
+            sub_cls = instance2labelName[sub_o]
+            tgt_cls = instance2labelName[tgt_o]
+            sub_cls_id = self.classNames.index(sub_cls)
+            tgt_cls_id = self.classNames.index(tgt_cls)
+            relationships_3D_mask.append([sub_o,tgt_o,sub_cls_id,tgt_cls_id,value])
+        
+        '''sample gt edges'''
+        # edge_indices_3D_gt = []
+        # for key in relationships_3D:
+        #     o_src, o_tgt = key
+        #     idx_src, idx_tgt = oid2idx[o_src], oid2idx[o_tgt]
+        #     edge_indices_3D_gt.append((idx_src, idx_tgt))
         
         '''sample 3D edges'''
         timer.tic()
@@ -328,7 +349,7 @@ class SGFNDataset (data.Dataset):
         timers['sample_relationships'] = timer.tocvalue()
         
         '''drop edges'''# to fit memory
-        gt_rels_3D, edge_indices_3D= self.__drop_edge(gt_rels_3D, edge_indices_3D,edge_index_has_gt_3D)
+        gt_rels_3D, edge_indices_3D = self.__drop_edge(gt_rels_3D, edge_indices_3D,edge_index_has_gt_3D)
 
         ''' random sample points '''
         if self.mconfig.load_points:
@@ -353,7 +374,7 @@ class SGFNDataset (data.Dataset):
                 images, img_bounding_boxes, bbox_cat, node_descriptor_for_image, \
                     image_edge_indices, img_idx2oid, temporal_node_graph, temporal_edge_graph = \
                         self.__load_full_images(scan_id,idx2oid,cat,scan_data,mv_data, filtered_kf_indices)
-                relationships_img = self.__extract_relationship_data(relationships_data)
+                relationships_img = self.__extract_relationship_data(relationships_data,oid2idx)
                 gt_rels_2D, edge_index_has_gt_2D = self.__sample_relationships(relationships_img,img_idx2oid,image_edge_indices)
                 
                 # gt_rels_2D, image_edge_indices, final_edge_indices_2D = self.__drop_edge(
@@ -386,6 +407,7 @@ class SGFNDataset (data.Dataset):
         ''' to tensor '''
         gt_class_3D = torch.from_numpy(np.array(cat))
         edge_indices_3D = torch.tensor(edge_indices_3D,dtype=torch.long)
+        # new_edge_index_has_gt = torch.tensor(new_edge_index_has_gt,dtype=torch.long)
         idx2iid = seg2inst
         # idx2iid = torch.LongTensor([seg2inst[oid] if oid in seg2inst else oid for oid in idx2oid.values() ]) # mask idx to instance idx
         # idx2oid = torch.LongTensor([oid for oid in idx2oid.values()]) # mask idx to seg idx (instance idx)
@@ -413,10 +435,15 @@ class SGFNDataset (data.Dataset):
         # if output['edge'].y.nelement()==0:
         #     print('debug')
         
+        # edges for computing features
         output['node','to','node'].edge_index = edge_indices_3D.t().contiguous()
+        
+        # GT edges
+        # output['node','to','node'].edge_index_has_gt = new_edge_index_has_gt
         
         output['node'].idx2oid = [idx2oid]
         output['node'].idx2iid = [idx2iid]
+        output['relationships'] = relationships_3D_mask
         # print(output['node'].idx2iid)
 
         if self.mconfig.load_points:
@@ -798,7 +825,7 @@ class SGFNDataset (data.Dataset):
                 random.shuffle(instances_ids)
 
         ''' 
-        Find instances we care abot. Build oid2idx and cat list
+        Find instances we care about. Build oid2idx and cat list
         oid2idx maps instances to a mask id. to randomize the order of instance in training.
         '''
         oid2idx = {} # map instance_id to idx
@@ -822,7 +849,7 @@ class SGFNDataset (data.Dataset):
                 
         return cat,oid2idx,idx2oid,filtered_instances
     
-    def __extract_relationship_data(self, relationships_data):
+    def __extract_relationship_data(self, relationships_data, oid2idx:dict):
         '''build relaitonship data'''
         relatinoships_gt= defaultdict(list)
         for r in relationships_data:
@@ -833,6 +860,8 @@ class SGFNDataset (data.Dataset):
             
             if r_cls not in self.relationNames: continue # only keep the relationships we want
             r_lid = self.relationNames.index(r_cls) # remap the index of relationships in case of custom relationNames
+            
+            if r_src not in oid2idx or r_tgt not in oid2idx: continue # only keep the relevant objects
             
             key = (r_src,r_tgt)
             
@@ -854,6 +883,7 @@ class SGFNDataset (data.Dataset):
         else:
             gt_rels = torch.ones(len(edge_indices),dtype = torch.long)*self.none_idx
         edges_has_gt = []
+        pair_list = []
         for e in range(len(edge_indices)):
             edge = edge_indices[e]
             index1 = edge[0]
@@ -936,7 +966,8 @@ class SGFNDataset (data.Dataset):
         all_indices = set(range(len(edge_indices)))
         edge_index_wo_gt = all_indices.difference(edge_index_has_gt)
         if len(edge_index_wo_gt)==0:
-            return gt_rels,edge_indices # all edges are needed
+            # new_edge_index_has_gt = [True for _ in range(len(edge_index_has_gt))]
+            return gt_rels,edge_indices#,new_edge_index_has_gt # all edges are needed
         
         edge_index_wo_gt=list(edge_index_wo_gt)
         if not self.for_eval:
@@ -953,11 +984,12 @@ class SGFNDataset (data.Dataset):
                 edge_index_wo_gt = np.random.choice(edge_index_wo_gt,number_to_sample,replace=False).tolist()
             else:
                 edge_index_wo_gt=[]
-        final_edge_indices = list(edge_index_has_gt)+list(edge_index_wo_gt)    
+        final_edge_indices = list(edge_index_has_gt)+list(edge_index_wo_gt)   
+        # new_edge_index_has_gt = [True for _ in range(len(edge_index_has_gt))]  + [False for _ in range(len(edge_index_wo_gt))]
         edge_indices = [edge_indices[t] for t in final_edge_indices]
         gt_rels = gt_rels[final_edge_indices]
         
-        return gt_rels,edge_indices
+        return gt_rels,edge_indices#, new_edge_index_has_gt
     
     def __load_roi_images(self, cat:list, idx2oid:dict,mv_nodes:dict, roi_imgs:dict,
                           object_data:dict, filtered_instances:list):
