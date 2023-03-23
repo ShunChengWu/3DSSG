@@ -5,7 +5,7 @@ training:
 model:
  multi_rel: true # multiple relationship 
 data:
- load_cache: true
+ load_cache: false
 wandb:
  dry_run: false
  tags: ["ssg", "sgfn",'full','l160']
