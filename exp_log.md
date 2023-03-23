@@ -21,9 +21,15 @@
 - [x] IMP_FULL_l160_2_3
 - [x] VGfM_FULL_l160_3_1
 - [x] 3DSSG_full_l160_1
-- [ ] SGFN_full_l160_4 #??
+- [ ] SGFN_full_l160_4 #not yet fully trained
 - [ ] 2DSSG_full_l160_2
-- [ ] JointSSG_full_l160_0
+- [x] JointSSG_full_l160_0
+- [ ] JointSSG_full_l20_5_4
+- [ ] JointSSG_inseg_l20_5
+- [ ] JointSSG_orbslam_l20_11_3
+- [ ] JointSSG_full_l20_6
+- [ ] JointSSG_inseg_l20_6
+- [ ] JointSSG_orbslam_l20_11_9
 | method                       | PrecTrip | PrecObj | PrecPred | RecallTrip | RecallObj | RecallPred |
 | ---------------------------- | -------- | ------- | -------- | ---------- | --------- | ---------- |
 | IMP_full_l20_6               | 49.8     | 68.6    | 94.3     | 43.5       | 70.1      | 54.2       |
@@ -44,9 +50,10 @@
 | JointSSG_orbslam_l20_11_4    | 9.9      | 28.3    | 90.4     | 6.9        | 29.5      | 8.1        |
 | JointSSG_orbslam_l20_11_4(i) | 10.7     | 29.4    | 90.4     | 7.1        | 30.2      | 8.4        |
 | IMP_FULL_l160_2_3            | 44.5     | 36.0    | 9.0      | 3.3        | 35.9      | 9.0        |
-| VGfM_FULL_l160_3_1           | 3.4      | 37.7    | 14.7     | 3.4        | 37.9      | 14.7       |
-| 3DSSG_full_l160_1            | 7.3      | 29.5    | 68.8     | 7.3        | 29.6      | 68.8       |
-| 
+| VGfM_FULL_l160_3_1           | 44.5     | 37.7    | 14.7     | 3.4        | 37.9      | 14.7       |
+| SGFN_full_l160_4             | 
+| 3DSSG_full_l160_1            | 46.8     | 29.5    | 68.8     | 7.3        | 29.6      | 68.8       |
+| JointSSG_full_l160_0         | 52.7     | 56.6    | 50.4     | 17.9       | 56.7      | 50.4       |
 # Abla GRU SGFN
 try replacing updating method to GRU. 
 - v1: with GRU

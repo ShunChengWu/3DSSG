@@ -128,6 +128,7 @@ class Trainer_IMP(BaseTrainer, EvalInst):
         gt_rel = data['edge2D'].y
         mask2instance = data['roi'].idx2oid[0]
         edge_index = data['roi','to','roi'].edge_index
+        # gt_relationships = data['relationships']
         # gt_cls = data['image_gt_cls']
         # gt_rel = data['image_gt_rel']
         # mask2instance = data['image_mask2instance']
@@ -180,7 +181,8 @@ class Trainer_IMP(BaseTrainer, EvalInst):
             eval_tool.add(scan_id, 
                           node_cls,gt_cls, 
                           edge_cls,gt_rel,
-                          mask2instance,edge_index)
+                          mask2instance,
+                          edge_index)
         return logs
         # return loss if eval_mode else loss['loss']
 

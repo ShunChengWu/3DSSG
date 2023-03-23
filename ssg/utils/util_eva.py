@@ -1257,7 +1257,7 @@ class EvalSceneGraphBatch(EvalSceneGraphBase):
         self.predictions=dict()
         
     def add(self,scan_id:str, obj_pds, bobj_gts, rel_pds, brel_gts, mask2insts:dict, edge_indices,
-            gt_relationships):
+            gt_relationships:list=None):
         '''
         obj_pds: [n, n_cls]: softmax
         obj_gts: [n, 1]: long tensor
@@ -1317,27 +1317,28 @@ class EvalSceneGraphBatch(EvalSceneGraphBase):
         
         '''calculate topK recall'''
         # Collect object list
-        gt_obj_ids = dict()
-        for line in gt_relationships:
-            (sub_o,tgt_o,sub_cls_id,tgt_cls_id,_) = line
-            if sub_o not in gt_obj_ids:
-                gt_obj_ids[sub_o] = sub_cls_id
-            else: # check is label consistent
-                assert gt_obj_ids[sub_o] == sub_cls_id
-            if tgt_o not in gt_obj_ids:
-                gt_obj_ids[tgt_o] = tgt_cls_id
-            else:
-                assert gt_obj_ids[tgt_o] == tgt_cls_id
-        if self.k>0:
-            # compute object topk recall 
-            self.top_k_obj_recall += evaluate_topk_recall_single_prediction(gt_obj_ids,obj_pds,mask2insts[0],self.k)
-            if has_rel:
-                # compute predicate topk recall
-                self.top_k_rel_recall += evaluate_topk_recall_predicate(gt_relationships,rel_pds, edge_indices,mask2insts[0],threshold=self.multi_rel_threshold,k=self.k)
-                
-                # compute triplet
-                self.top_k_triplet_recall += evaluate_topk_recall(gt_relationships, obj_pds, rel_pds, edge_indices, mask2insts[0],
-                                    threshold=self.multi_rel_threshold, k=self.k, ignore_none=self.ignore_none)
+        if gt_relationships is not None:
+            gt_obj_ids = dict()
+            for line in gt_relationships:
+                (sub_o,tgt_o,sub_cls_id,tgt_cls_id,_) = line
+                if sub_o not in gt_obj_ids:
+                    gt_obj_ids[sub_o] = sub_cls_id
+                else: # check is label consistent
+                    assert gt_obj_ids[sub_o] == sub_cls_id
+                if tgt_o not in gt_obj_ids:
+                    gt_obj_ids[tgt_o] = tgt_cls_id
+                else:
+                    assert gt_obj_ids[tgt_o] == tgt_cls_id
+            if self.k>0:
+                # compute object topk recall 
+                self.top_k_obj_recall += evaluate_topk_recall_single_prediction(gt_obj_ids,obj_pds,mask2insts[0],self.k)
+                if has_rel:
+                    # compute predicate topk recall
+                    self.top_k_rel_recall += evaluate_topk_recall_predicate(gt_relationships,rel_pds, edge_indices,mask2insts[0],threshold=self.multi_rel_threshold,k=self.k)
+                    
+                    # compute triplet
+                    self.top_k_triplet_recall += evaluate_topk_recall(gt_relationships, obj_pds, rel_pds, edge_indices, mask2insts[0],
+                                        threshold=self.multi_rel_threshold, k=self.k, ignore_none=self.ignore_none)
             
         # Write prediction
         if self.save_prediction:
