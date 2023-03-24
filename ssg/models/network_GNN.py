@@ -516,6 +516,32 @@ class MSG_MV_DIRECT(MessagePassing):
             x += node
         return x
     
+    
+class FOO(MessagePassing):
+    def __init__(self, aggr:str,use_res:bool=True):
+        super().__init__(aggr=aggr, 
+                         flow='source_to_target')
+        self.use_res = use_res
+    def forward(self,x,edge_index):
+        '''
+        edge_index [2,n]
+        '''
+        return self.propagate(edge_index,x=x)
+    def message(self, x_i, x_j):
+        """
+        x_i [n,dim]
+        x_j [n,dim]
+        Args:
+            x_j (_type_): image_feature
+        """
+        
+        return x_j
+    
+    def update(self,x, node):
+        if self.use_res:
+            x += node
+        return x
+    
 class MSG_MV_SDPA(MessagePassing):
     def __init__(self, dim_node:int,dim_image:int, num_heads:int):
         super().__init__(aggr='add',flow='source_to_target') # edges: [img_idx, obj_idx]

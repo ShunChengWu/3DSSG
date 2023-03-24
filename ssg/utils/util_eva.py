@@ -33,19 +33,27 @@ def get_metrics(label_id, confusion, VALID_CLASS_IDS:list=None):
 def evaluate_topk_single_prediction(gts, pds, k=-1):
     top_k=list()
     pds = pds.detach().cpu()
+    gts = gts.detach().cpu()
     size_o = len(pds)
+    
+    # calculate topk
+    if k<1:
+        maxk=min(len(pds.shape[1]),1)
+    else:
+        maxk=k
+    
     for obj in range(size_o):
         pd = pds[obj]
         sorted_conf, sorted_args = torch.sort(pd, descending=True) # 1D
-        if k<1:
-            maxk=len(sorted_conf)
-            maxk=min(len(sorted_conf),maxk)
-        else:
-            maxk=k
+        # if k<1:
+        #     maxk=len(sorted_conf)
+        #     maxk=min(len(sorted_conf),maxk)
+        # else:
+        #     maxk=k
         # sorted_conf=sorted_conf[:maxk]
         sorted_args=sorted_args[:maxk]
         
-        gt = gts[obj].cpu()
+        gt = gts[obj]
         if gt in sorted_args:
             index = sorted(torch.where(sorted_args == gt)[0])[0].item()+1
         else:
