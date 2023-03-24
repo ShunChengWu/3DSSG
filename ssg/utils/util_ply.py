@@ -6,7 +6,8 @@ from plyfile import PlyElement, PlyData
 
 
 def read_labels(plydata):
-    data = plydata.metadata['ply_raw']['vertex']['data']
+    ply_raw = 'ply_raw' if 'ply_raw' in plydata.metadata else '_ply_raw'
+    data = plydata.metadata[ply_raw]['vertex']['data']
     try:
         labels = data['objectId']
     except:
@@ -14,8 +15,9 @@ def read_labels(plydata):
     return labels
 
 def save_trimesh_to_ply(trimeshply, pth, binary=False):
-    dtypes = [(k,v) for k,v in trimeshply.metadata['ply_raw']['vertex']['properties'].items()]
-    tmp = [v.flatten() for k, v in trimeshply.metadata['ply_raw']['vertex']['data'].items()]
+    ply_raw = 'ply_raw' if 'ply_raw' in trimeshply.metadata else '_ply_raw'
+    dtypes = [(k,v) for k,v in trimeshply.metadata[ply_raw]['vertex']['properties'].items()]
+    tmp = [v.flatten() for k, v in trimeshply.metadata[ply_raw]['vertex']['data'].items()]
     tmp = np.array(tmp)
     vertex = [tuple(tmp[:,v]) for v in range(tmp.shape[1])]
     vertex = np.array(vertex,dtype=dtypes)
@@ -25,7 +27,8 @@ def save_trimesh_to_ply(trimeshply, pth, binary=False):
 
 
 def get_label(ply_in, dataset_type, label_type):
-    data = ply_in.metadata['ply_raw']['vertex']['data']
+    ply_raw = 'ply_raw' if 'ply_raw' in ply_in.metadata else '_ply_raw'
+    data = ply_in.metadata[ply_raw]['vertex']['data']
     if dataset_type == None or dataset_type == '' or label_type == None:
         try:
             labels = data['objectId']
@@ -90,19 +93,21 @@ def load_rgb(path, target_name = define.LABEL_FILE_NAME, with_worker=True):
         else:
             colors = mesh.visual.vertex_colors
         # colors = mesh.visual.vertex_colors
+
+        ply_raw = 'ply_raw' if 'ply_raw' in label_mesh_align.metadata else '_ply_raw'
         
-        if 'nx' not in label_mesh_align.metadata['ply_raw']['vertex']['data']:
-            label_mesh_align.metadata['ply_raw']['vertex']['properties']['nx'] = '<f4'
-            label_mesh_align.metadata['ply_raw']['vertex']['properties']['ny'] = '<f4'
-            label_mesh_align.metadata['ply_raw']['vertex']['properties']['nz'] = '<f4'
-            label_mesh_align.metadata['ply_raw']['vertex']['data']['nx'] = np.zeros([len(query_points),1],dtype=np.float32)
-            label_mesh_align.metadata['ply_raw']['vertex']['data']['ny'] = np.zeros([len(query_points),1],dtype=np.float32)
-            label_mesh_align.metadata['ply_raw']['vertex']['data']['nz'] = np.zeros([len(query_points),1],dtype=np.float32)
+        if 'nx' not in label_mesh_align.metadata[ply_raw]['vertex']['data']:
+            label_mesh_align.metadata[ply_raw]['vertex']['properties']['nx'] = '<f4'
+            label_mesh_align.metadata[ply_raw]['vertex']['properties']['ny'] = '<f4'
+            label_mesh_align.metadata[ply_raw]['vertex']['properties']['nz'] = '<f4'
+            label_mesh_align.metadata[ply_raw]['vertex']['data']['nx'] = np.zeros([len(query_points),1],dtype=np.float32)
+            label_mesh_align.metadata[ply_raw]['vertex']['data']['ny'] = np.zeros([len(query_points),1],dtype=np.float32)
+            label_mesh_align.metadata[ply_raw]['vertex']['data']['nz'] = np.zeros([len(query_points),1],dtype=np.float32)
             
         if hasattr(label_mesh_align, 'vertex_normals'):
-            label_mesh_align.metadata['ply_raw']['vertex']['data']['nx'] = label_mesh_align.vertex_normals[:,0]
-            label_mesh_align.metadata['ply_raw']['vertex']['data']['ny'] = label_mesh_align.vertex_normals[:,1]
-            label_mesh_align.metadata['ply_raw']['vertex']['data']['nz'] = label_mesh_align.vertex_normals[:,2]
+            label_mesh_align.metadata[ply_raw]['vertex']['data']['nx'] = label_mesh_align.vertex_normals[:,0]
+            label_mesh_align.metadata[ply_raw]['vertex']['data']['ny'] = label_mesh_align.vertex_normals[:,1]
+            label_mesh_align.metadata[ply_raw]['vertex']['data']['nz'] = label_mesh_align.vertex_normals[:,2]
         
         for i in range(len(query_points)):
             if isinstance(mesh, trimesh.base.Trimesh):
@@ -112,24 +117,24 @@ def load_rgb(path, target_name = define.LABEL_FILE_NAME, with_worker=True):
             else:
                 idx = [i]
             label_mesh_align.visual.vertex_colors[i] = colors[idx[0]]
-            label_mesh_align.metadata['ply_raw']['vertex']['data']['red'][i] = colors[idx[0]][0]
-            label_mesh_align.metadata['ply_raw']['vertex']['data']['green'][i] = colors[idx[0]][1]
-            label_mesh_align.metadata['ply_raw']['vertex']['data']['blue'][i] = colors[idx[0]][2]
+            label_mesh_align.metadata[ply_raw]['vertex']['data']['red'][i] = colors[idx[0]][0]
+            label_mesh_align.metadata[ply_raw]['vertex']['data']['green'][i] = colors[idx[0]][1]
+            label_mesh_align.metadata[ply_raw]['vertex']['data']['blue'][i] = colors[idx[0]][2]
             
                 
             # if hasattr(mesh, 'vertex_normals'):
-            #     label_mesh_align.metadata['ply_raw']['vertex']['data']['nx'][i] = mesh.vertex_normals[idx[0]][0]
-            #     label_mesh_align.metadata['ply_raw']['vertex']['data']['ny'][i] = mesh.vertex_normals[idx[0]][1]
-            #     label_mesh_align.metadata['ply_raw']['vertex']['data']['nz'][i] = mesh.vertex_normals[idx[0]][2]
+            #     label_mesh_align.metadata[ply_raw]['vertex']['data']['nx'][i] = mesh.vertex_normals[idx[0]][0]
+            #     label_mesh_align.metadata[ply_raw]['vertex']['data']['ny'][i] = mesh.vertex_normals[idx[0]][1]
+            #     label_mesh_align.metadata[ply_raw]['vertex']['data']['nz'][i] = mesh.vertex_normals[idx[0]][2]
         del label_mesh
     else:
         #trimesh.base.Trimesh
         label_mesh_align.visual.vertex_colors = mesh.visual.vertex_colors
-        label_mesh_align.metadata['ply_raw']['vertex']['data']['nx'] = mesh.vertex_normals[:,0]
-        label_mesh_align.metadata['ply_raw']['vertex']['data']['ny'] = mesh.vertex_normals[:,1]
-        label_mesh_align.metadata['ply_raw']['vertex']['data']['nz'] = mesh.vertex_normals[:,2]
-        label_mesh_align.metadata['ply_raw']['vertex']['data']['red']   = mesh.visual.vertex_colors[:,0]
-        label_mesh_align.metadata['ply_raw']['vertex']['data']['green'] = mesh.visual.vertex_colors[:,1]
-        label_mesh_align.metadata['ply_raw']['vertex']['data']['blue']  = mesh.visual.vertex_colors[:,2]
+        label_mesh_align.metadata[ply_raw]['vertex']['data']['nx'] = mesh.vertex_normals[:,0]
+        label_mesh_align.metadata[ply_raw]['vertex']['data']['ny'] = mesh.vertex_normals[:,1]
+        label_mesh_align.metadata[ply_raw]['vertex']['data']['nz'] = mesh.vertex_normals[:,2]
+        label_mesh_align.metadata[ply_raw]['vertex']['data']['red']   = mesh.visual.vertex_colors[:,0]
+        label_mesh_align.metadata[ply_raw]['vertex']['data']['green'] = mesh.visual.vertex_colors[:,1]
+        label_mesh_align.metadata[ply_raw]['vertex']['data']['blue']  = mesh.visual.vertex_colors[:,2]
     del mesh
     return label_mesh_align

@@ -1257,17 +1257,17 @@ def load_mesh(path,label_file,use_rgb,use_normal):
         
         points = np.array(plydata.vertices)
         instances = util_ply.read_labels(plydata).flatten()
-        
+        ply_raw = 'ply_raw' if 'ply_raw' in plydata.metadata else '_ply_raw'
         if use_rgb:
-            r = plydata.metadata['ply_raw']['vertex']['data']['red']
-            g = plydata.metadata['ply_raw']['vertex']['data']['green']
-            b = plydata.metadata['ply_raw']['vertex']['data']['blue']
+            r = plydata.metadata[ply_raw]['vertex']['data']['red']
+            g = plydata.metadata[ply_raw]['vertex']['data']['green']
+            b = plydata.metadata[ply_raw]['vertex']['data']['blue']
             rgb = np.stack([ r,g,b]).squeeze().transpose()
             points = np.concatenate((points, rgb), axis=1)
         if use_normal:
-            nx = plydata.metadata['ply_raw']['vertex']['data']['nx']
-            ny = plydata.metadata['ply_raw']['vertex']['data']['ny']
-            nz = plydata.metadata['ply_raw']['vertex']['data']['nz']
+            nx = plydata.metadata[ply_raw]['vertex']['data']['nx']
+            ny = plydata.metadata[ply_raw]['vertex']['data']['ny']
+            nz = plydata.metadata[ply_raw]['vertex']['data']['nz']
             normal = np.stack([ nx,ny,nz ]).squeeze().transpose()
             points = np.concatenate((points, normal), axis=1)
             

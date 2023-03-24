@@ -2,6 +2,7 @@ inherit_from: [experiments/config_base_3RScan_full_l160.yaml,experiments/config_
 name: 'SGFN_full_l160_4'
 training:
  patient: 30
+ data_workers: 8
 model:
  multi_rel: true # multiple relationship 
 data:
