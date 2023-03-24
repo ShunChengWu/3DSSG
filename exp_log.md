@@ -21,7 +21,7 @@
 - [x] IMP_FULL_l160_2_3
 - [x] VGfM_FULL_l160_3_1
 - [x] 3DSSG_full_l160_1
-- [ ] SGFN_full_l160_4 #not yet fully trained
+- [x] SGFN_full_l160_4 #not yet fully trained
 - [ ] 2DSSG_full_l160_2
 - [x] JointSSG_full_l160_0
 - [ ] JointSSG_full_l20_5_4
@@ -51,7 +51,7 @@
 | JointSSG_orbslam_l20_11_4(i) | 10.7     | 29.4    | 90.4     | 7.1        | 30.2      | 8.4        |
 | IMP_FULL_l160_2_3            | 44.5     | 36.0    | 9.0      | 3.3        | 35.9      | 9.0        |
 | VGfM_FULL_l160_3_1           | 44.5     | 37.7    | 14.7     | 3.4        | 37.9      | 14.7       |
-| SGFN_full_l160_4             | 
+| SGFN_full_l160_4             | 45.2  | 29.4 | 42.8 | 4.5 | 29.4 | 45.8 |
 | 3DSSG_full_l160_1            | 46.8     | 29.5    | 68.8     | 7.3        | 29.6      | 68.8       |
 | JointSSG_full_l160_0         | 52.7     | 56.6    | 50.4     | 17.9       | 56.7      | 50.4       |
 # Abla GRU SGFN
