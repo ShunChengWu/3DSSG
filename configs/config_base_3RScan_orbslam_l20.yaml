@@ -1,0 +1,6 @@
+inherit_from: experiments/config_default.yaml
+data:
+ path: "./data/3RScan_ScanNet20_2DSSG_ORBSLAM3/"
+ path_gt: "./data/3RScan_ScanNet20_gt/"
+ label_file: "2dssg_orbslam3.ply"
+ roi_img_path: "./data/3RScan/roi_2dssg_orbslam3/roi_images.h5"

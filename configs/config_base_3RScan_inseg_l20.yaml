@@ -1,0 +1,6 @@
+inherit_from: experiments/config_default.yaml
+data:
+ path: "./data/3RScan_ScanNet20/"
+ path_gt: "./data/3RScan_ScanNet20_gt/"
+ label_file: "inseg.ply"
+ roi_img_path: "./data/3RScan/roi_inseg/roi_images.h5"
