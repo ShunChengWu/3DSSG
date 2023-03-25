@@ -1,0 +1,9 @@
+inherit_from: [experiments/config_base_3RScan_inseg_l20.yaml,experiments/config_base_VGfM.yaml]
+name: 'VGfM_inseg_l20_1'
+training:
+ data_workers: 4
+model:
+ multi_rel: false
+wandb:
+ dry_run: false
+ tags: ["ssg", "vgfm",'inseg','l20']
