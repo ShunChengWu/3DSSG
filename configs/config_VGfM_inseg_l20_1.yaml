@@ -1,4 +1,4 @@
-inherit_from: [experiments/config_base_3RScan_inseg_l20.yaml,experiments/config_base_VGfM.yaml]
+inherit_from: [configs/dataset/config_base_3RScan_inseg_l20.yaml,configs/method/config_base_VGfM.yaml]
 name: 'VGfM_inseg_l20_1'
 model:
  multi_rel: false

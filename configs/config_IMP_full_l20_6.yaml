@@ -1,4 +1,4 @@
-inherit_from: [experiments/config_base_3RScan_full_l20.yaml,experiments/config_base_IMP.yaml]
+inherit_from: [configs/dataset/config_base_3RScan_full_l20.yaml,configs/method/config_base_IMP.yaml]
 name: 'IMP_full_l20_6'
 model:
  multi_rel: false # multiple relationship 

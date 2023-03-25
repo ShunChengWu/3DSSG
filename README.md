@@ -19,6 +19,9 @@ please check [here](https://github.com/ShunChengWu/SceneGraphFusion).
 ```
 # this will create a conda environment 2dssg 
 bash -i setup.sh 
+
+# 
+ln -s /path/to/3rscan ./data/
 ```
 
 # Data generation

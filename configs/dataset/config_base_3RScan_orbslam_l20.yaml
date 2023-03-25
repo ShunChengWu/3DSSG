@@ -1,4 +1,4 @@
-inherit_from: experiments/config_default.yaml
+inherit_from: configs/config_default.yaml
 data:
  path: "./data/3RScan_ScanNet20_2DSSG_ORBSLAM3/"
  path_gt: "./data/3RScan_ScanNet20_gt/"

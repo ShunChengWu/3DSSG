@@ -4,7 +4,6 @@ model:
  multi_rel: false # multiple relationship 
 data:
  load_cache: true
- use_precompute_img_feature: true
 wandb:
  dry_run: false
  tags: ["ssg", "3dssg",'inseg','l20']

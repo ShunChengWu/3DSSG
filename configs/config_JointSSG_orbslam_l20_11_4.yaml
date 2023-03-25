@@ -1,4 +1,4 @@
-inherit_from: [experiments/config_base_3RScan_orbslam_l20_3.yaml, experiments/config_base_JointSSG.yaml]
+inherit_from: [configs/dataset/config_base_3RScan_orbslam_l20_3.yaml, configs/method/config_base_JointSSG.yaml]
 name: 'JointSSG_orbslam_l20_11_4'  
 model:
  multi_rel: false # multiple relationship 

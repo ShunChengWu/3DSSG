@@ -1,4 +1,4 @@
-inherit_from: [experiments/config_base_3RScan_full_l160.yaml,experiments/config_base_VGfM.yaml]
+inherit_from: [configs/dataset/config_base_3RScan_full_l160.yaml,configs/method/config_base_VGfM.yaml]
 name: 'VGfM_FULL_l160_3_1'
 model:
  multi_rel: true # multiple relationship 
