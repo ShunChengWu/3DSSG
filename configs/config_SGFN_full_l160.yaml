@@ -1,9 +1,5 @@
 inherit_from: [configs/dataset/config_base_3RScan_full_l160.yaml,configs/method/config_base_SGFN.yaml]
-name: 'SGFN_full_l160_4'
 model:
  multi_rel: true # multiple relationship 
-data:
- load_cache: true
 wandb:
- dry_run: false
  tags: ["ssg", "sgfn",'full','l160']

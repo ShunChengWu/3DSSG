@@ -81,10 +81,10 @@ def main():
         
         # try to load one data
         logger_py.info('test loader')
-        dataset_train.__getitem__(0)
+        # dataset_train.__getitem__(0)
         for i,data in enumerate(train_loader):
-            # print(i)
             break
+            continue
         
         # Get logger
         logger_py.info('get logger')

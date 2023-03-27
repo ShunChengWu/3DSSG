@@ -1,9 +1,5 @@
 inherit_from: [configs/dataset/config_base_3RScan_inseg_l20.yaml, configs/method/config_base_JointSSG.yaml]
-name: 'JointSSG_inseg_l20_1'
 model:
  multi_rel: false # multiple relationship 
-data:
- load_cache: true
 wandb:
- dry_run: false
  tags: ["ssg", "jointSSG",'inseg','l20']

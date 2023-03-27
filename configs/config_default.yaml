@@ -1,7 +1,6 @@
 SEED: 2021
 VERBOSE: true
 GPU: [0]
-name: 'test'
 log_level: 'DEBUG'
 training:
  batch: 1

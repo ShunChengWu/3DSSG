@@ -75,8 +75,8 @@ class SGFNDataset (data.Dataset):
         self.max_edges=config.data.max_num_edge
         self.full_edge = self.multi_rel_outputs #self.config.data.full_edge
         
-        self.output_node = args.get('output_node', True)
-        self.output_edge = args.get('output_edge', True)    
+        # self.output_node = args.get('output_node', True)
+        # self.output_edge = args.get('output_edge', True)    
 
         ''' read classes '''
         pth_classes = os.path.join(path,'classes.txt')
@@ -190,6 +190,7 @@ class SGFNDataset (data.Dataset):
             w_edge_cls = np.loadtxt(self.pth_edge_weights)
             self.w_node_cls = torch.from_numpy(w_node_cls).float()
             self.w_edge_cls = torch.from_numpy(w_edge_cls).float()
+        # return 
         
         '''cache'''
         self.cache_data = dict()
@@ -212,11 +213,7 @@ class SGFNDataset (data.Dataset):
             for key, item in self.cache_data.items():
                 self.cache_data[key] = item.get()
                 
-        # del self.sg_data
         del self.filtered_data
-        # if self.mconfig.load_images:
-            # del self.roi_imgs
-            # del self.mv_data
                 
     def open_filtered(self):
         self.filtered_data = h5py.File(self.pth_filtered,'r')
@@ -413,15 +410,10 @@ class SGFNDataset (data.Dataset):
         # idx2oid = torch.LongTensor([oid for oid in idx2oid.values()]) # mask idx to seg idx (instance idx)
         
         
-        '''release'''
-        del self.sg_data
-        if self.mconfig.load_images:
-            if self.mconfig.is_roi_img:
-                del self.roi_imgs
-            # else:
-                # del self.filtered_data
-            del self.mv_data
         
+        
+        # return torch.rand([3,128])
+        '''Gather output in HeteroData'''
         output = HeteroData()
         # output = dict()
         output['scan_id'] = scan_id # str
@@ -443,9 +435,10 @@ class SGFNDataset (data.Dataset):
         
         output['node'].idx2oid = [idx2oid]
         output['node'].idx2iid = [idx2iid]
-        output['relationships'] = relationships_3D_mask
+        # return output
+        output['relationships'] = [relationships_3D_mask]
         # print(output['node'].idx2iid)
-
+        
         if self.mconfig.load_points:
             output['node'].pts = obj_points
             
@@ -479,26 +472,32 @@ class SGFNDataset (data.Dataset):
                 output['roi','to','roi'].edge_index = image_edge_indices.t().contiguous()
                 output['roi','temporal','roi'].edge_index = temporal_node_graph.t().contiguous()
                 output['edge2D','temporal','edge2D'].edge_index = temporal_edge_graph.t().contiguous()
-                # raise NotImplementedError
-                # output['images'] = images
-                # output['image_boxes'] = img_bounding_boxes
-                # output['temporal_node_graph'] = temporal_node_graph
-                # output['temporal_edge_graph'] = temporal_edge_graph
-                # output['image_node_edges'] = image_edge_indices
-                
-                # output['image_gt_cls'] = gt_class_image
-                # output['image_gt_rel'] = gt_rels_2D
-                # output['image_mask2instance'] = img_idx2oid
-            
-            # output['node_descriptor_8'] = node_descriptor_for_image
-        if hasattr(self,'filtered_data'):
-            del self.filtered_data
-        if hasattr(self,'image_feature'):
-            del self.image_feature
+
+        '''release'''
+        self.reset_data()
         return output
         
     def __len__(self):
         return self.size
+    
+    def reset_data(self):
+        to_delete = ['sg_data','roi_imgs','filtered_data','image_featre']
+        for key in to_delete:
+            if hasattr(self,key):
+                del self.__dict__[key]
+        # if hasattr(self,'sg_data'):
+        #     del self.sg_data
+        # del self.sg_data
+        # if self.mconfig.load_images:
+        #     if self.mconfig.is_roi_img:
+        #         del self.roi_imgs
+        #     # else:
+        #         # del self.filtered_data
+        #     del self.mv_data
+        # if hasattr(self,'filtered_data'):
+        #     del self.filtered_data
+        # if hasattr(self,'image_feature'):
+        #     del self.image_feature
     
     def norm_tensor(self, points):
         assert points.ndim == 2

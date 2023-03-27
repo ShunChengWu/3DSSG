@@ -1,8 +1,8 @@
 model:
  method: sgfn
  multi_rel: false # multiple relationship 
- use_rgb: true
- use_normal: true
+ use_rgb: false
+ use_normal: false
  use_spatial: true
  node_feature_dim: 256
  edge_feature_dim: 256

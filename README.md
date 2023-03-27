@@ -1,6 +1,26 @@
-# TODO
-- [ ] write a loader that load the sequential data
-- [ ] allow jointSSG takes not cropped ROI input.
+# TODO Open Source
+- [ ] script to generate data
+- [ ] 
+- [ ] reproducibility
+- [ ] support batch
+
+## see if new configs work
+- [ ] config_IMP_full_l20_6.yaml
+- [ ] config_IMP_FULL_l160_2_3.yaml
+- [ ] config_IMP_inseg_l20_3.yaml
+- [ ] config_IMP_orbslam_l20_1.yaml
+- [ ] config_VGFM_full_l20_2.yaml
+- [ ] config_VGfM_FULL_l160_4.yaml
+- [ ] config_VGfM_inseg_l20_1.yaml
+- [ ] config_VGfM_orbslam_l20_1.yaml
+- [x] config_SGFN_full_l20_2.yaml
+- [x] config_SGFN_full_l160_4.yaml
+- [x] config_SGFN_inseg_l20_9.yaml
+- [x] config_SGFN_orbslam_l20_1.yaml
+- [x] config_JointSSG_full_l20_5.yaml
+- [x] config_JointSSG_full_l160_0.yaml
+- [x] config_JointSSG_inseg_l20_1.yaml
+- [x] config_JointSSG_orbslam_l20_11_4.yaml
 
 # SceneGraphFusion
 ![teaser](img/teaser.png)
