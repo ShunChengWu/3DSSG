@@ -1,6 +1,6 @@
 inherit_from: configs/config_default.yaml
 data:
- load_cache: true
+ load_cache: false
  path: "./data/3RScan_ScanNet20_gt/"
  path_gt: "./data/3RScan_ScanNet20_gt/"
  label_file: "labels.instances.align.annotated.v2.ply"
