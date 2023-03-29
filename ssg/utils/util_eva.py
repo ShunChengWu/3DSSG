@@ -1477,20 +1477,17 @@ class EvalSceneGraphBatch(EvalSceneGraphBase):
         edge_gt_data = data['node_gt','to','node_gt']
         node_gt_to_node = data['node_gt','to','node']
         
-        # Merge list from batches to one
-        if 'batch' in node_gt_data: # in batch process list objects will be merged into a larger list.
-            node_gt_data.clsIdx = list(itertools.chain.from_iterable(node_gt_data.clsIdx))
-            edge_gt_data.clsIdx = list(itertools.chain.from_iterable(edge_gt_data.clsIdx))
-        
         # Shortcut
         node_pds = node_data.pd
         node_gts = node_data.y
-        edge_pds = edge_data.pd
-        edge_gts = edge_data.y
-        
         node_pds=node_pds.detach()
-        has_rel = edge_pds is not None and len(edge_pds)>0 and edge_pds.shape[0] > 0
+        
+        
+        edge_gts = edge_data.y
+        has_rel = 'pd' in edge_data and len(edge_gts)>0
         if has_rel:
+            edge_pds = edge_data.pd
+            
             # if self.ignore_none and not self.multi_rel_prediction:
             #     none_index = self.rel_class_names.index(self.none_name)
             #     non_none_index = torch.where(edge_gts != none_index)
@@ -1499,9 +1496,9 @@ class EvalSceneGraphBatch(EvalSceneGraphBase):
                 
             #     # edge_indices_bk = copy.copy(edge_indices)
             #     edge_indices = edge_indices[:,non_none_index[0]]
-            has_rel = edge_pds is not None and len(edge_pds)>0 and edge_pds.shape[0] > 0
-            if has_rel:
-                edge_pds=edge_pds.detach()
+            # has_rel = edge_pds is not None and len(edge_pds)>0 and edge_pds.shape[0] > 0
+            # if has_rel:
+            edge_pds=edge_pds.detach()
         
         # Obj 
         o_pds = node_pds.max(1)[1]
@@ -1549,8 +1546,14 @@ class EvalSceneGraphBatch(EvalSceneGraphBase):
         #     assert idx_node not in mask2instance
         #     mask2instance[idx_node] = idx_node_gt
         
+        
         # compute object topk recall 
-        if len(node_gt_data.clsIdx)>0:
+        
+        # Merge list from batches to one
+        if len(node_gt_data.x)>0:
+            if 'batch' in node_gt_data: # in batch process list objects will be merged into a larger list.
+                node_gt_data.clsIdx = list(itertools.chain.from_iterable(node_gt_data.clsIdx))
+                edge_gt_data.clsIdx = list(itertools.chain.from_iterable(edge_gt_data.clsIdx))
             self.top_k_obj_recall += evaluate_topk_recall_single_prediction(node_gt_data.clsIdx,node_pds,node_gt_to_node.edge_index,self.k)
             if has_rel:
                 # compute predicate topk recall

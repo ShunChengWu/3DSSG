@@ -186,7 +186,7 @@ class Trainer():
                 for k, v in scalar_list.items():
                     logger.add_scalar(k, v.avg,it)
                 scalar_list = defaultdict(moving_average.MA)
-            # break
+            # break#TODO: comment me out after debug
             
         epo_time = time.time() - epo_time
         del it_dataset

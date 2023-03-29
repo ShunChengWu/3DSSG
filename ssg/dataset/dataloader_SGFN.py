@@ -444,47 +444,40 @@ class SGFNDataset (data.Dataset):
         
         edge_indices_3D = torch.tensor(edge_indices_3D,dtype=torch.long)
         # new_edge_index_has_gt = torch.tensor(new_edge_index_has_gt,dtype=torch.long)
-        idx2iid = seg2inst
+        # idx2iid = seg2inst
         # idx2iid = torch.LongTensor([seg2inst[oid] if oid in seg2inst else oid for oid in idx2oid.values() ]) # mask idx to instance idx
         # idx2oid = torch.LongTensor([oid for oid in idx2oid.values()]) # mask idx to seg idx (instance idx)
         
         '''Gather output in HeteroData'''
         output = HeteroData()
-        # output = dict()
         output['scan_id'] = scan_id # str
         
         output['node'].x = torch.zeros([gt_class_3D.shape[0],1]) # dummy
         output['node'].y = gt_class_3D
         output['node'].oid = tensor_oid
         
-        # output['edge'].x = torch.zeros([gt_rels_3D.shape[0],1])
-        # output['edge'].y = gt_rels_3D
-        
-        
-        
-        
+        # if len(gtIdx_entities_cls) == 0:
+        #     print('scan_id',scan_id)
+        #     print('len(gtIdx_entities_cls)',len(gtIdx_entities_cls))
+        #     print('gtIdx2ebIdx.shape',gtIdx2ebIdx.shape)
+        #     print('gtIdx_edge_cls',len(gtIdx_edge_cls))
+        #     print('gtIdx_edge_index.shape',gtIdx_edge_index.shape)
+        #     print('hallo')
+            # gtIdx_entities_cls =None
+            # gtIdx_edge_cls = None
         output['node_gt'].x = torch.zeros([len(gtIdx_entities_cls),1]) # dummy
-        output['node_gt'].clsIdx = gtIdx_entities_cls
+        output['node_gt'].clsIdx = gtIdx_entities_cls if len(gtIdx_entities_cls)>0 else torch.zeros([len(gtIdx_entities_cls),1]) # dummy
         output['node_gt','to','node'].edge_index = gtIdx2ebIdx
-        output['node_gt','to','node_gt'].clsIdx = gtIdx_edge_cls
+        output['node_gt','to','node_gt'].clsIdx = gtIdx_edge_cls if len(gtIdx_edge_cls)> 0 else torch.zeros([len(gtIdx_entities_cls),1]) # dummy
         output['node_gt','to','node_gt'].edge_index = gtIdx_edge_index
-        
-        # if output['edge'].y.nelement()==0:
-        #     print('debug')
         
         # edges for computing features
         output['node','to','node'].edge_index = edge_indices_3D.t().contiguous()
         output['node','to','node'].y = gt_rels_3D
         
-        # GT edges
-        # output['node','to','node'].edge_index_has_gt = new_edge_index_has_gt
         
         
-        # output['node'].idx2oid = [idx2oid]
-        # output['node'].idx2iid = [idx2iid]
-        # return output
-        # output['relationships'] = [relationships_3D_mask]
-        # print(output['node'].idx2iid)
+            
         
         if self.mconfig.load_points:
             output['node'].pts = obj_points
