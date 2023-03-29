@@ -1,8 +1,13 @@
 # TODO Open Source
-- [ ] script to generate data
-- [ ] 
+- [ ] script to generate data (include everything)
+  - [ ] extract MV graph for 
+    - [ ] IMP, VGfM
+    - [ ] 
+- [ ] extract generated ply files
+  - [ ] InSeg
+  - [ ] OrbSLAM3
 - [ ] reproducibility
-- [ ] support batch
+- [x] support batch
 
 ## see if new configs work
 - [ ] config_IMP_full_l20_6.yaml
@@ -38,7 +43,7 @@ please check [here](https://github.com/ShunChengWu/SceneGraphFusion).
 # Setup 
 ```
 # this will create a conda environment 2dssg 
-bash -i setup.sh 
+source -i setup.sh 
 
 # 
 ln -s /path/to/3rscan ./data/
