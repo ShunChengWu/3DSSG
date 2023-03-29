@@ -3,7 +3,7 @@ name: 'SGFN_inseg_l20_0'
 model:
  multi_rel: false # multiple relationship 
 data:
- load_cache: true
+ load_cache: false
 wandb:
  dry_run: false
  tags: ["ssg", "sgfn","inseg","l20"]

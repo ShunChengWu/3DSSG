@@ -101,6 +101,8 @@ def main():
         model = config.get_model(cfg,num_obj_cls=num_obj_cls, num_rel_cls=num_rel_cls)
         
         if cfg.VERBOSE:
+            print(cfg)
+        if cfg.VERBOSE:
             print(model)
         
         # trainer
@@ -141,7 +143,12 @@ def main():
                 pin_memory=False,
                 # collate_fn=graph_collate,
             )
+            
+            logger_py.info('test loader')
             dataset_test.__getitem__(0)
+            for i,data in enumerate(train_loader):
+                break
+                continue
             
             # Get logger
             # logger=None
@@ -194,7 +201,13 @@ def main():
             dataset_seg  = config.get_dataset(cfg,'test')
             ''' Get instance dataset'''
             dataset_inst = config.get_dataset_inst(cfg,'test')
-            # write back
+            
+            logger_py.info('test loader')
+            dataset_inst.__getitem__(0)
+            for i in range(len(dataset_inst)):
+                dataset_inst.__getitem__(i)
+                break
+                continue
             
             '''check'''
             # assert len(dataset_seg.relationNames) == len(dataset_inst.relationNames)+1

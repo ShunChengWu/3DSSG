@@ -5,6 +5,8 @@ import numpy as np
 from codeLib.utils.plot_confusion_matrix import plot_confusion_matrix
 from collections import defaultdict
 from torch import Tensor
+from torch_geometric.data import HeteroData
+import itertools
 # from utils.plot_confusion_matrix import plot_confusion_matrix
 
 def get_metrics(label_id, confusion, VALID_CLASS_IDS:list=None):
@@ -62,42 +64,71 @@ def evaluate_topk_single_prediction(gts, pds, k=-1):
 
     return top_k
 
-def evaluate_topk_recall_single_prediction(gts:dict, pds, mask2inst:dict, k=-1):
+# def evaluate_topk_recall_single_prediction(gts:dict, pds, mask2inst:dict, k=-1):
+#     top_k=list()
+#     pds = pds.detach().cpu()
+#     size_o = len(gts)
+    
+#     # calculate topk
+#     if k<1:
+#         maxk=min(len(pds.shape[1]),1)
+#     else:
+#         maxk=k
+    
+#     # Put prediction to a dict for easy query
+#     pds_inst = dict()
+#     for mask,inst in mask2inst.items():
+#         assert inst not in pds_inst
+#         pds_inst[inst] = pds[mask]
+    
+#     for inst, label in gts.items():
+#         if inst not in pds_inst:
+#             top_k.append(maxk+1)
+#             continue
+
+#         pd = pds_inst[inst]
+#         sorted_conf, sorted_args = torch.sort(pd, descending=True) # 1D
+        
+#         # sorted_conf=sorted_conf[:maxk]
+#         sorted_args=sorted_args[:maxk]
+        
+#         if label in sorted_args:
+#             index = sorted(torch.where(sorted_args == label)[0])[0].item()+1
+#         else:
+#             index = maxk+1
+#         top_k.append(index)
+
+#     return top_k
+
+
+def evaluate_topk_recall_single_prediction(gts, pds, edge_index_gtNode2pdNode, k=-1):
     top_k=list()
     pds = pds.detach().cpu()
-    size_o = len(gts)
     
     # calculate topk
     if k<1:
-        maxk=min(len(pds.shape[1]),1)
+        maxk=pds.shape[1]
     else:
         maxk=k
-    
-    # Put prediction to a dict for easy query
-    pds_inst = dict()
-    for mask,inst in mask2inst.items():
-        assert inst not in pds_inst
-        pds_inst[inst] = pds[mask]
-    
-    for inst, label in gts.items():
-        if inst not in pds_inst:
-            top_k.append(maxk+1)
-            continue
-
-        pd = pds_inst[inst]
-        sorted_conf, sorted_args = torch.sort(pd, descending=True) # 1D
         
-        # sorted_conf=sorted_conf[:maxk]
-        sorted_args=sorted_args[:maxk]
-        
-        if label in sorted_args:
-            index = sorted(torch.where(sorted_args == label)[0])[0].item()+1
-        else:
+    for idx in range(edge_index_gtNode2pdNode.shape[1]):
+        gtNodeIdx = edge_index_gtNode2pdNode[0,idx]
+        pdNodeIdx = edge_index_gtNode2pdNode[1,idx]
+        if pdNodeIdx < 0: # missing prediction
             index = maxk+1
-        top_k.append(index)
-
+        else:
+            pd = pds[pdNodeIdx]
+            gt = gts[gtNodeIdx]
+            _, sorted_args = torch.sort(pd, descending=True) # 1D
+            sorted_args=sorted_args[:maxk]
+            
+            if gt in sorted_args: # check if the target id is truncated by maxk
+                index = sorted(torch.where(sorted_args == gt)[0])[0].item()+1
+            else:
+                index = maxk+1
+        top_k.append(index)    
     return top_k
-
+        
 def evaluate_topk_multi_prediction(gts, pds, k=-1):
     top_k=list()
     pds = pds.detach().cpu()
@@ -191,56 +222,127 @@ def evaluate_topk_predicate(gt_edges, rels_pred, threshold=0.5,k=-1):
         top_k += temp_topk
     return top_k
 
-def evaluate_topk_recall_predicate(gt_rel, rels_pred,edges,  mask2inst:dict, threshold=0.5,k=-1):
+# def evaluate_topk_recall_predicate(gt_rel, rels_pred,edges,  mask2inst:dict, threshold=0.5,k=-1):
+#     top_k=list()
+#     rels_pred = rels_pred.detach().cpu()
+    
+#     assert edges.shape[0] == 2
+#     num_edges = edges.shape[1]
+#     all_indices = [idx for idx in range(num_edges)]
+    
+#     '''convert edge_index from mask to instance id'''
+#     edges = edges.tolist()
+#     edge_index_inst = list()
+#     for idx in all_indices:
+#         o_m = edges[0][idx]
+#         s_m = edges[1][idx]
+#         o_i = mask2inst[o_m]
+#         s_i = mask2inst[s_m]
+#         edge_index_inst.append((o_i,s_i))
+#     # edge_index_inst = [(mask2inst[edges[0,idx].item()], mask2inst[edges[1,idx].item()]) for idx in all_indices]
+    
+#     '''calculate max k'''
+#     if k<1:
+#         maxk=min(rels_pred.shape[1],1) # take top1
+#     else:
+#         maxk=k
+    
+#     '''build lookup table'''
+#     for line in gt_rel:
+#         sub_index = line[0]
+#         obj_index = line[1]
+#         sub_cls_index = line[2]
+#         obj_cls_index = line[3]
+#         gt_r = line[4]
+        
+#         key = (sub_index,obj_index)
+#         if key not in edge_index_inst:
+#             #TODO: append maxk
+#             for _ in gt_r: # for the multi rel case
+#                 top_k += [maxk+1]
+#             continue
+        
+#         # Get predicate prediction
+#         edge_index = edge_index_inst.index(key)
+#         rel_pred = rels_pred[edge_index]
+        
+#         sorted_conf, sorted_args = torch.sort(rel_pred, descending=True)  # 1D
+#         # sorted_conf=sorted_conf[:maxk]
+#         sorted_args=sorted_args[:maxk]
+        
+#         temp_topk = []
+#         if len(gt_r) == 0:# Ground truth is None
+#             # continue
+#             '''If gt is none, find the first prediction that is below threshold (which predicts "no relationship")'''
+#             indices = torch.where(sorted_conf < threshold)[0]
+#             if len(indices) == 0:
+#                 index = maxk+1
+#             else:
+#                 index = sorted(indices)[0].item()+1
+#             temp_topk.append(index)
+#         else:
+#             for gt in gt_r:
+#                 '''if has gt, find the location of the gt label prediction.'''
+#                 if gt in sorted_args:
+#                     index = sorted(torch.where(sorted_args == gt)[0])[0].item()+1
+#                     index = math.ceil(index / len(gt_r))
+#                 else:
+#                     index = maxk+1
+#                 temp_topk.append(index)
+#             temp_topk = sorted(temp_topk)  # ascending I hope/think
+#         top_k += temp_topk
+#     return top_k
+
+def evaluate_topk_recall_predicate(pds,gts,
+                                   nodeGtIdx2nodeIdx,
+                                   edge_index,
+                                   edge_gt_index,
+                                   threshold=0.5,k=-1):
     top_k=list()
-    rels_pred = rels_pred.detach().cpu()
     
-    assert edges.shape[0] == 2
-    num_edges = edges.shape[1]
-    all_indices = [idx for idx in range(num_edges)]
-    
-    '''convert edge_index from mask to instance id'''
-    edges = edges.tolist()
-    edge_index_inst = list()
-    for idx in all_indices:
-        o_m = edges[0][idx]
-        s_m = edges[1][idx]
-        o_i = mask2inst[o_m]
-        s_i = mask2inst[s_m]
-        edge_index_inst.append((o_i,s_i))
-    # edge_index_inst = [(mask2inst[edges[0,idx].item()], mask2inst[edges[1,idx].item()]) for idx in all_indices]
-    
-    '''calculate max k'''
+    #calculate max k
     if k<1:
-        maxk=min(rels_pred.shape[1],1) # take top1
+        maxk=pds.shape[1] # take top1
     else:
         maxk=k
     
-    '''build lookup table'''
-    for line in gt_rel:
-        sub_index = line[0]
-        obj_index = line[1]
-        sub_cls_index = line[2]
-        obj_cls_index = line[3]
-        gt_r = line[4]
-        
-        key = (sub_index,obj_index)
-        if key not in edge_index_inst:
-            #TODO: append maxk
-            for _ in gt_r: # for the multi rel case
+    # Convert list to map
+    nodeGtIdx2nodeIdx_map = dict()
+    for idx in range(nodeGtIdx2nodeIdx.shape[1]):
+        src_idx = nodeGtIdx2nodeIdx[0,idx].item()
+        tgt_idx = nodeGtIdx2nodeIdx[1,idx].item()
+        nodeGtIdx2nodeIdx_map[src_idx] = tgt_idx
+    
+    # calculate topk
+    edge_index_list = edge_index.t().tolist()
+    for idx in range(edge_gt_index.shape[1]):
+        missing = False
+        gt_rels = gts[idx]
+        src_idx = edge_gt_index[0,idx].item()
+        tgt_idx = edge_gt_index[1,idx].item()
+        # check if mapping exist
+        if src_idx not in nodeGtIdx2nodeIdx_map or tgt_idx not in nodeGtIdx2nodeIdx_map:
+            missing = True
+        else:
+            src_idx = nodeGtIdx2nodeIdx_map[src_idx]
+            tgt_idx = nodeGtIdx2nodeIdx_map[tgt_idx]
+            key = [src_idx,tgt_idx]
+            if key not in edge_index_list:
+                missing = True
+        if missing == True: # If missing add maximum top_k
+            for _ in gt_rels: 
                 top_k += [maxk+1]
             continue
         
-        # Get predicate prediction
-        edge_index = edge_index_inst.index(key)
-        rel_pred = rels_pred[edge_index]
-        
+        # compute top_k
+        idx = edge_index_list.index(key)
+        rel_pred = pds[idx]
         sorted_conf, sorted_args = torch.sort(rel_pred, descending=True)  # 1D
-        # sorted_conf=sorted_conf[:maxk]
+        sorted_conf=sorted_conf[:maxk]
         sorted_args=sorted_args[:maxk]
         
         temp_topk = []
-        if len(gt_r) == 0:# Ground truth is None
+        if len(gt_rels) == 0:# Ground truth is None
             # continue
             '''If gt is none, find the first prediction that is below threshold (which predicts "no relationship")'''
             indices = torch.where(sorted_conf < threshold)[0]
@@ -250,18 +352,18 @@ def evaluate_topk_recall_predicate(gt_rel, rels_pred,edges,  mask2inst:dict, thr
                 index = sorted(indices)[0].item()+1
             temp_topk.append(index)
         else:
-            for gt in gt_r:
+            for gt in gt_rels:
                 '''if has gt, find the location of the gt label prediction.'''
                 if gt in sorted_args:
                     index = sorted(torch.where(sorted_args == gt)[0])[0].item()+1
-                    index = math.ceil(index / len(gt_r))
+                    index = math.ceil(index / len(gt_rels))
                 else:
                     index = maxk+1
                 temp_topk.append(index)
             temp_topk = sorted(temp_topk)  # ascending I hope/think
         top_k += temp_topk
     return top_k
-
+   
 def get_gt(objs_target, rels_target, edges, mask2inst,multiple_prediction:bool):
     gt_edges = [] # initialize
     idx2instance = torch.zeros_like(objs_target)
@@ -418,57 +520,152 @@ def evaluate_topk(gt_rel, objs_pred, rels_pred, edges, threshold=0.5, k=40, igno
     #     top_k += temp_topk
     return top_k
             
-def evaluate_topk_recall(gt_rel, objs_pred, rels_pred, edges, mask2inst:dict, threshold=0.5, k=40, ignore_none:bool=False):
+# def evaluate_topk_recall(gt_rel, objs_pred, rels_pred, edges, mask2inst:dict, threshold=0.5, k=40, ignore_none:bool=False):
+#     top_k=list()
+#     device = objs_pred.device
+#     objs_pred = objs_pred.detach().cpu()
+#     rels_pred = rels_pred.detach().cpu()
+    
+#     batch_size = 64
+#     assert edges.shape[0] == 2
+#     num_edges = edges.shape[1]
+#     all_indices = [idx for idx in range(num_edges)]
+    
+#     '''convert edge_index from mask to instance id'''
+#     edges = edges.tolist()
+#     edge_index_inst = list()
+#     for idx in all_indices:
+#         o_m = edges[0][idx]
+#         s_m = edges[1][idx]
+#         o_i = mask2inst[o_m]
+#         s_i = mask2inst[s_m]
+#         edge_index_inst.append((o_i,s_i))
+#     # edge_index_inst = [(mask2inst[edges[0,idx].item()], mask2inst[edges[1,idx].item()]) for idx in all_indices]
+    
+#     '''calculate max k'''
+#     if k<1:
+#         maxk=min(sub_preds.shape[1]*2+rel_preds.shape[1],1) # take top1
+#     else:
+#         maxk=k
+    
+#     '''build lookup table'''
+#     for line in gt_rel:
+#         sub_index = line[0]
+#         obj_index = line[1]
+#         sub_cls_index = line[2]
+#         obj_cls_index = line[3]
+#         gt_r = line[4]
+        
+#         key = (sub_index,obj_index)
+#         if key not in edge_index_inst:
+#             #TODO: append maxk
+#             for _ in gt_r: # for the multi rel case
+#                 top_k += [maxk+1]
+#             continue
+        
+#         '''calculate topK'''
+#         edge_index = edge_index_inst.index(key)
+#         sub_preds = objs_pred[edges[0][edge_index]]
+#         obj_preds = objs_pred[edges[1][edge_index]]
+#         rel_preds = rels_pred[edge_index]
+        
+#         so_preds = torch.einsum('n,m->nm',sub_preds,obj_preds)
+#         conf_matrix = torch.einsum('nm, k->nmk',so_preds,rel_preds)
+#         dim_n, dim_m, dim_k = conf_matrix.shape
+        
+#         conf_matrix = conf_matrix.reshape(-1).to(device) # use CUDA if available
+#         torch.cuda.empty_cache()
+#         sorted_conf_matrix, sorted_args_1d = torch.sort(conf_matrix, descending=True) # 1D
+#         sorted_conf_matrix, sorted_args_1d=sorted_conf_matrix.cpu(),sorted_args_1d.cpu()
+#         torch.cuda.empty_cache()
+        
+#         sorted_conf_matrix=sorted_conf_matrix[:maxk]
+#         sorted_args_1d=sorted_args_1d[:maxk]
+        
+#         temp_topk = []
+#         if len(gt_r) == 0:
+#             if ignore_none:
+#                 continue
+#             # Ground truth is None
+#             indices = torch.where(sorted_conf_matrix < threshold)[0]
+#             if len(indices) == 0:
+#                 index = maxk+1 # 
+#             else:
+#                 index = sorted(indices)[0].item()+1
+#             temp_topk.append(index)
+#         else:
+#             for predicate in gt_r: # for the multi rel case
+#                 index_1d = (sub_cls_index*dim_m+obj_cls_index)*dim_k+predicate
+#                 indices = torch.where(sorted_args_1d == index_1d)[0]
+#                 if len(indices) == 0:
+#                     index = maxk+1
+#                 else:
+#                     index = sorted(indices)[0].item()+1
+#                     index = math.ceil(index/len(gt_r))
+#                 temp_topk.append(index)
+#             temp_topk = sorted(temp_topk)
+#         top_k += temp_topk
+#     return top_k
+
+def evaluate_topk_recall(entity_pds,edge_pds,
+                         entity_gts,edge_gts,
+                         nodeGtIdx2nodeIdx,
+                         edge_index,
+                         edge_gt_index,
+                         threshold=0.5,k=-1):
+    device = entity_pds.device
     top_k=list()
-    device = objs_pred.device
-    objs_pred = objs_pred.detach().cpu()
-    rels_pred = rels_pred.detach().cpu()
-    
-    batch_size = 64
-    assert edges.shape[0] == 2
-    num_edges = edges.shape[1]
-    all_indices = [idx for idx in range(num_edges)]
-    
-    '''convert edge_index from mask to instance id'''
-    edges = edges.tolist()
-    edge_index_inst = list()
-    for idx in all_indices:
-        o_m = edges[0][idx]
-        s_m = edges[1][idx]
-        o_i = mask2inst[o_m]
-        s_i = mask2inst[s_m]
-        edge_index_inst.append((o_i,s_i))
-    # edge_index_inst = [(mask2inst[edges[0,idx].item()], mask2inst[edges[1,idx].item()]) for idx in all_indices]
     
     '''calculate max k'''
     if k<1:
-        maxk=min(sub_preds.shape[1]*2+rel_preds.shape[1],1) # take top1
+        maxk=entity_pds.shape[1]*entity_pds.shape[1]*edge_pds.shape[1] # take top1
     else:
         maxk=k
     
-    '''build lookup table'''
-    for line in gt_rel:
-        sub_index = line[0]
-        obj_index = line[1]
-        sub_cls_index = line[2]
-        obj_cls_index = line[3]
-        gt_r = line[4]
+    # Convert list to map
+    nodeGtIdx2nodeIdx_map = dict()
+    for idx in range(nodeGtIdx2nodeIdx.shape[1]):
+        gt_idx = nodeGtIdx2nodeIdx[0,idx].item()
+        pd_idx = nodeGtIdx2nodeIdx[1,idx].item()
+        nodeGtIdx2nodeIdx_map[gt_idx] = pd_idx
         
-        key = (sub_index,obj_index)
-        if key not in edge_index_inst:
-            #TODO: append maxk
-            for _ in gt_r: # for the multi rel case
+    # calculate topk
+    edge_index_list = edge_index.t().tolist()
+    for idx in range(edge_gt_index.shape[1]):
+        missing = False
+        gt_rels = edge_gts[idx]
+        src_gt_idx = edge_gt_index[0,idx].item()
+        tgt_gt_idx = edge_gt_index[1,idx].item()
+        # check if mapping exist
+        if src_gt_idx not in nodeGtIdx2nodeIdx_map or tgt_gt_idx not in nodeGtIdx2nodeIdx_map:
+            missing = True
+        else:
+            src_pd_idx = nodeGtIdx2nodeIdx_map[src_gt_idx]
+            tgt_pd_idx = nodeGtIdx2nodeIdx_map[tgt_gt_idx]
+            key = [src_pd_idx,tgt_pd_idx]
+            if key not in edge_index_list:
+                missing = True
+        if missing == True: # If missing add maximum top_k
+            for _ in gt_rels: 
                 top_k += [maxk+1]
             continue
         
-        '''calculate topK'''
-        edge_index = edge_index_inst.index(key)
-        sub_preds = objs_pred[edges[0][edge_index]]
-        obj_preds = objs_pred[edges[1][edge_index]]
-        rel_preds = rels_pred[edge_index]
+        # Collect GT cls idx
+        src_gt_cls = entity_gts[src_gt_idx]
+        tgt_gt_cls = entity_gts[tgt_gt_idx]#TODO: ck if this is a list
         
-        so_preds = torch.einsum('n,m->nm',sub_preds,obj_preds)
-        conf_matrix = torch.einsum('nm, k->nmk',so_preds,rel_preds)
+        
+        
+        # collect PD feature
+        idx = edge_index_list.index(key)
+        rel_pd = edge_pds[idx]
+        src_pd = entity_pds[src_pd_idx]
+        tgt_pd = entity_pds[tgt_pd_idx]
+        
+        # concat src-tgt-pred
+        so_preds = torch.einsum('n,m->nm',src_pd,tgt_pd) # 
+        conf_matrix = torch.einsum('nm, k->nmk',so_preds,rel_pd)
+        sorted_conf, sorted_args = torch.sort(conf_matrix, descending=True)  # 1D
         dim_n, dim_m, dim_k = conf_matrix.shape
         
         conf_matrix = conf_matrix.reshape(-1).to(device) # use CUDA if available
@@ -481,9 +678,7 @@ def evaluate_topk_recall(gt_rel, objs_pred, rels_pred, edges, mask2inst:dict, th
         sorted_args_1d=sorted_args_1d[:maxk]
         
         temp_topk = []
-        if len(gt_r) == 0:
-            if ignore_none:
-                continue
+        if len(gt_rels) == 0:
             # Ground truth is None
             indices = torch.where(sorted_conf_matrix < threshold)[0]
             if len(indices) == 0:
@@ -492,14 +687,14 @@ def evaluate_topk_recall(gt_rel, objs_pred, rels_pred, edges, mask2inst:dict, th
                 index = sorted(indices)[0].item()+1
             temp_topk.append(index)
         else:
-            for predicate in gt_r: # for the multi rel case
-                index_1d = (sub_cls_index*dim_m+obj_cls_index)*dim_k+predicate
+            for predicate in gt_rels: # for the multi rel case
+                index_1d = (src_gt_cls*dim_m+tgt_gt_cls)*dim_k+predicate
                 indices = torch.where(sorted_args_1d == index_1d)[0]
                 if len(indices) == 0:
                     index = maxk+1
                 else:
                     index = sorted(indices)[0].item()+1
-                    index = math.ceil(index/len(gt_r))
+                    index = math.ceil(index/len(gt_rels))
                 temp_topk.append(index)
             temp_topk = sorted(temp_topk)
         top_k += temp_topk
@@ -1264,91 +1459,141 @@ class EvalSceneGraphBatch(EvalSceneGraphBase):
         self.top_k_rel_recall=list()
         self.predictions=dict()
         
-    def add(self,scan_id:str, obj_pds, bobj_gts, rel_pds, brel_gts, mask2insts:dict, edge_indices,
-            gt_relationships:list=None):
+    def add(self,
+            data:HeteroData,
+            # scan_id:str, obj_pds, bobj_gts, rel_pds, brel_gts, mask2insts:dict, edge_indices,
+            # gt_relationships:list=None
+            ):
         '''
         obj_pds: [n, n_cls]: softmax
         obj_gts: [n, 1]: long tensor
         rel_pds: [m,n_cls]: torch.sigmoid(x) if multi_rel_threshold>0 else softmax
         rel_gts: [m,n_cls] if multi_rel_threshold>0 else [m,1]
         '''
-        obj_pds=obj_pds.detach()
-        has_rel = rel_pds is not None and len(rel_pds)>0 and rel_pds.shape[0] > 0
+        
+        node_data = data['node']
+        edge_data = data['node','to','node']
+        node_gt_data = data['node_gt']
+        edge_gt_data = data['node_gt','to','node_gt']
+        node_gt_to_node = data['node_gt','to','node']
+        
+        # Merge list from batches to one
+        if 'batch' in node_gt_data: # in batch process list objects will be merged into a larger list.
+            node_gt_data.clsIdx = list(itertools.chain.from_iterable(node_gt_data.clsIdx))
+            edge_gt_data.clsIdx = list(itertools.chain.from_iterable(edge_gt_data.clsIdx))
+        
+        # Shortcut
+        node_pds = node_data.pd
+        node_gts = node_data.y
+        edge_pds = edge_data.pd
+        edge_gts = edge_data.y
+        
+        node_pds=node_pds.detach()
+        has_rel = edge_pds is not None and len(edge_pds)>0 and edge_pds.shape[0] > 0
         if has_rel:
-            if self.ignore_none and not self.multi_rel_prediction:
-                none_index = self.rel_class_names.index(self.none_name)
-                non_none_index = torch.where(brel_gts != none_index)
-                brel_gts = brel_gts[non_none_index]
-                rel_pds = rel_pds[non_none_index]
+            # if self.ignore_none and not self.multi_rel_prediction:
+            #     none_index = self.rel_class_names.index(self.none_name)
+            #     non_none_index = torch.where(edge_gts != none_index)
+            #     edge_gts = edge_gts[non_none_index]
+            #     edge_pds = edge_pds[non_none_index]
                 
-                edge_indices_bk = copy.copy(edge_indices)
-                edge_indices = edge_indices[:,non_none_index[0]]
-            has_rel = rel_pds is not None and len(rel_pds)>0 and rel_pds.shape[0] > 0
+            #     # edge_indices_bk = copy.copy(edge_indices)
+            #     edge_indices = edge_indices[:,non_none_index[0]]
+            has_rel = edge_pds is not None and len(edge_pds)>0 and edge_pds.shape[0] > 0
             if has_rel:
-                rel_pds=rel_pds.detach()
+                edge_pds=edge_pds.detach()
         
         # Obj 
-        o_pds = obj_pds.max(1)[1]
-        self.eva_o_cls(o_pds, bobj_gts)
+        o_pds = node_pds.max(1)[1]
+        self.eva_o_cls(o_pds, node_gts)
         
         # Rel
         if has_rel:            
-            r_pds = rel_pds > self.multi_rel_threshold if self.multi_rel_prediction else rel_pds.max(1)[1]
-            self.eva_p_cls(r_pds, brel_gts)
+            r_pds = edge_pds > self.multi_rel_threshold if self.multi_rel_prediction else edge_pds.max(1)[1]
+            self.eva_p_cls(r_pds, edge_gts)
             
         # Topk
         if self.k>0:
-            self.top_k_obj += evaluate_topk_single_prediction(bobj_gts, obj_pds,k=self.k)
+            self.top_k_obj += evaluate_topk_single_prediction(node_gts, node_pds,k=self.k)
             
             if has_rel:
                 
                 # if self.ignore_none:
                 #     # Filter out none predictions
                 #     none_index = self.rel_class_names.index(self.none_name)
-                #     non_none_index = torch.where(brel_gts != none_index)
-                #     non_none_brel_gts = brel_gts[non_none_index]
-                #     non_none_brel_pds = rel_pds[non_none_index]
+                #     non_none_index = torch.where(edge_gts != none_index)
+                #     non_none_brel_gts = edge_gts[non_none_index]
+                #     non_none_brel_pds = edge_pds[non_none_index]
                     
                 #     self.top_k_rel += evaluate_topk_single_prediction(non_none_brel_gts,non_none_brel_pds,k=self.k)
                 
                 
                 if not self.multi_rel_prediction:
-                    self.top_k_rel += evaluate_topk_single_prediction(brel_gts,rel_pds,k=self.k)
+                    self.top_k_rel += evaluate_topk_single_prediction(edge_gts,edge_pds,k=self.k)
                 else:
-                    self.top_k_rel += evaluate_topk_multi_prediction(brel_gts,rel_pds,k=self.k)
+                    self.top_k_rel += evaluate_topk_multi_prediction(edge_gts,edge_pds,k=self.k)
 
-                gt_rel_triplet = build_gt_triplet(bobj_gts, brel_gts, edge_indices, self.multi_rel_prediction)
+                gt_rel_triplet = build_gt_triplet(node_gts, edge_gts, edge_data.edge_index, self.multi_rel_prediction)
                 
-                self.top_k_triplet += evaluate_topk(gt_rel_triplet, obj_pds, rel_pds, edge_indices, 
+                self.top_k_triplet += evaluate_topk(gt_rel_triplet, node_pds, edge_pds, edge_data.edge_index, 
                                         threshold=self.multi_rel_threshold, k=self.k, ignore_none=self.ignore_none) # class_labels, relationships_dict)
                 
         
+        # return 
         '''calculate topK recall'''
+        # Build mask2instance
+        # mask2instance = dict()
+        # for idx in range(node_gt_to_node.shape[1]):
+        #     idx_node_gt = node_gt_to_node[0,idx].item()
+        #     idx_node = node_gt_to_node[1,idx].item()
+        #     assert idx_node not in mask2instance
+        #     mask2instance[idx_node] = idx_node_gt
+        
+        # compute object topk recall 
+        if len(node_gt_data.clsIdx)>0:
+            self.top_k_obj_recall += evaluate_topk_recall_single_prediction(node_gt_data.clsIdx,node_pds,node_gt_to_node.edge_index,self.k)
+            if has_rel:
+                # compute predicate topk recall
+                self.top_k_rel_recall += evaluate_topk_recall_predicate(edge_pds,edge_gt_data.clsIdx,
+                                                                        node_gt_to_node.edge_index,
+                                                                        edge_data.edge_index,edge_gt_data.edge_index,
+                                                                        threshold=self.multi_rel_threshold,k=self.k)
+                # compute triplet
+                self.top_k_triplet_recall += evaluate_topk_recall(
+                    node_pds,edge_pds,
+                    node_gt_data.clsIdx,edge_gt_data.clsIdx,
+                    node_gt_to_node.edge_index,
+                    edge_data.edge_index,edge_gt_data.edge_index,
+                    threshold=self.multi_rel_threshold, k=self.k)
+        
         # Collect object list
-        if gt_relationships is not None:
-            gt_obj_ids = dict()
-            for line in gt_relationships:
-                (sub_o,tgt_o,sub_cls_id,tgt_cls_id,_) = line
-                if sub_o not in gt_obj_ids:
-                    gt_obj_ids[sub_o] = sub_cls_id
-                else: # check is label consistent
-                    assert gt_obj_ids[sub_o] == sub_cls_id
-                if tgt_o not in gt_obj_ids:
-                    gt_obj_ids[tgt_o] = tgt_cls_id
-                else:
-                    assert gt_obj_ids[tgt_o] == tgt_cls_id
-            if self.k>0:
-                # compute object topk recall 
-                self.top_k_obj_recall += evaluate_topk_recall_single_prediction(gt_obj_ids,obj_pds,mask2insts[0],self.k)
-                if has_rel:
-                    # compute predicate topk recall
-                    self.top_k_rel_recall += evaluate_topk_recall_predicate(gt_relationships,rel_pds, edge_indices,mask2insts[0],threshold=self.multi_rel_threshold,k=self.k)
+        # if gt_relationships is not None:
+        #     gt_obj_ids = dict()
+        #     for line in gt_relationships:
+        #         (sub_o,tgt_o,sub_cls_id,tgt_cls_id,_) = line
+        #         if sub_o not in gt_obj_ids:
+        #             gt_obj_ids[sub_o] = sub_cls_id
+        #         else: # check is label consistent
+        #             assert gt_obj_ids[sub_o] == sub_cls_id
+        #         if tgt_o not in gt_obj_ids:
+        #             gt_obj_ids[tgt_o] = tgt_cls_id
+        #         else:
+        #             assert gt_obj_ids[tgt_o] == tgt_cls_id
                     
-                    # compute triplet
-                    self.top_k_triplet_recall += evaluate_topk_recall(gt_relationships, obj_pds, rel_pds, edge_indices, mask2insts[0],
-                                        threshold=self.multi_rel_threshold, k=self.k, ignore_none=self.ignore_none)
+        #     if self.k>0:
+        #         # compute object topk recall 
+        #         self.top_k_obj_recall += evaluate_topk_recall_single_prediction(gt_obj_ids,node_pds,mask2insts[0],self.k)
+        #         if has_rel:
+        #             # compute predicate topk recall
+        #             self.top_k_rel_recall += evaluate_topk_recall_predicate(gt_relationships,edge_pds, edge_indices,mask2insts[0],threshold=self.multi_rel_threshold,k=self.k)
+                    
+        #             # compute triplet
+        #             self.top_k_triplet_recall += evaluate_topk_recall(gt_relationships, node_pds, edge_pds, edge_indices, mask2insts[0],
+        #                                 threshold=self.multi_rel_threshold, k=self.k, ignore_none=self.ignore_none)
             
         # Write prediction
+        return
+        #TODO: update to suppport new input
         if self.save_prediction:
             if len(scan_id) != 1:
                 raise RuntimeError('batch size must be 1')
@@ -1361,7 +1606,7 @@ class EvalSceneGraphBatch(EvalSceneGraphBase):
             pd['nodes']=dict()
             gt['nodes']=dict()
             pd['nodes'] = build_seg2name(o_pds,   mask2insts,self.obj_class_names)
-            gt['nodes'] = build_seg2name(bobj_gts,mask2insts,self.obj_class_names)
+            gt['nodes'] = build_seg2name(node_gts,mask2insts,self.obj_class_names)
         
             self.predictions[scan_id]=dict()
             self.predictions[scan_id]['pd']=pd
@@ -1529,12 +1774,12 @@ class EvalUpperBound():
                                 none_name=none_name) 
     def __call__(self,data_seg,data_inst, is_eval_image:bool):
         # Shortcuts
-        scan_id = data_inst['scan_id']
-        inst_mask2instance = data_inst['node'].idx2oid[0]#data_inst['mask2instance']
-        inst_gt_cls = data_inst['node'].y#data_inst['gt_cls']
-        inst_gt_rel = data_inst['edge'].y#data_inst['gt_rel']
+        # scan_id = data_inst['scan_id']
+        inst_oids = data_inst['node'].oid #data_inst['mask2instance']
+        inst_gt_cls = data_inst['node'].y #data_inst['gt_cls']
+        inst_gt_rel = data_inst['node','to','node'].y #data_inst['gt_rel']
         inst_node_edges = data_inst['node','to','node'].edge_index#data_inst['node_edges']
-        gt_relationships = data_inst['relationships']
+        # gt_relationships = data_inst['relationships']
         
         if data_seg is None:
             node_pred = torch.zeros_like(torch.nn.functional.one_hot(inst_gt_cls, len(self.node_cls_names))).float()
@@ -1545,66 +1790,60 @@ class EvalUpperBound():
                 edge_pred[:,self.noneidx_edge_cls] = 1.0
             else:
                 edge_pred = torch.zeros_like(inst_gt_rel).float()
+                
+            data_inst['node'].pd = node_pred.detach()
+            data_inst['node','to','node'].pd = edge_pred.detach()
             
-            self.eval_tool.add([scan_id], 
-                          node_pred,
-                          inst_gt_cls, 
-                          edge_pred,
-                          inst_gt_rel,
-                          [inst_mask2instance],
-                          inst_node_edges,
-                          gt_relationships)
+            self.eval_tool.add(data_inst)
             return 
         
-        # seg_gt_cls = data_seg['node'].y
-        # mask2seg   = data_seg['node'].idx2oid[0]
-        # seg_node_edges = data_seg['node','to','node'].edge_index
-        # seg2inst = data_seg['node'].get('idx2iid',None)
+        # Get data from data_seg
         if not is_eval_image:
             seg_gt_cls = data_seg['node'].y
-            mask2seg   = data_seg['node'].idx2oid[0]
+            seg_oids   = data_seg['node'].oid #instance ID # idx2oid[0]
+            
             seg_node_edges = data_seg['node','to','node'].edge_index
         else:
             seg_gt_cls = data_seg['roi'].y
-            mask2seg = data_seg['roi'].idx2oid[0]
+            seg_oids = data_seg['roi'].oid
             seg_node_edges = data_seg['roi','to','roi'].edge_index
-        seg2inst = data_seg['node'].get('idx2iid',None)
-
-        if seg2inst is not None:
-            seg2inst=seg2inst[0]
             
-        
-        
-        '''get upper bound'''
-        # Convert to inst
-        seg_mask2inst=dict()
-        for mask, seg in mask2seg.items():
-            inst = seg2inst[seg] if seg2inst is not None else seg
-            seg_mask2inst[mask] = inst
+        # convert them to list
+        assert inst_node_edges.shape[0] == 2
+        assert seg_node_edges.shape[0] == 2
+        inst_node_edges = inst_node_edges.tolist()
+        seg_node_edges = seg_node_edges.tolist()
+        seg_oids = seg_oids.tolist()
+        inst_oids = inst_oids.tolist()
         
         # collect inst in seg
         seg_instance_set = set()
-        for _, inst in seg_mask2inst.items():
-            seg_instance_set.add(inst)
+        for idx in range(len(seg_oids)):
+            seg_instance_set.add(seg_oids[idx])
+        # for _, inst in seg_mask2inst.items():
+        #     seg_instance_set.add(inst)
             
         # Find missing nodes
         missing_nodes=list()
-        for mask, inst in inst_mask2instance.items():
+        for idx in range(len(inst_oids)):
+            inst = inst_oids[idx]
             if inst not in seg_instance_set:
-                missing_nodes.append(mask)
+                missing_nodes.append(idx)
         
         # build seg inst key
+        
         seg_inst_pair_edges = set()
-        for idx in range(len(seg_node_edges)):
-            src, tgt = seg_node_edges[idx][0].item(), seg_node_edges[idx][1].item()
-            src, tgt = seg_mask2inst[src],seg_mask2inst[tgt]
+        for idx in range(len(seg_node_edges[0])):
+            src, tgt = seg_node_edges[0][idx], seg_node_edges[1][idx]
+            src, tgt = seg_oids[src], seg_oids[tgt] #seg_mask2inst[src],seg_mask2inst[tgt]
             seg_inst_pair_edges.add((src,tgt))
         
         # Find missing edges
+        
         missing_edges=list()
-        for mask in range(len(inst_node_edges)):
-            src, tgt = inst_node_edges[mask][0].item(), inst_node_edges[mask][1].item()
-            src, tgt = inst_mask2instance[src], inst_mask2instance[tgt]
+        for mask in range(len(inst_node_edges[0])):
+            src, tgt = inst_node_edges[0][mask], inst_node_edges[1][mask]
+            src, tgt = inst_oids[src],inst_oids[tgt]# inst_mask2instance[src], inst_mask2instance[tgt]
             key = (src,tgt)
             if key not in seg_inst_pair_edges:
                 missing_edges.append(mask)
@@ -1624,14 +1863,10 @@ class EvalUpperBound():
             edge_pred = inst_gt_rel.clone().float()
             edge_pred[missing_edges] = 0
         
-        self.eval_tool.add([scan_id], 
-                          node_pred,
-                          inst_gt_cls, 
-                          edge_pred,
-                          inst_gt_rel,
-                          [inst_mask2instance],
-                          inst_node_edges,
-                          gt_relationships = gt_relationships)
+        
+        data_inst['node'].pd = node_pred.detach()
+        data_inst['node','to','node'].pd = edge_pred.detach()
+        self.eval_tool.add(data_inst)
         
         return len(missing_nodes)/len(seg_instance_set), len(missing_edges)/len(inst_gt_rel)
 

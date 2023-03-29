@@ -208,9 +208,9 @@ class JointSG(nn.Module):
         '''compute edge feature'''
         if has_edge:
             if self.cfg.model.edge_encoder.method == 'sgpn':
-                data['edge'].x = self.rel_encoder(data['edge'].pts)
+                data['node','to','node'].x = self.rel_encoder(data['node','to','node'].pts)
             else:
-                data['edge'].x = self.rel_encoder(descriptor,edge_indices_node_to_node)
+                data['node','to','node'].x = self.rel_encoder(descriptor,edge_indices_node_to_node)
             
         '''Message Passing''' 
         if has_edge:
@@ -219,7 +219,7 @@ class JointSG(nn.Module):
             if hasattr(self, 'gnn') and self.gnn is not None:
                 gnn_nodes_feature, gnn_edges_feature, probs = self.gnn(data)
                 data['node'].x = gnn_nodes_feature
-                data['edge'].x = gnn_edges_feature
+                data['node','to','node'].x = gnn_edges_feature
         
         # froms spatial descriptor
         if self.use_spatial:
@@ -247,7 +247,7 @@ class JointSG(nn.Module):
         node_cls = self.obj_predictor(data['node'].x)
         # Edge
         if has_edge:
-            edge_cls = self.rel_predictor(data['edge'].x)
+            edge_cls = self.rel_predictor(data['node','to','node'].x)
         else:
             edge_cls = None
         return node_cls, edge_cls

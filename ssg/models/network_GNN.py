@@ -250,7 +250,7 @@ class GraphEdgeAttenNetwork(BaseNetwork):
 #     def forward(self, data):
 #         probs = list()
 #         node_feature = data['node'].x
-#         edge_feature = data['edge'].x
+#         edge_feature = data['node','to','node'].x
 #         edges_indices = data['node','to','node'].edge_index
         
 #         probs = list()
@@ -879,7 +879,7 @@ class JointGNN(torch.nn.Module):
         if self.with_geo:
             geo_feature = data['geo_feature'].x
         # image = data['roi'].x
-        edge = data['edge'].x
+        edge = data['node','to','node'].x
         # spatial = data['node'].spatial if 'spatial' in data['node'] else None
         edge_index_node_2_node = data['node','to','node'].edge_index
         # edge_index_image_2_ndoe = data['roi','sees','node'].edge_index
@@ -932,7 +932,7 @@ class GraphEdgeAttenNetworkLayers(torch.nn.Module):
     def forward(self, data):
         probs = list()
         node_feature = data['node'].x
-        edge_feature = data['edge'].x
+        edge_feature = data['node','to','node'].x
         edges_indices = data['node','to','node'].edge_index
         for i in range(self.num_layers):
             gconv = self.gconvs[i]
@@ -976,7 +976,7 @@ class FAN_GRU(torch.nn.Module):
     def forward(self, data):
         probs = list()
         node_feature = data['node'].x
-        edge_feature = data['edge'].x
+        edge_feature = data['node','to','node'].x
         edges_indices = data['node','to','node'].edge_index
         
         # Init GRU
@@ -1028,7 +1028,7 @@ class FAN_GRU_2(torch.nn.Module):
     def forward(self, data):
         probs = list()
         node_feature = data['node'].x
-        edge_feature = data['edge'].x
+        edge_feature = data['node','to','node'].x
         edges_indices = data['node','to','node'].edge_index
         
         # Init GRU

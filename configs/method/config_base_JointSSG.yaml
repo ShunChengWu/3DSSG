@@ -69,7 +69,7 @@ data:
  is_roi_img: true
  load_images: true
  load_points: true
- rel_data_type: points
+ rel_data_type: desc # [desc,points]
  edge_desc: 'roi' #[roi,pts]
  img_desc_6_pts: true # return 6 extreme points 
  use_precompute_img_feature: false

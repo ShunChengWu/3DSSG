@@ -246,6 +246,7 @@ class Dataset (data.Dataset):
         # open
         self.open_filtered()
         self.open_data()
+        self.open_mv_graph()
         
         # get data
         scan_data_raw = self.sg_data[scan_id]
@@ -253,21 +254,13 @@ class Dataset (data.Dataset):
         
         filtered_data_seq = raw_to_data(self.filtered_data[scan_id])
         
-        mv_data = None
-        if self.mconfig.load_images:
-            self.open_mv_graph()
-            
-            mv_data_seq = self.mv_data[scan_id]
-            # if self.mconfig.is_roi_img:
-            #     self.open_img()
-            #     roi_imgs = self.roi_imgs[scan_id]
-            roi_imgs = None
+        mv_data_seq = self.mv_data[scan_id]
         
         '''process each timestamp'''
         output_seq = defaultdict(HeteroData)
         
         sorted_keys = [str(k) for k in sorted([int(k) for k in filtered_data_seq])]
-        # sorted_keys = sorted_keys[-1:]
+        # sorted_keys = sorted_keys[-1:] #TODO: comment me after debug
         for timestamp in sorted_keys:    
             scan_data = scan_data_seq[timestamp]
             filtered_data = filtered_data_seq[timestamp]
@@ -279,7 +272,13 @@ class Dataset (data.Dataset):
             filtered_kf_indices   = filtered_data[define.NAME_FILTERED_KF_INDICES]
             
             if self.mconfig.load_images:
+                self.open_mv_graph()
+                
+                # mv_data = self.mv_data[scan_id]
                 mv_nodes = mv_data['nodes'] # contain kf ids of a given node
+                if self.mconfig.is_roi_img:
+                    self.open_img()
+                    roi_imgs = self.roi_imgs[scan_id]
         
             '''filter node data'''
             object_data = {nid: object_data[nid] for nid in filtered_node_indices}
@@ -333,6 +332,55 @@ class Dataset (data.Dataset):
             timer.tic()
             relationships_3D = self.__extract_relationship_data(relationships_data)
             timers['extract_relationship_data'] = timer.tocvalue()
+            
+            ''' 
+            Generate mapping from selected entity buffer to the ground truth entity buffer (for evaluation)
+            Save the mapping in edge_index format to allow PYG to rearrange them.
+            '''
+            instance2labelName  = { int(key): node['label'] for key,node in object_data.items()}
+            # Collect GT entity list
+            gt_entities = set()
+            gtIdx_entities_cls = []
+            gtIdx2ebIdx = []
+            for key, value in relationships_3D.items():
+                sub_o = key[0]
+                tgt_o = key[1]
+                gt_entities.add(sub_o)
+                gt_entities.add(tgt_o)
+            gt_entities = [k for k in gt_entities]
+            # assert len(gt_entities) > 0
+            for gtIdx, k in enumerate(gt_entities):
+                if k in oid2idx:
+                    idx = oid2idx[k]
+                    gtIdx2ebIdx.append([gtIdx,idx])
+                    label = instance2labelName[k]
+                    gtIdx_entities_cls.append(self.classNames.index(label))
+                else:
+                    # Add negative index to indicate missing
+                    gtIdx2ebIdx.append([gtIdx,-1])
+
+            gtIdx_edge_index = []
+            gtIdx_edge_cls = []        
+            for key, value in relationships_3D.items():
+                sub_o = key[0]
+                tgt_o = key[1]
+                # sub_cls = instance2labelName[sub_o]
+                # tgt_cls = instance2labelName[tgt_o]
+                # sub_cls_id = self.classNames.index(sub_cls)
+                # tgt_cls_id = self.classNames.index(tgt_cls)
+                # relationships_3D_mask.append([sub_o,tgt_o,sub_cls_id,tgt_cls_id,value])
+                
+                sub_ebIdx = oid2idx[sub_o]
+                tgt_ebIdx = oid2idx[tgt_o]
+                sub_gtIdx = gt_entities.index(sub_o)
+                tgt_gtIdx = gt_entities.index(tgt_o)
+                gtIdx_edge_index.append([sub_gtIdx,tgt_gtIdx])
+                gtIdx_edge_cls.append(value)
+                
+            # gtIdx_entities_cls = torch.from_numpy(np.array(gtIdx_entities_cls))
+            gtIdx2ebIdx = torch.tensor(gtIdx2ebIdx,dtype=torch.long).t().contiguous()
+            # gtIdx_edge_cls = torch.from_numpy(np.array(gtIdx_edge_cls))
+            gtIdx_edge_index = torch.tensor(gtIdx_edge_index,dtype=torch.long).t().contiguous()
             
             '''sample 3D edges'''
             timer.tic()
@@ -486,10 +534,14 @@ class Dataset (data.Dataset):
                 #         node_descriptor_for_image = torch.tensor([],dtype=torch.long)
                 timers['load_images'] = timer.tocvalue()
                 
+            '''collect attribute for nodes'''
+            inst_indices = [seg2inst[k] for k in idx2oid.values()] # for inseg the segment instance should be converted back to the GT instances
+                
             ''' to tensor '''
             gt_class_3D = torch.from_numpy(np.array(cat))
-            edge_indices_3D = torch.tensor(edge_indices_3D,dtype=torch.long)
-            idx2iid = seg2inst
+            edge_indices_3D = torch.tensor(edge_indices_3D,dtype=torch.long) if len(edge_indices_3D)>0 else torch.zeros([0,2],dtype=torch.long)
+            tensor_oid = torch.from_numpy(np.array(inst_indices))
+            # idx2iid = seg2inst
         
             # output = dict()
             output = output_seq[timestamp]
@@ -497,18 +549,31 @@ class Dataset (data.Dataset):
             output['timestamp'] = timestamp
             
             output['node'].x = torch.zeros([gt_class_3D.shape[0],1]) # dummy
-            output['edge'].x = torch.zeros([gt_rels_3D.shape[0],1])
-            
             output['node'].y = gt_class_3D
-            output['edge'].y = gt_rels_3D
+            output['node'].oid = tensor_oid
+            
+            output['node_gt'].x = torch.zeros([len(gtIdx_entities_cls),1]) # dummy
+            output['node_gt'].clsIdx = gtIdx_entities_cls
+            output['node_gt','to','node'].edge_index = gtIdx2ebIdx
+            output['node_gt','to','node_gt'].clsIdx = gtIdx_edge_cls
+            output['node_gt','to','node_gt'].edge_index = gtIdx_edge_index
+            
+            output['node','to','node'].edge_index = edge_indices_3D.t().contiguous()
+            output['node','to','node'].y = gt_rels_3D
+            
+            # output['node'].x = torch.zeros([gt_class_3D.shape[0],1]) # dummy
+            # output['edge'].x = torch.zeros([gt_rels_3D.shape[0],1])
+            
+            # output['node'].y = gt_class_3D
+            # output['edge'].y = gt_rels_3D
             
             # if output['edge'].y.nelement()==0:
             #     print('debug')
             
-            output['node','to','node'].edge_index = edge_indices_3D.t().contiguous()
+            # output['node','to','node'].edge_index = edge_indices_3D.t().contiguous()
             
-            output['node'].idx2oid = [idx2oid]
-            output['node'].idx2iid = [idx2iid]
+            # output['node'].idx2oid = [idx2oid]
+            # output['node'].idx2iid = [idx2iid]
             # print(output['node'].idx2iid)
 
             if self.mconfig.load_points:
@@ -519,7 +584,7 @@ class Dataset (data.Dataset):
                     output['node'].desp = descriptor
                     
                 if self.mconfig.rel_data_type == 'points':
-                    output['edge'].pts = rel_points
+                    output['node','to','node'].pts = rel_points
                     
             if self.mconfig.load_images:
                 if self.mconfig.is_roi_img:

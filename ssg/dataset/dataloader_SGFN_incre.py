@@ -32,6 +32,7 @@ from tqdm import tqdm
 from ssg.utils import util_ply, util_label, util, util_3rscan, util_data
 from ssg import define
 from codeLib.utils.util import set_random_seed, read_txt_to_list
+from torch_geometric.data import HeteroData
 
 logger_py = logging.getLogger(__name__)
 
@@ -593,19 +594,34 @@ class SGFNIDataset (data.Dataset):
             ''' to tensor '''
             gt_class = torch.from_numpy(np.array(cat))
             edge_indices = torch.tensor(edge_indices,dtype=torch.long)
+            
+            inst_indices = [seg2inst[k] for k in idx2oid.values()] # for inseg the segment instance should be converted back to the GT instances
+            tensor_oid = torch.from_numpy(np.array(inst_indices))
         
-            output = dict()
+            output = HeteroData()
             output['fid'] = key
             output['scan_id'] = scan_id # str
-            output['gt_rel'] = gt_rels  # tensor
-            output['gt_cls'] = gt_class # tensor
+            
+            output['node'].x = torch.zeros([gt_class.shape[0],1])
+            output['node'].y = gt_class
+            output['node'].oid = tensor_oid
+            
+            output['node','to','node'].edge_index = edge_indices
+            output['node','to','node'].y = gt_rels
+            
+            # output['gt_rel'] = gt_rels  # tensor
+            # output['gt_cls'] = gt_class # tensor
             if self.mconfig.load_images:
-                output['roi_imgs'] = bounding_boxes #list
-                output['node_descriptor_8'] = node_descriptor_for_image
-            output['node_edges'] = edge_indices # tensor
-            # output['instance2mask'] = oid2idx #dict
-            output['mask2instance'] = idx2oid
-            output['seg2inst'] = seg2inst
+                output['roi'].x = torch.zeros([len(bounding_boxes),1])
+                output['roi'].img = bounding_boxes
+                
+                # output['roi_imgs'] = bounding_boxes #list
+                # output['roi'].desp = node_descriptor_for_image
+                # output['node_descriptor_8'] = node_descriptor_for_image
+            # output['node_edges'] = edge_indices # tensor
+            
+            # output['mask2instance'] = idx2oid
+            # output['seg2inst'] = seg2inst
             outputs.append(output)
             # break
         # del self.sg_data

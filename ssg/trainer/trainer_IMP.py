@@ -125,7 +125,7 @@ class Trainer_IMP(BaseTrainer, EvalInst):
         # Shortcuts
         scan_id = data['scan_id']
         gt_cls  = data['roi'].y
-        gt_rel = data['edge2D'].y
+        gt_rel = data['roi','to','roi'].y
         mask2instance = data['roi'].idx2oid[0]
         edge_index = data['roi','to','roi'].edge_index
         # gt_relationships = data['relationships']

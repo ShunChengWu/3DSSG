@@ -1,4 +1,5 @@
 from collections import defaultdict
+import numpy as np
 import torch
 
 from tqdm import tqdm
@@ -30,7 +31,7 @@ class EvalInst(object):
         eval_tool_ignore_none = EvalSceneGraphBatch(node_cls_names, edge_cls_names,
                                         multi_rel_prediction=self.cfg.model.multi_rel,k=topk,save_prediction=True,
                                         none_name=define.NAME_NONE,ignore_none=True)
-        eval_tools = {'all': eval_tool_all, 'ignore_none': eval_tool_ignore_none}
+        eval_tools = {'all': eval_tool_all}#, 'ignore_none': eval_tool_ignore_none}
         
         
         # eval_upper_bound
@@ -38,13 +39,6 @@ class EvalInst(object):
                                          multi_rel=self.cfg.model.multi_rel,topK=topk,none_name=define.NAME_NONE)
         
         eval_list = defaultdict(moving_average.MA)
-        
-        '''check'''
-        #length
-        # print('len(dataset_seg), len(dataset_inst):',len(dataset_seg), len(dataset_inst))
-        # print('ignore missing',ignore_missing)
-        #classes
-        
         
         ''' get scan_idx mapping '''
         scanid2idx_seg = dict()
@@ -63,6 +57,7 @@ class EvalInst(object):
             data_inst = dataset_inst.__getitem__(index)                
             scan_id_inst = data_inst['scan_id']
             
+            # Find the same scan in dataset_seg
             if scan_id_inst not in scanid2idx_seg:
                 data_seg = None
             else:
@@ -73,7 +68,6 @@ class EvalInst(object):
             '''process seg'''
             eval_dict={}
             with torch.no_grad():
-                logs = {}
                 data_seg = self.process_data_dict(data_seg)
                 data_inst = self.process_data_dict(data_inst)
                 # record in eval_UB
@@ -81,139 +75,129 @@ class EvalInst(object):
                 # continue
                 
                 # Shortcuts
-                scan_id = data_inst['scan_id']
-                inst_mask2instance = data_inst['node'].idx2oid[0]#data_inst['mask2instance']
+                inst_oids = data_inst['node'].oid #data_inst['mask2instance']
                 inst_gt_cls = data_inst['node'].y#data_inst['gt_cls']
-                inst_gt_rel = data_inst['edge'].y#data_inst['seg_gt_rel']
+                inst_gt_rel = data_inst['node','to','node'].y#data_inst['seg_gt_rel']
                 inst_node_edges = data_inst['node','to','node'].edge_index#data_inst['node_edges']
-                # edge_index_has_gt = data_inst['node','to','node'].edge_index_has_gt
-                gt_relationships = data_inst['relationships']
                 
                 if data_seg is None:
+                    '''
+                    If no target scan in dataset_seg is found, set all prediction to none
+                    '''
+                    # Nodes
                     node_pred = torch.zeros_like(torch.nn.functional.one_hot(inst_gt_cls, len(node_cls_names))).float()
                     node_pred[:,noneidx_node_cls] = 1.0
                 
+                    # Edges
                     if not self.cfg.model.multi_rel:
                         edge_pred = torch.zeros_like(torch.nn.functional.one_hot(inst_gt_rel, len(edge_cls_names))).float()
                         edge_pred[:,noneidx_edge_cls] = 1.0
                     else:
                         edge_pred = torch.zeros_like(inst_gt_rel).float()
                     
+                    # log
+                    data_inst['node'].pd = node_pred.detach()
+                    data_inst['node','to','node'].pd = edge_pred.detach()
                     for eval_tool in eval_tools.values():
-                        eval_tool.add([scan_id], 
-                            node_pred,
-                            inst_gt_cls, 
-                            edge_pred,
-                            inst_gt_rel,
-                            [inst_mask2instance],
-                            inst_node_edges,
-                            gt_relationships)
+                        eval_tool.add(data_inst)
                     continue
                 
+                # Get data from data_seg
                 if not is_eval_image:
-                    seg_gt_cls = data_seg['node'].y
-                    seg_gt_rel = data_seg['edge'].y
-                    mask2seg   = data_seg['node'].idx2oid[0]
+                    # seg_gt_cls = data_seg['node'].y
+                    seg_gt_rel = data_seg['node','to','node'].y
+                    seg_oids   = data_seg['node'].oid
                     seg_node_edges = data_seg['node','to','node'].edge_index
                 else:
-                    seg_gt_cls = data_seg['roi'].y
-                    seg_gt_rel = data_seg['edge2D'].y
-                    mask2seg = data_seg['roi'].idx2oid[0]
+                    # seg_gt_cls = data_seg['roi'].y
+                    seg_gt_rel = data_seg['roi','to','roi'].y
+                    seg_oids = data_seg['roi'].oid
                     seg_node_edges = data_seg['roi','to','roi'].edge_index
                     # seg2inst = data_seg['roi'].get('idx2iid',None)
-                seg2inst = data_seg['node'].get('idx2iid',None)
-                    
-                if seg2inst is not None:
-                    seg2inst=seg2inst[0]
                 
                 ''' make forward pass through the network '''
                 node_cls, edge_cls = self.model(data_seg)
                 
-                '''merge prediction from seg to instance (in case of "same part")'''
-                inst2masks = defaultdict(list)                
-                for mask, seg in mask2seg.items():
-                    if seg2inst is not None:
-                        inst = seg2inst[seg]
-                    else:
-                        inst = seg
-                    inst2masks[inst].append(mask)
+                # convert them to list
+                assert inst_node_edges.shape[0] == 2
+                assert seg_node_edges.shape[0] == 2
+                inst_node_edges = inst_node_edges.tolist()
+                seg_node_edges = seg_node_edges.tolist()
+                seg_oids = seg_oids.tolist()
+                inst_oids = inst_oids.tolist()
                 
+                '''merge prediction from seg to instance (in case of "same part")'''
+                # use list bcuz may have multiple predictions on the same object instance
+                seg_oid2idx = defaultdict(list)                
+                for idx in range(len(seg_oids)):
+                    seg_oid2idx[seg_oids[idx]].append(idx)
+                    
                 '''merge nodes'''
-                merged_mask2instance = dict()
-                merged_instance2idx = dict()
-                merged_node_cls = torch.zeros(len(inst_mask2instance),len(node_cls_names)).to(self.cfg.DEVICE)
-                merged_node_cls_gt = (torch.ones(len(inst_mask2instance),dtype=torch.long) * noneidx_node_cls).to(self.cfg.DEVICE)
+                merged_idx2oid = dict()
+                merged_oid2idx = dict()
+                merged_node_cls = torch.zeros(len(inst_oids),len(node_cls_names)).to(self.cfg.DEVICE)
+                # set all initial prediction to none
+                merged_node_cls_gt = (torch.ones(len(inst_oids),dtype=torch.long) * noneidx_node_cls).to(self.cfg.DEVICE) 
                 counter=0
-                for mask_new, (mask_old, inst)in enumerate(inst_mask2instance.items()):                    
-                    # merge predictions
+                # go over all instances and merge their predictions
+                for idx in range(len(inst_oids)):
+                    oid = inst_oids[idx]
                     if not ignore_missing:
-                        merged_instance2idx[inst]=mask_new
-                        merged_mask2instance[mask_new] = inst
-                        merged_node_cls_gt[mask_new] = inst_gt_cls[mask_old] # use GT class
-                        if inst in inst2masks:
+                        merged_oid2idx[oid]=idx
+                        merged_idx2oid[idx] = oid
+                        merged_node_cls_gt[idx] = inst_gt_cls[idx] # use GT class
+                        if oid in seg_oid2idx:
                             '''merge nodes'''
-                            predictions = node_cls[inst2masks[inst]]# get all predictions on that instance
+                            predictions = node_cls[seg_oid2idx[oid]]# get all predictions on that instance
                             node_cls_pred = torch.softmax(predictions, dim=1).mean(dim=0)# averaging the probability
-                            merged_node_cls[mask_new,inst_valid_node_cls_indices] = node_cls_pred[seg_valid_node_cls_indices] # assign and ignor
+                            merged_node_cls[idx,inst_valid_node_cls_indices] = node_cls_pred[seg_valid_node_cls_indices] # assign and ignor
                             
                         else:
                             assert noneidx_node_cls is not None
-                            merged_node_cls[mask_new,noneidx_node_cls] = 1.0
+                            merged_node_cls[idx,noneidx_node_cls] = 1.0
                             # merged_node_cls_gt[mask_new]=noneidx_node_cls
                             
                             
                             pass
                     else:
-                        if inst not in inst2masks:
+                        if oid not in seg_oid2idx:
                             continue
-                        merged_mask2instance[counter] = inst
-                        merged_instance2idx[inst]=counter
-                        predictions = node_cls[inst2masks[inst]]
+                        merged_idx2oid[counter] = oid
+                        merged_oid2idx[oid]=counter
+                        predictions = node_cls[seg_oid2idx[oid]]
                         node_cls_pred = torch.softmax(predictions, dim=1).mean(dim=0)                        
                         merged_node_cls[counter,inst_valid_node_cls_indices] = node_cls_pred[seg_valid_node_cls_indices]
-                        merged_node_cls_gt[counter] = inst_gt_cls[mask_old]
+                        merged_node_cls_gt[counter] = inst_gt_cls[idx]
                         counter+=1
                 if ignore_missing:
                     merged_node_cls = merged_node_cls[:counter]
                     merged_node_cls_gt = merged_node_cls_gt[:counter]
                     
                 '''merge batched dict to one single dict'''
-                mask2seg= merge_batch_mask2inst(mask2seg) 
-                inst_mask2inst=merge_batch_mask2inst(inst_mask2instance)
+                # mask2seg= merge_batch_mask2inst(mask2seg) 
+                # inst_mask2inst=merge_batch_mask2inst(inst_mask2instance)
                 
-                # build search list for GT edge pairs
+                ''' build search list for inst GT edge pairs'''
                 inst_gt_pairs = set() # 
+                
+                # For instance level
                 inst_gt_rel_dict = dict() # This collects "from" and "to" instances pair as key  -> predicate label
                 for idx in range(len(inst_gt_rel)):
-                    
-                    src_idx, tgt_idx = inst_node_edges[0,idx].item(),inst_node_edges[1,idx].item()
-                    src_inst_idx, tgt_inst_idx = inst_mask2inst[src_idx], inst_mask2inst[tgt_idx]
-                    inst_gt_pairs.add((src_inst_idx, tgt_inst_idx))
-                    inst_gt_rel_dict[(src_inst_idx, tgt_inst_idx)] = inst_gt_rel[idx]
-               
+                    src_idx, tgt_idx = inst_node_edges[0][idx],inst_node_edges[1][idx]
+                    src_oid, tgt_oid = inst_oids[src_idx], inst_oids[tgt_idx]
+                    inst_gt_pairs.add((src_oid, tgt_oid))
+                    inst_gt_rel_dict[(src_oid, tgt_oid)] = inst_gt_rel[idx]
+                # For segment level
                 merged_edge_cls_dict = defaultdict(list) # map edge predictions on the same pair of instances.
                 for idx in range(len(seg_gt_rel)):
-                    src_idx, tgt_idx = seg_node_edges[0,idx].item(), seg_node_edges[1,idx].item()
-                    # relname = self.edge_cls_names[seg_gt_rel[idx].item()]
-                    
-                    src_seg_idx = mask2seg[src_idx]
-                    src_inst_idx = seg2inst[src_seg_idx] if seg2inst is not None else src_seg_idx
-                    
-                    tgt_seg_idx = mask2seg[tgt_idx]
-                    tgt_inst_idx = seg2inst[tgt_seg_idx] if seg2inst is not None else tgt_seg_idx
-                    pair = (src_inst_idx,tgt_inst_idx)
+                    src_idx, tgt_idx = seg_node_edges[0][idx], seg_node_edges[1][idx]
+                    src_oid, tgt_oid = seg_oids[src_idx], seg_oids[tgt_idx]
+                    pair = (src_oid, tgt_oid)
                     if  pair in inst_gt_pairs:
                         merged_edge_cls_dict[pair].append( edge_cls[idx] )
                     else:
                         # print('cannot find seg:{}(inst:{}) to seg:{}(inst:{}) with relationship:{}.'.format(src_seg_idx,src_inst_idx,tgt_seg_idx,tgt_inst_idx,relname))
                         pass
-                # check missing rels
-                # for pair in inst_gt_rel_dict:
-                #     if pair not in merged_edge_cls_dict:
-                #         relname = self.edge_cls_names[inst_gt_rel_dict[pair]]
-                #         src_name = self.node_cls_names[inst_gt_cls[inst_instance2mask[pair[0]]]]
-                #         tgt_name = self.node_cls_names[inst_gt_cls[inst_instance2mask[pair[1]]]]
-                #         print('missing inst:{}({}) to inst:{}({}) with relationship:{}'.format(pair[0],src_name,pair[1],tgt_name,relname))
                         
                 '''merge predictions'''
                 merged_edge_cls = torch.zeros(len(inst_gt_rel),len(edge_cls_names)).to(self.cfg.DEVICE)
@@ -225,19 +209,18 @@ class EvalInst(object):
                 counter=0
                 for idx, (pair,inst_edge_cls) in enumerate(inst_gt_rel_dict.items()):
                     if ignore_missing:
-                        if pair[0] not in merged_instance2idx: continue
-                        if pair[1] not in merged_instance2idx: continue
+                        if pair[0] not in merged_oid2idx: continue
+                        if pair[1] not in merged_oid2idx: continue
                     # merge edge index to the new mask ids
-                    mask_src = merged_instance2idx[pair[0]]
-                    mask_tgt = merged_instance2idx[pair[1]]
-                    merged_node_edges.append([mask_src,mask_tgt])
+                    src_idx = merged_oid2idx[pair[0]]
+                    tgt_idx = merged_oid2idx[pair[1]]
+                    merged_node_edges.append([src_idx,tgt_idx])
                     
                     if pair in merged_edge_cls_dict:
                         edge_pds = torch.stack(merged_edge_cls_dict[pair])
-                        edge_pds = edge_pds[:,seg_valid_edge_cls_indices]
-                        # seg_valid_edge_cls_indices
-                        
                         #ignore same part
+                        edge_pds = edge_pds[:,seg_valid_edge_cls_indices] 
+                        
                         if not self.cfg.model.multi_rel:
                             edge_pds = torch.softmax(edge_pds,dim=1).mean(0)
                         else:
@@ -256,17 +239,16 @@ class EvalInst(object):
             
             merged_node_edges=merged_node_edges.t().contiguous()
             
+            
+            data_inst['node'].pd = merged_node_cls.detach()
+            data_inst['node'].y  = merged_node_cls_gt.detach()
+            data_inst['node','to','node'].pd = merged_edge_cls.detach()
+            data_inst['node','to','node'].y = merged_edge_cls_gt.detach()
+            data_inst['node','to','node'].edge_index = merged_node_edges
+            data_inst['node'].clsIdx = torch.from_numpy(np.array([k for k in merged_idx2oid.values()]))
             for eval_tool in eval_tools.values():
-                eval_tool.add([scan_id], 
-                            merged_node_cls,
-                            merged_node_cls_gt, 
-                            merged_edge_cls,
-                            merged_edge_cls_gt,
-                            [merged_mask2instance],
-                            merged_node_edges,
-                            gt_relationships=gt_relationships)
-            # break
-        
+                eval_tool.add(data_inst)
+                
         eval_dict = dict()
         eval_dict['visualization'] = dict()
         for eval_type, eval_tool in eval_tools.items():

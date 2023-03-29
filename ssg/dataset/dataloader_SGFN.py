@@ -319,26 +319,57 @@ class SGFNDataset (data.Dataset):
         relationships_3D = self.__extract_relationship_data(relationships_data,oid2idx)
         timers['extract_relationship_data'] = timer.tocvalue()
         
-        relationships_3D_mask = [] # change obj idx to obj mask idx
-        '''sample training set'''  
+        # relationships_3D_mask = [] # change obj idx to obj mask idx
+        
+        
+        ''' 
+        Generate mapping from selected entity buffer to the ground truth entity buffer (for evaluation)
+        Save the mapping in edge_index format to allow PYG to rearrange them.
+        '''
         instance2labelName  = { int(key): node['label'] for key,node in object_data.items()}
-        # instances_ids = list(instance2labelName.keys())
-        # if 0 in instances_ids: instances_ids.remove(0)
+        # Collect GT entity list
+        gt_entities = set()
+        gtIdx_entities_cls = []
+        gtIdx2ebIdx = []
         for key, value in relationships_3D.items():
             sub_o = key[0]
             tgt_o = key[1]
-            sub_cls = instance2labelName[sub_o]
-            tgt_cls = instance2labelName[tgt_o]
-            sub_cls_id = self.classNames.index(sub_cls)
-            tgt_cls_id = self.classNames.index(tgt_cls)
-            relationships_3D_mask.append([sub_o,tgt_o,sub_cls_id,tgt_cls_id,value])
-        
-        '''sample gt edges'''
-        # edge_indices_3D_gt = []
-        # for key in relationships_3D:
-        #     o_src, o_tgt = key
-        #     idx_src, idx_tgt = oid2idx[o_src], oid2idx[o_tgt]
-        #     edge_indices_3D_gt.append((idx_src, idx_tgt))
+            gt_entities.add(sub_o)
+            gt_entities.add(tgt_o)
+        gt_entities = [k for k in gt_entities]
+        # assert len(gt_entities) > 0
+        for gtIdx, k in enumerate(gt_entities):
+            if k in oid2idx:
+                idx = oid2idx[k]
+                gtIdx2ebIdx.append([gtIdx,idx])
+                label = instance2labelName[k]
+                gtIdx_entities_cls.append(self.classNames.index(label))
+            else:
+                # Add negative index to indicate missing
+                gtIdx2ebIdx.append([gtIdx,-1])
+
+        gtIdx_edge_index = []
+        gtIdx_edge_cls = []        
+        for key, value in relationships_3D.items():
+            sub_o = key[0]
+            tgt_o = key[1]
+            # sub_cls = instance2labelName[sub_o]
+            # tgt_cls = instance2labelName[tgt_o]
+            # sub_cls_id = self.classNames.index(sub_cls)
+            # tgt_cls_id = self.classNames.index(tgt_cls)
+            # relationships_3D_mask.append([sub_o,tgt_o,sub_cls_id,tgt_cls_id,value])
+            
+            sub_ebIdx = oid2idx[sub_o]
+            tgt_ebIdx = oid2idx[tgt_o]
+            sub_gtIdx = gt_entities.index(sub_o)
+            tgt_gtIdx = gt_entities.index(tgt_o)
+            gtIdx_edge_index.append([sub_gtIdx,tgt_gtIdx])
+            gtIdx_edge_cls.append(value)
+            
+        # gtIdx_entities_cls = torch.from_numpy(np.array(gtIdx_entities_cls))
+        gtIdx2ebIdx = torch.tensor(gtIdx2ebIdx,dtype=torch.long).t().contiguous()
+        # gtIdx_edge_cls = torch.from_numpy(np.array(gtIdx_edge_cls))
+        gtIdx_edge_index = torch.tensor(gtIdx_edge_index,dtype=torch.long).t().contiguous()
         
         '''sample 3D edges'''
         timer.tic()
@@ -369,11 +400,12 @@ class SGFNDataset (data.Dataset):
                                            object_data,filtered_instances)
             else:
                 images, img_bounding_boxes, bbox_cat, node_descriptor_for_image, \
-                    image_edge_indices, img_idx2oid, temporal_node_graph, temporal_edge_graph = \
-                        self.__load_full_images(scan_id,idx2oid,cat,scan_data,mv_data, filtered_kf_indices)
+                    image_edge_indices, img_idx2oid, temporal_node_graph, temporal_edge_graph = self.__load_full_images(scan_id,idx2oid,cat,scan_data,mv_data, filtered_kf_indices)
                 relationships_img = self.__extract_relationship_data(relationships_data,oid2idx)
                 gt_rels_2D, edge_index_has_gt_2D = self.__sample_relationships(relationships_img,img_idx2oid,image_edge_indices)
                 
+                img_oid_indices = [oid for oid in img_idx2oid.values()]
+                img_oid_indices = torch.from_numpy(np.array(img_oid_indices))
                 # gt_rels_2D, image_edge_indices, final_edge_indices_2D = self.__drop_edge(
                 #     gt_rels_2D, image_edge_indices,edge_index_has_gt_2D)
                 # # filter temporal edge graph
@@ -401,42 +433,57 @@ class SGFNDataset (data.Dataset):
                     node_descriptor_for_image = torch.tensor([],dtype=torch.long)
             timers['load_images'] = timer.tocvalue()
             
+        '''collect attribute for nodes'''
+        inst_indices = [seg2inst[k] for k in idx2oid.values()] # for inseg the segment instance should be converted back to the GT instances
+        
+        
+            
         ''' to tensor '''
         gt_class_3D = torch.from_numpy(np.array(cat))
+        tensor_oid = torch.from_numpy(np.array(inst_indices))
+        
         edge_indices_3D = torch.tensor(edge_indices_3D,dtype=torch.long)
         # new_edge_index_has_gt = torch.tensor(new_edge_index_has_gt,dtype=torch.long)
         idx2iid = seg2inst
         # idx2iid = torch.LongTensor([seg2inst[oid] if oid in seg2inst else oid for oid in idx2oid.values() ]) # mask idx to instance idx
         # idx2oid = torch.LongTensor([oid for oid in idx2oid.values()]) # mask idx to seg idx (instance idx)
         
-        
-        
-        
-        # return torch.rand([3,128])
         '''Gather output in HeteroData'''
         output = HeteroData()
         # output = dict()
         output['scan_id'] = scan_id # str
         
         output['node'].x = torch.zeros([gt_class_3D.shape[0],1]) # dummy
-        output['edge'].x = torch.zeros([gt_rels_3D.shape[0],1])
-        
         output['node'].y = gt_class_3D
-        output['edge'].y = gt_rels_3D
+        output['node'].oid = tensor_oid
+        
+        # output['edge'].x = torch.zeros([gt_rels_3D.shape[0],1])
+        # output['edge'].y = gt_rels_3D
+        
+        
+        
+        
+        output['node_gt'].x = torch.zeros([len(gtIdx_entities_cls),1]) # dummy
+        output['node_gt'].clsIdx = gtIdx_entities_cls
+        output['node_gt','to','node'].edge_index = gtIdx2ebIdx
+        output['node_gt','to','node_gt'].clsIdx = gtIdx_edge_cls
+        output['node_gt','to','node_gt'].edge_index = gtIdx_edge_index
         
         # if output['edge'].y.nelement()==0:
         #     print('debug')
         
         # edges for computing features
         output['node','to','node'].edge_index = edge_indices_3D.t().contiguous()
+        output['node','to','node'].y = gt_rels_3D
         
         # GT edges
         # output['node','to','node'].edge_index_has_gt = new_edge_index_has_gt
         
-        output['node'].idx2oid = [idx2oid]
-        output['node'].idx2iid = [idx2iid]
+        
+        # output['node'].idx2oid = [idx2oid]
+        # output['node'].idx2iid = [idx2iid]
         # return output
-        output['relationships'] = [relationships_3D_mask]
+        # output['relationships'] = [relationships_3D_mask]
         # print(output['node'].idx2iid)
         
         if self.mconfig.load_points:
@@ -465,11 +512,13 @@ class SGFNDataset (data.Dataset):
                 output['roi'].box = img_bounding_boxes
                 output['roi'].img = images
                 output['roi'].desp = node_descriptor_for_image
-                output['roi'].idx2oid = [img_idx2oid]
-                output['edge2D'].x = torch.zeros([gt_rels_2D.size(0),1])
-                output['edge2D'].y = gt_rels_2D
+                # output['roi'].idx2oid = [img_idx2oid]
+                output['roi'].oid = img_oid_indices
+                # output['edge2D'].x = torch.zeros([gt_rels_2D.size(0),1])
+                # output['edge2D'].y = gt_rels_2D
                 
                 output['roi','to','roi'].edge_index = image_edge_indices.t().contiguous()
+                output['roi','to','roi'].y = gt_rels_2D
                 output['roi','temporal','roi'].edge_index = temporal_node_graph.t().contiguous()
                 output['edge2D','temporal','edge2D'].edge_index = temporal_edge_graph.t().contiguous()
 
@@ -842,11 +891,14 @@ class SGFNDataset (data.Dataset):
             if (class_id >= 0) and (instance_id > 0): # insstance 0 is unlabeled.
                 oid2idx[int(instance_id)] = counter
                 idx2oid[counter] = int(instance_id)
+                
                 counter += 1
                 filtered_instances.append(instance_id)
+                # idx2oid.append(int(instance_id))
                 cat.append(class_id)
                 
         return cat,oid2idx,idx2oid,filtered_instances
+        # return cat,idx2oid,filtered_instances
     
     def __extract_relationship_data(self, relationships_data, oid2idx:dict):
         '''build relaitonship data'''

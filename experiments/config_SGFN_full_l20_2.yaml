@@ -1,9 +1,11 @@
 inherit_from: [experiments/config_base_3RScan_full_l20.yaml,experiments/config_base_SGFN.yaml]
 name: 'SGFN_full_l20_2'
+training:
+ batch: 2
 model:
  multi_rel: false # multiple relationship 
 data:
- load_cache: true
+ load_cache: false
 wandb:
  dry_run: false
  tags: ["ssg", "sgfn","full","l20"]

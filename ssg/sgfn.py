@@ -228,7 +228,7 @@ class SGFN(nn.Module):
             
         '''compute edge feature'''
         if has_edge:
-            data['edge'].x = self.rel_encoder(descriptor,edge_indices_node_to_node)
+            data['node','to','node'].x = self.rel_encoder(descriptor,edge_indices_node_to_node)
             
         '''Messsage Passing'''
         if has_edge:
@@ -242,7 +242,7 @@ class SGFN(nn.Module):
                     self.gnn(data)
 
                 data['node'].x = gnn_nodes_feature
-                data['edge'].x = gnn_edges_feature
+                data['node','to','node'].x = gnn_edges_feature
             if not self.cfg.model.gnn.node_from_gnn:
                 data['node'].x = node_feature_ori
         '''Classification'''
@@ -250,7 +250,7 @@ class SGFN(nn.Module):
         node_cls = self.obj_predictor(data['node'].x)
         # Edge
         if has_edge:
-            edge_cls = self.rel_predictor(data['edge'].x)
+            edge_cls = self.rel_predictor(data['node','to','node'].x)
         else:
             edge_cls = None
         return node_cls, edge_cls
