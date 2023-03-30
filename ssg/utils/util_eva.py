@@ -9,6 +9,81 @@ from torch_geometric.data import HeteroData
 import itertools
 # from utils.plot_confusion_matrix import plot_confusion_matrix
 
+
+def merged_prediction_to_node(data:HeteroData):
+    node = data['node']
+    # oid2idx
+    oids = node.oid.tolist()
+    oid2idx = {oid:idx for idx,oid in enumerate(oids)}
+    
+    # collect prediction from roi
+    if len(data['roi'])>0 and 'y' in data['roi']:
+        roi = data['roi']
+        roi_oid = roi.oid.tolist()
+        assert 'x' in roi, "should assign prediction to roi.x"
+        
+        roi_pred_dict = defaultdict(list)
+        for idx_roi, oid in enumerate(roi_oid):
+            roi_pred_dict[oid].append(roi.pd[idx_roi])
+            
+        # merge prediction
+        for key,pds in roi_pred_dict.items():
+            pds = torch.stack(pds).mean(0)
+            roi_pred_dict[key] = pds
+    
+    # build new node list
+    node_pds_new = []
+    oids_new = []
+    oid2idxNew = {}
+    node_y_new = []
+    for idx_node_new, oid in enumerate(roi_pred_dict):
+        node_pds_new.append(roi_pred_dict[oid])
+        oids_new.append(oid)
+        oid2idxNew[oid] = idx_node_new
+        node_y_new.append(oid2idx[oid])
+    node_y_new = node.y[node_y_new]
+    
+    edge_index = data['node','to','node'].edge_index.tolist()
+    edge_index_new = []
+    edge_index_y_new = []
+    for idx in range(len(edge_index[0])):
+        src_idx,tgt_idx = edge_index[0][idx],edge_index[1][idx]
+        src_oid,tgt_oid = oids[src_idx],oids[tgt_idx]
+        if src_oid not in oid2idxNew or tgt_oid not in oid2idxNew:continue
+        src_idx_new,tgt_idx_new = oid2idxNew[src_oid],oid2idxNew[tgt_oid]
+        key = (src_idx_new,tgt_idx_new)
+        if key in edge_index_new: continue
+        edge_index_new.append(key) 
+        edge_index_y_new.append(data['node','to','node'].y[idx])
+        
+    # Modify node_gt
+    node_gt = data['node_gt']
+    if len(node_gt.x)>0:
+        # modify 'node_gt','to','node'
+        edge_index_gt = data['node_gt','to','node'].edge_index.tolist()
+        for idx in range(len(edge_index_gt[0])):
+            idx_node = edge_index_gt[1][idx]
+            
+            if idx_node >= 0:    
+                oid = oids[idx_node]
+                if oid not in oid2idxNew:
+                    idx_node = -1
+                else:
+                    idx_node = oid2idxNew[oid]
+            data['node_gt','to','node'].edge_index[1,idx] = idx_node
+            # edge_index_gt[1][idx] = idx_node
+            
+    # write back
+    device = node.y.device
+    data['node'].pd = torch.stack(node_pds_new,0).to(device)
+    data['node'].y = node_y_new
+    data['node'].oid = torch.tensor(oids_new,device=device)
+    data['node','to','node'].edge_index = torch.tensor(edge_index_new,dtype=torch.long,device=device).t().contiguous()
+    data['node','to','node'].y = torch.tensor(edge_index_y_new,device=device)
+    # data['node_gt','to','node'].edge_index = torch.tensor(edge_index_gt,dtype=torch.long,device=device)
+    
+    
+
 def get_metrics(label_id, confusion, VALID_CLASS_IDS:list=None):
     if VALID_CLASS_IDS is not None:
         if not label_id in VALID_CLASS_IDS:

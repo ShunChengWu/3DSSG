@@ -13,7 +13,7 @@ import codeLib.utils.string_numpy as snp
 from ssg import define
 from ssg.trainer.eval_inst import EvalInst
 from ssg.utils.util_data import merge_batch_mask2inst,match_class_info_from_two
-
+from ssg.utils.util_eva import merged_prediction_to_node
 logger_py = logging.getLogger(__name__)
 
 class Trainer_IMP(BaseTrainer, EvalInst):
@@ -123,11 +123,11 @@ class Trainer_IMP(BaseTrainer, EvalInst):
         # data = self.process_data_dict(data)
         
         # Shortcuts
-        scan_id = data['scan_id']
+        # scan_id = data['scan_id']
         gt_cls  = data['roi'].y
         gt_rel = data['roi','to','roi'].y
-        mask2instance = data['roi'].idx2oid[0]
-        edge_index = data['roi','to','roi'].edge_index
+        # mask2instance = data['roi'].idx2oid[0]
+        # edge_index = data['roi','to','roi'].edge_index
         # gt_relationships = data['relationships']
         # gt_cls = data['image_gt_cls']
         # gt_rel = data['image_gt_rel']
@@ -176,13 +176,14 @@ class Trainer_IMP(BaseTrainer, EvalInst):
         ''' eval tool '''
         if eval_tool is not None:
             node_cls = torch.softmax(node_cls.detach(),dim=1)
+            data['roi'].pd = node_cls.detach()
             if edge_cls is not None:
                 edge_cls = torch.sigmoid(edge_cls.detach())
-            eval_tool.add(scan_id, 
-                          node_cls,gt_cls, 
-                          edge_cls,gt_rel,
-                          mask2instance,
-                          edge_index)
+                data['roi','to','roi'].pd = edge_cls.detach()
+            #TODO: merge roi to node?
+            merged_prediction_to_node(data)
+            
+            eval_tool.add(data)
         return logs
         # return loss if eval_mode else loss['loss']
 

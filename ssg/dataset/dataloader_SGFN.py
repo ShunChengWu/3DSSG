@@ -140,50 +140,50 @@ class SGFNDataset (data.Dataset):
         self.size = len(self.filtered_data)
 
         '''check if pre-computed global image featur exist'''
-        # if self.for_eval and not self.mconfig.is_roi_img and self.mconfig.load_images: # train mode can't use precmopute feature. need to do img. aug.
-        if not self.mconfig.is_roi_img and self.mconfig.load_images and self.cfg.data.use_precompute_img_feature: # loading and memory issue. try to use precomputed
-            # self.open_filtered()
-            should_compute_image_feature=False
-            if not os.path.exists(self.path_img_feature):
-                should_compute_image_feature=True
-            else:
-                feature_type = self.cfg.model.image_encoder.backend
-                self.open_image_feature()
-                image_feature = self.image_feature[feature_type]
-                for scan_id in self.filtered_data:
-                    # Check scan exist
-                    if scan_id not in image_feature:
-                        should_compute_image_feature=True
-                    else:
-                        # check image exist
-                        filtered_data = raw_to_data(self.filtered_data[scan_id])[define.NAME_FILTERED_KF_INDICES]
+        #TODO: uncomment me after debug
+        # if not self.mconfig.is_roi_img and self.mconfig.load_images and self.cfg.data.use_precompute_img_feature: # loading and memory issue. try to use precomputed
+        #     # self.open_filtered()
+        #     should_compute_image_feature=False
+        #     if not os.path.exists(self.path_img_feature):
+        #         should_compute_image_feature=True
+        #     else:
+        #         feature_type = self.cfg.model.image_encoder.backend
+        #         self.open_image_feature()
+        #         image_feature = self.image_feature[feature_type]
+        #         for scan_id in self.filtered_data:
+        #             # Check scan exist
+        #             if scan_id not in image_feature:
+        #                 should_compute_image_feature=True
+        #             else:
+        #                 # check image exist
+        #                 filtered_data = raw_to_data(self.filtered_data[scan_id])[define.NAME_FILTERED_KF_INDICES]
                         
-                        # try to open it
-                        try:
-                            for kfId in filtered_data:
-                                if str(kfId) not in image_feature[scan_id]:
-                                    should_compute_image_feature=True
-                                    break
-                        except:
-                            should_compute_image_feature=True
+        #                 # try to open it
+        #                 try:
+        #                     for kfId in filtered_data:
+        #                         if str(kfId) not in image_feature[scan_id]:
+        #                             should_compute_image_feature=True
+        #                             break
+        #                 except:
+        #                     should_compute_image_feature=True
                             
-                    if should_compute_image_feature: break
-            if should_compute_image_feature:
-                # Try to generate
-                os.environ['MKL_THREADING_LAYER'] = 'GNU'
-                # os.environ['PYTHONPATH'] = config.PYTHONPATH
-                # subprocess.call(["export PYTHONPATH={}".format(PYTHONPATH)], shell=True) 
-                mode_ = 'eval' if mode == 'test' else mode
-                bashCommand=[
-                    'python','ssg/utils/compute_image_feature.py',
-                    "--config",config.config_path,
-                    '-n',image_feature_folder_name,
-                    "-o",self.cfg.data.path_image_feature,
-                    "--mode",mode_,
-                ]
-                run(bashCommand)
-                if not os.path.exists(self.path_img_feature):
-                    raise RuntimeError('use precompute image feature is true but file not found.')
+        #             if should_compute_image_feature: break
+        #     if should_compute_image_feature:
+        #         # Try to generate
+        #         os.environ['MKL_THREADING_LAYER'] = 'GNU'
+        #         # os.environ['PYTHONPATH'] = config.PYTHONPATH
+        #         # subprocess.call(["export PYTHONPATH={}".format(PYTHONPATH)], shell=True) 
+        #         mode_ = 'eval' if mode == 'test' else mode
+        #         bashCommand=[
+        #             'python','ssg/utils/compute_image_feature.py',
+        #             "--config",config.config_path,
+        #             '-n',image_feature_folder_name,
+        #             "-o",self.cfg.data.path_image_feature,
+        #             "--mode",mode_,
+        #         ]
+        #         run(bashCommand)
+        #         if not os.path.exists(self.path_img_feature):
+        #             raise RuntimeError('use precompute image feature is true but file not found.')
                 
         if not self.for_eval:
             w_node_cls = np.loadtxt(self.pth_node_weights)
@@ -505,15 +505,19 @@ class SGFNDataset (data.Dataset):
                 output['roi'].box = img_bounding_boxes
                 output['roi'].img = images
                 output['roi'].desp = node_descriptor_for_image
-                # output['roi'].idx2oid = [img_idx2oid]
                 output['roi'].oid = img_oid_indices
-                # output['edge2D'].x = torch.zeros([gt_rels_2D.size(0),1])
-                # output['edge2D'].y = gt_rels_2D
+                
+                output['edge2D'].x = torch.zeros([len(temporal_node_graph),1]) # need this for temporal edge graph
                 
                 output['roi','to','roi'].edge_index = image_edge_indices.t().contiguous()
                 output['roi','to','roi'].y = gt_rels_2D
                 output['roi','temporal','roi'].edge_index = temporal_node_graph.t().contiguous()
                 output['edge2D','temporal','edge2D'].edge_index = temporal_edge_graph.t().contiguous()
+                
+                # print('image_edge_indices',image_edge_indices)
+                # print('gt_rels_2D',gt_rels_2D)
+                # print(image_edge_indices)
+                # print(image_edge_indices)
 
         '''release'''
         self.reset_data()

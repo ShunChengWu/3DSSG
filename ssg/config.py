@@ -12,12 +12,12 @@ from ssg.checkpoints import CheckpointIO
 logger_py = logging.getLogger(__name__)
 
 method_dict = {
-    'ssg2d': SSG3D,
+    # 'ssg2d': SSG3D,
     'sgfn': SGFN,
     'sgpn': SGPN,
     # 'dcmp': DestCmp,
-    'mv': MVEnc,
-    'sv': SVEnc,
+    # 'mv': MVEnc,
+    # 'sv': SVEnc,
     'imp': IMP,
     'jointsg': JointSG,
 }
