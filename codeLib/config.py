@@ -1,5 +1,6 @@
 import os
 import yaml
+import re
 from copy import copy, deepcopy
 # General config
 def load_config(path, default_path=None):
@@ -35,8 +36,37 @@ def load_config(path, default_path=None):
     out_cfg = dict()
     for c in cfg:
         update_recursive(out_cfg, c)
-
+        
+    # Replace var to value
+    replace_var_in_json_dict(out_cfg,out_cfg)
+    
     return out_cfg
+
+def replace_var_in_json_dict(data:dict, top_data:dict):
+    def replace(x,data):
+        # find any text within ${}
+        results = re.findall('\${([^{]*)}',str(x))
+        for result in results:
+            # retrieve the value
+            var = result.split('.')
+            tmp = data
+            for v in var:
+                tmp = tmp[v]
+            x = x.replace('${'+result+"}",tmp)
+        return x
+        
+    for key, value in data.items():
+        if isinstance(value,dict):
+            replace_var_in_json_dict(value,top_data)
+        if isinstance(value,list):
+            for idx,v in enumerate(value):
+                value[idx] = replace(v,top_data)
+        if isinstance(value,str):
+            data[key] = replace(value,top_data)
+        # raise NotImplementedError()
+        
+        
+        
 
 def update_recursive(dict1, dict2):
     ''' Update two config dictionaries recursively.
