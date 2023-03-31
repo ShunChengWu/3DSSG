@@ -85,9 +85,13 @@ model:
   with_bn: false
   dropout: 0.3
 data:
- input_type: sgfn #[3RScan, graph, sgfn, sgpn]
+ # Basic paths
  path_3rscan: "./data/3RScan/data/3RScan/"
- path_scannet: '/media/sc/space1/dataset/scannet/scans/'
+ path_scannet: './data/scannet/scans/'
+ path_file: "./files"
+ path_label_mapping: "${data.path_file}/3RScan.v2 Semantic Classes - Mapping.csv"
+ # 
+ input_type: sgfn #[3RScan, graph, sgfn, sgpn]
  path: "./data/3RScan_3RScan160/"
  path_gt: "./data/3RScan_3RScan160/"
  img_feature_path: "/media/sc/SSD1TB/storage/kf_feature/"
@@ -119,6 +123,10 @@ data:
  obj_ignore_list: []
  use_precompute_img_feature: false
  bbox_aug_ratio: 0.3 # [0.,1.]. 0: no aug. 
+ image_graph_generation:
+  path_2dgt: "./data/3RScan/data/2dgt/"
+  occupancy_downscale: 8 # The factor of downscaling while calculating the occurance. The larger the less accurate but faster speed.
+
 logging:
  method: wandb # [tensorboard, wandb, none]
  log_grad_freq: 1000 
@@ -130,3 +138,4 @@ wandb:
 # id: "001" # id will be set to name
  tags: ["ssg", "3dssg"]
  dir: logs/
+

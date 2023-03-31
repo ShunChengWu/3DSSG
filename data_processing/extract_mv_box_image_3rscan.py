@@ -54,7 +54,7 @@ def Parse():
     parser.add_argument('-o','--outdir',default='/media/sc/SSD1TB/dataset/3RScan/', help='roi images',required=True)
     
     # parser.add_argument('-m','--min_occ',default=0.2,help='The threshold for the visibility of an object. If below this value, discard (higher, more occurance)')
-    parser.add_argument('--min_object', help='if less thant min_obj objects, ignore image', default=1)
+    # parser.add_argument('--min_object', help='if less thant min_obj objects, ignore image', default=1)
     # parser.add_argument('-l','--label_type',default='3rscan160', choices=['nyu40','eigen13','rio27', 'rio7','3rscan','3rscan160'], 
     #                     help='target label type.')
     # parser.add_argument('--min_size', default=60, help='min length on bbox')

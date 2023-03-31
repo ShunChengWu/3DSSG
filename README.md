@@ -8,6 +8,28 @@
   - [ ] OrbSLAM3
 - [ ] reproducibility
 - [x] support batch
+- [ ] make sure all data can be download with one script
+  - [ ] ply
+  - [ ] label
+  - [ ] unzip sequence
+
+
+
+# Prepare 3RScan dataset
+'''
+git clone https://github.com/WaldJohannaU/3RScan.git
+bash setup.sh
+python download.py -o ./data/3RScan/ --type "semseg.v2.json"
+python download.py -o ./data/3RScan/ --type "sequence.zip"
+python download.py -o ./data/3RScan/ --type "labels.instances.annotated.v2.ply"
+
+# Unzip all sequence 
+cd data/3RScan
+find . -name '*.zip' -exec sh -c 'base={};filename="${base%.*}"; unzip -o -d $filename {};' ';'
+cd ../../
+
+'''
+
 
 ## see if new configs work
 - [ ] config_IMP_full_l20_6.yaml
@@ -56,9 +78,12 @@ This steps is required if you want to train SceneGraphFusion with RGB.
 cd script
 python RUN_replace_color_to_real.py --help # check arugments
 ```
+
 ## Image graph
 Please use `--help` to check the required input arguments on each script.
 ```
+python data_processing/makebb_img_3rscan.py --thread 8
+
 cd ssg/utils
 # calculate occlusion & instance label information
 python makebb_img_3rscan.py

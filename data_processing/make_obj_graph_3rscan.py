@@ -14,8 +14,8 @@ import numpy as np
 from tqdm import tqdm
 from PIL import Image
 from torchvision.utils import draw_bounding_boxes
-import matplotlib.pyplot as plt
-import codeLib
+# import matplotlib.pyplot as plt
+# import codeLib
 from codeLib.torch.visualization import show_tensor_images, show_tv_grid
 from codeLib.common import color_rgb, rand_24_bit
 from codeLib.utils.util import read_txt_to_list
