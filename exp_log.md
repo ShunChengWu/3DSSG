@@ -59,7 +59,7 @@ For PrecObj, should directly use the RecallObj value since an ground instance is
 | IMP_FULL_l160_2_3            | 44.5     | 36.0    | 9.0      | 3.3        | 35.9      | 9.0        |
 | VGfM_FULL_l160_3_1           | 44.5     | 37.7    | 14.7     | 3.4        | 37.9      | 14.7       |
 | 3DSSG_full_l160_1            | 46.8     | 29.5    | 68.8     | 7.3        | 29.6      | 68.8       |
-| SGFN_full_l160_4             | 45.2  | 29.4 | 42.8 | 4.5 | 29.4 | 45.8 |
+| SGFN_full_l160_4             | 45.2     | 29.4    | 42.8     | 4.5        | 29.4      | 45.8       |
 | JointSSG_full_l160_0         | 52.7     | 56.6    | 50.4     | 17.9       | 56.7      | 50.4       |
 # Abla GRU SGFN
 try replacing updating method to GRU. 

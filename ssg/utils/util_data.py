@@ -1,6 +1,7 @@
 import numpy as np
 import torch,random
 import copy,os
+from codeLib.utils.util import read_txt_to_list
 # import ssg2d
 from ssg.objects import Node
 import codeLib.utils.string_numpy as snp
@@ -44,6 +45,13 @@ import copy
 #                 assert idx not in idx2seg
 #             idx2seg[idx] = iid
 #     return idx2seg
+
+
+def read_all_scan_ids():
+    train_ids = read_txt_to_list(os.path.join(define.PATH_FILE,'train_scans.txt'))
+    val_ids = read_txt_to_list(os.path.join(define.PATH_FILE,'validation_scans.txt'))
+    test_ids = read_txt_to_list(os.path.join(define.PATH_FILE,'test_scans.txt'))
+    return train_ids+val_ids+test_ids
 
 def merge_batch_mask2inst(mask2insts):
     '''

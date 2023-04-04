@@ -22,6 +22,7 @@ from tqdm.contrib.concurrent import process_map
 from ssg import define
 from ssg.utils import util_label
 from ssg.utils.util_3rscan import read_3rscan_info, load_semseg
+from ssg.utils.util_data import read_all_scan_ids
 import pathlib
 
 helpmsg = 'Generate object bounding box and occlusion on 3RScan dataset using the rendered label and instance'
@@ -148,28 +149,26 @@ class LabelImage(object):
 def process(scan_id):
     # check if file exist
     outdir = lcfg.path_2dgt
-    foutput = os.path.join(outdir,scan_id+'.2dgt')
+    foutput = os.path.join(outdir,scan_id+define.TYPE_2DGT)
     if os.path.isfile(foutput):
-        if args.overwrite>0:
+        if args.overwrite:
             os.remove(foutput)
         else:
-            return
-        
-    path_3rscan = cfg.data.path_3rscan    
+            return    
     
     # load semseg
-    pth_semseg = os.path.join(path_3rscan,scan_id,define.SEMSEG_FILE_NAME)
+    pth_semseg = os.path.join(cfg.data.path_3rscan_data,scan_id,define.SEMSEG_FILE_NAME)
     mapping = load_semseg(pth_semseg)
     mapping[0] = 'none'
         
     # get number of scans
-    scan_info = read_3rscan_info(os.path.join(path_3rscan,scan_id,'sequence','_info.txt'))
+    scan_info = read_3rscan_info(os.path.join(cfg.data.path_3rscan_data,scan_id,define.IMG_FOLDER_NAME,define.INFO_NAME))
     n_images = int(scan_info['m_frames.size'])
     
     # check all images exist
     for frame_id in range(n_images):
         # pth_label = os.path.join(fdata,scan_id,'sequence', label_filepattern.format(frame_id))
-        pth_inst  = os.path.join(path_3rscan,scan_id,'sequence', define.NAME_PATTERN_INSTANCE_IMG.format(frame_id))
+        pth_inst  = os.path.join(cfg.data.path_3rscan_data,scan_id,'sequence', define.NAME_PATTERN_INSTANCE_IMG.format(frame_id))
         
         # if not os.path.isfile(pth_label): raise RuntimeError('file not exist.',pth_label)
         if not os.path.isfile(pth_inst): raise RuntimeError('file not exist.',pth_inst)
@@ -184,7 +183,7 @@ def process(scan_id):
     # process
     for frame_id in range(n_images):
         # pth_label = os.path.join(fdata,scan_id,'sequence', label_filepattern.format(frame_id))
-        pth_inst  = os.path.join(path_3rscan,scan_id,'sequence', define.NAME_PATTERN_INSTANCE_IMG.format(frame_id))
+        pth_inst  = os.path.join(cfg.data.path_3rscan_data,scan_id,'sequence', define.NAME_PATTERN_INSTANCE_IMG.format(frame_id))
         
         # limg_data = np.array(Image.open(pth_label), dtype=np.uint8)
         iimg_data = np.array(Image.open(pth_inst), dtype=np.uint8)
@@ -219,14 +218,11 @@ if __name__ =='__main__':
     logger_py.info(f'create log file at {path_log}')
 
     '''read all scan ids'''
-    train_ids = read_txt_to_list(os.path.join(cfg.data.path_file,'train_scans.txt'))
-    val_ids = read_txt_to_list(os.path.join(cfg.data.path_file,'validation_scans.txt'))
-    test_ids = read_txt_to_list(os.path.join(cfg.data.path_file,'test_scans.txt'))
-    scan_ids  = sorted( train_ids + val_ids + test_ids)
-    logger_py.info(f'computing bounding box occupancy ratio for {len(scan_ids)} scans')
+    scan_ids  = sorted( read_all_scan_ids())
+    logger_py.info(f'There are {len(scan_ids)} scans to be processed')
     
     '''get label mapping'''
-    Scan3R528, NYU40,Eigen13,RIO27,RIO7 = util_label.getLabelNames(cfg.data.path_label_mapping)
+    Scan3R528, NYU40,Eigen13,RIO27,RIO7 = util_label.getLabelNames(define.PATH_LABEL_MAPPING)
     Scan3R528[0] = 'none'
     
     '''generate random color for visualization'''

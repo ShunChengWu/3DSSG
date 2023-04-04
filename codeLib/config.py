@@ -99,7 +99,7 @@ class Config(dict):
             # raise RuntimeError("wrong!")
             # for k,v in config_path.items():
             #     self[k]= v
-        self.config_path=config_path
+        # self.config_path=config_path
     def check_value(self,v):
         if isinstance(v, dict):
             tmp = Config()

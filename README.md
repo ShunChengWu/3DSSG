@@ -22,13 +22,22 @@ bash setup.sh
 python download.py -o ./data/3RScan/ --type "semseg.v2.json"
 python download.py -o ./data/3RScan/ --type "sequence.zip"
 python download.py -o ./data/3RScan/ --type "labels.instances.annotated.v2.ply"
+python download.py -o ./data/3RScan/ --type "mesh.refined.v2.obj"
+python download.py -o ./data/3RScan/ --type "mesh.refined.mtl"
+python download.py -o ./data/3RScan/ --type "mesh.refined_0.png"
 
 # Unzip all sequence 
 cd data/3RScan
 find . -name '*.zip' -exec sh -c 'base={};filename="${base%.*}"; unzip -o -d $filename {};' ';'
 cd ../../
 
+# Generate rendered view
+cd script;
+python Run_prepare_dataset_3RScan.py # require display
 '''
+
+# Extract graph for GT scenes
+
 
 
 ## see if new configs work

@@ -86,10 +86,10 @@ model:
   dropout: 0.3
 data:
  # Basic paths
- path_3rscan: "./data/3RScan/data/3RScan/"
+ path_3rscan: "./data/3RScan" #"./data/3RScan/data/3RScan/"
+ path_3rscan_data: "${data.path_3rscan}/data/3RScan"
  path_scannet: './data/scannet/scans/'
  path_file: "./files"
- path_label_mapping: "${data.path_file}/3RScan.v2 Semantic Classes - Mapping.csv"
  # 
  input_type: sgfn #[3RScan, graph, sgfn, sgpn]
  path: "./data/3RScan_3RScan160/"
@@ -97,7 +97,7 @@ data:
  img_feature_path: "/media/sc/SSD1TB/storage/kf_feature/"
  label_file: "labels.instances.align.annotated.v2.ply"
  label_file_gt: "labels.instances.align.annotated.v2.ply"
- roi_img_path: "./data/3RScan/roi_images.h5"
+ roi_img_path: "${data.path_3rscan}/data/roi_images.h5"
  path_image_feature: "./data/3RScan/"
  data_augmentation: false
  sample_in_runtime: true
@@ -124,9 +124,15 @@ data:
  use_precompute_img_feature: false
  bbox_aug_ratio: 0.3 # [0.,1.]. 0: no aug. 
  image_graph_generation:
-  path_2dgt: "./data/3RScan/data/2dgt/"
+  path_2dgt: "${data.path_3rscan}/data/2dgt/"
   occupancy_downscale: 8 # The factor of downscaling while calculating the occurance. The larger the less accurate but faster speed.
-
+  min_occ: 0.2 #The threshold for the visibility of an object. If below this value, discard (higher, more occurance)
+  min_box_size: [60,60] # The bounding box of each object should have at least x in width or height
+  min_obj: 1 # each image should have at least x object(s)
+  structure_labels: ['wall','floor','ceiling'] 
+  skip_structure: false # enble enble filtering on structure objects
+  skip_edge: false # enable filtering on objects near the edge of images
+  skip_size: true # enable filtering on small objects
 logging:
  method: wandb # [tensorboard, wandb, none]
  log_grad_freq: 1000 

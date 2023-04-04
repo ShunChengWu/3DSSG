@@ -1,21 +1,14 @@
 import argparse, os, pandas, h5py, logging
-# from codeLib.utils.classification.labels import NYU40_Label_Names, SCANNET20_Label_Names
+import pathlib
 import numpy as np
 from tqdm import tqdm
-# import os,io
-# import zipfile
-# import imageio
-# import numpy as np
-# import matplotlib.pyplot as plt
-# import matplotlib
 from PIL import Image
 import argparse, os, pandas, h5py, logging,json,torch
 import numpy as np
 from tqdm import tqdm
 from PIL import Image
 from torchvision.utils import draw_bounding_boxes
-# import matplotlib.pyplot as plt
-# import codeLib
+import codeLib
 from codeLib.torch.visualization import show_tensor_images, show_tv_grid
 from codeLib.common import color_rgb, rand_24_bit
 from codeLib.utils.util import read_txt_to_list
@@ -24,55 +17,35 @@ from ssg import define
 from ssg.utils import util_label
 from ssg.utils import util_3rscan
 from ssg.utils.util_3rscan import load_semseg
-# from collections import defaultdict
 from codeLib.torch.visualization import show_tensor_images
-
-structure_labels = ['wall','floor','ceiling']
-
-width=540
-height=960
+from ssg.utils.util_data import read_all_scan_ids
 
 DEBUG=True
 DEBUG=False
 
 random_clr_i = [color_rgb(rand_24_bit()) for _ in range(1500)]
 random_clr_i[0] = (0,0,0)
-# random_clr_l = {v:color_rgb(rand_24_bit()) for k,v in Scan3R528.items()}
-# random_clr_l['none'] = (0,0,0)
 
 def Parse():
-    parser = argparse.ArgumentParser(formatter_class = argparse.ArgumentDefaultsHelpFormatter)
-    # parser.add_argument('-f','--scenelist',default='/home/sc/research/PersistentSLAM/python/2DTSG/files/scannetv2_trainval.txt',help='scene list (txt)')
-    #
-    parser.add_argument('-d','--gt2d_dir',default='/media/sc/SSD1TB/dataset/3RScan/2dgt', 
-                        help='directory containing the .2dgt i.e. the gt 2d detections, generated with the script')
+    helpmsg = 'Generate entity visibility graph for 3D scans'
+    parser = argparse.ArgumentParser(description=helpmsg,formatter_class = argparse.ArgumentDefaultsHelpFormatter)
+    parser.add_argument('-c','--config',default='./configs/config_default.yaml',required=False)
     parser.add_argument('-o','--outdir',default='/home/sc/research/PersistentSLAM/python/3DSSG/data/3RScan_3RScan160/', help='output dir',required=True)
-    parser.add_argument('-m','--min_occ',default=0.2,help='The threshold for the visibility of an object. If below this value, discard (higher, more occurance)')
-    parser.add_argument('--min_object', help='if less thant min_obj objects, ignore image', default=1)
     parser.add_argument('-l','--label_type',default='3rscan160', choices=['nyu40','eigen13','rio27', 'rio7','3rscan','3rscan160','scannet20'], 
-                        help='target label type.')
-    parser.add_argument('--min_size', default=60, help='min length on bbox')
-    # parser.add_argument('-lf','--label_file',default='/media/sc/space1/dataset/scannet/scannetv2-labels.combined.tsv', 
-    #                     help='file path to scannetv2-labels.combined.tsv')
-    parser.add_argument('--skip_structure',default=0,help='should ignore sturcture labels or not')
-    parser.add_argument('--skip_edge',default=0,type=int,help='should bbox close to image boundary')
-    parser.add_argument('--skip_size',default=1,type=int,help='should filter out too small objs')
-    parser.add_argument('--overwrite', type=int, default=0, help='overwrite existing file.')
+                        help='target label type.',required=True)
+    parser.add_argument('--overwrite', action='store_true', help='overwrite or not.')
     return parser
 
-def get_bbx_wo_flatcheck(scan_id, fn,min_oc, mapping, min_size:list=[240,240]):
+def get_bbx_wo_flatcheck(lcfg, fn,min_oc, mapping, min_size:list=[240,240], image_size:tuple=(960,540)):
     obj_by_img={}  
     data = pandas.read_csv(fn, delimiter= ' ')      
     # imgs = f[scan_id]
     obj_set=set()
     obj_set_f = set()
-    # filter_struc=0
-    # filter_label=0
-    # filter_edge=0
-    # filter_occ=0
-    # filter_size=0
     filter_counter = defaultdict(int)
     filter_label = defaultdict(set)
+    width = image_size[-1]
+    height = image_size[0]
     
     msg = 'skip fid:{}, iid:{}, lid:{}'
     
@@ -94,23 +67,23 @@ def get_bbx_wo_flatcheck(scan_id, fn,min_oc, mapping, min_size:list=[240,240]):
         '''check conditions'''
         # Label
         if olabel not in mapping:
-             if DEBUG: print(msg.format(fname,oid,olabel),'not in ', mapping.keys())
+             if DEBUG: logger_py.debug(msg.format(fname,oid,olabel)+' not in '+mapping.keys())
              filter_counter['label']+=1
              filter_label['label'].add(olabel)
              continue
              raise RuntimeError('all labels should be included in the mapping dict',mapping.keys(), 'query',olabel)
         olabel = mapping[olabel]
         # structure
-        if args.skip_structure>0:
+        if lcfg.skip_structure>0:
           if olabel in structure_labels:
-              if DEBUG: print(msg.format(fname,oid,olabel),' structure label')
+              if DEBUG: logger_py.debug(msg.format(fname,oid,olabel)+' structure label')
               filter_counter['struc']+=1
               filter_label['struc'].add(olabel)
               continue
         # On boarder
-        if args.skip_edge>0:
+        if lcfg.skip_edge>0:
             if float(x1)<1 or float(y1)<1 or width < float(x2) or height < float(y2):
-                if DEBUG: print(msg.format(fname,oid,olabel),': on edge')
+                if DEBUG: logger_py.debug(msg.format(fname,oid,olabel)+': on edge')
                 filter_counter['edge']+=1
                 filter_label['edge'].add(olabel)
                 continue
@@ -118,58 +91,45 @@ def get_bbx_wo_flatcheck(scan_id, fn,min_oc, mapping, min_size:list=[240,240]):
         oc=float(oc)
         oc = round(oc, 3)
         if oc<min_oc: # if occlusion rate is over the maximum authorised, then skip
-            if DEBUG: print(msg.format(fname,oid,olabel),'occluded',oc,'<',min_oc)
+            if DEBUG: logger_py.debug(msg.format(fname,oid,olabel)+' occluded '+oc+'<'+min_oc)
             filter_counter['occ']+=1
             filter_label['occ'].add(olabel)
             continue
       
           # too smal
-        if args.skip_size>0:
+        if lcfg.skip_size>0:
             size = [x2-x1,y2-y1]
             if size[0] < min_size[0] or size[1] < min_size[1]:
-                if DEBUG: print(msg.format(fname,oid,olabel),'too small', size)
+                if DEBUG: logger_py.debug(msg.format(fname,oid,olabel)+' too small '+ size)
                 filter_counter['size']+=1
                 filter_label['size'].add(olabel)
                 continue
-        
-        # if args.label_type == 'scannet20':
-        # if olabel not in util_label.NYU40_Label_Names:
-        #     if DEBUG: print('skip',fname,olabel,'not in label names')
-        #     continue
       
         if fname not in obj_by_img:
             obj_by_img[fname]=[fname,[]]
         obj_by_img[fname][1].append([oid,olabel,oc,float(x1),float(y1),float(x2),float(y2)])      
         obj_set_f.add(oid)
     
-    # print('totalsize:', len(data.index))
     logger_py.debug('filtered type and classes')
     for k,v in filter_counter.items():
-         # print(k,v, filter_label[k])
          logger_py.debug('{}: {}. {}'.format(k,v,filter_label[k]))
     logger_py.debug('the obj filter ratio: {} ({}/{})'.format(len(obj_set_f)/len(obj_set),len(obj_set_f),len(obj_set)))
-    
-    '''debug vis'''
-    if DEBUG:
-        vis('/media/sc/SSD1TB/dataset/3RScan/data/3RScan/',scan_id,obj_by_img)
         
     return obj_by_img
 
-def vis(datapath, scan_id,obj_by_img:dict):
-    
-    insta_filepattern = 'frame-{0:06d}.rendered.instances.png'
+def vis(datapath, scan_id,obj_by_img:dict,image_size:tuple=(960,540)):
+    width = image_size[-1]
+    height = image_size[0]
     
     for fname,v in obj_by_img.items():
         data_list = v[1]
-        pth_inst = os.path.join(datapath,scan_id,'sequence',insta_filepattern.format(fname))
+        pth_inst = os.path.join(datapath,scan_id,define.IMG_FOLDER_NAME,define.NAME_PATTERN_INSTANCE_IMG.format(fname))
         iimg_data = np.array(Image.open(pth_inst), dtype=np.uint8)
         
         ori_list = set(np.unique(iimg_data).tolist()).difference([0])
         f_list = [x[0] for x in data_list]
         diff = ori_list.difference(f_list)
         if len(diff)==0: continue
-        # print('f_list',f_list)
-        # print(diff)
         
         clr_img_ori = np.zeros([height,width,3],dtype=np.uint8)
         clr_img = np.zeros([height,width,3],dtype=np.uint8)
@@ -195,64 +155,54 @@ def vis(datapath, scan_id,obj_by_img:dict):
 
 if __name__ == '__main__':
     args = Parse().parse_args()
-    print(args)
+    cfg = codeLib.Config(args.config)
+    lcfg = cfg.data.image_graph_generation
     outdir=args.outdir
-    min_oc=float(args.min_occ) # maximum occlusion rate authorised
-    min_obj=float(args.min_object)
-    gt2d_dir = args.gt2d_dir
+    min_oc=lcfg.min_occ#  float(args.min_occ) # maximum occlusion rate authorised
+    min_obj=lcfg.min_obj# float(args.min_object)
+    gt2d_dir = lcfg.path_2dgt#args.gt2d_dir
+    structure_labels = lcfg.structure_labels
     
-    '''create output file'''
-    if not os.path.isdir(outdir):
-        os.mkdir(outdir)
-    
-    logging.basicConfig(filename=os.path.join(outdir,'objgraph.log'), level=logging.DEBUG)
-    logger_py = logging.getLogger(__name__)
+    '''create log'''
+    pathlib.Path(outdir).mkdir(exist_ok=True,parents=True)
+    name_log = os.path.split(__file__)[-1].replace('.py','.log')
+    path_log = os.path.join(outdir,name_log)
+    logging.basicConfig(filename=path_log, level=logging.INFO)
+    logger_py = logging.getLogger(name_log)
+    logger_py.info(f'create log file at {path_log}')
     if DEBUG:
         logger_py.setLevel('DEBUG')
     else:
         logger_py.setLevel('INFO')
-    logger_py.debug('args')
-    logger_py.debug(args)
-    logger_py.debug('structure_labels')
-    logger_py.debug(structure_labels)
-    
-    # scannet_w = 1296
-    # scannet_h= 968
-
-    '''create mapping'''
-    # create name2idx mapping
-    label_names, label_name_mapping, label_id_mapping = util_label.getLabelMapping(args.label_type,define.LABEL_MAPPING_FILE)
         
+    '''save config'''
+    name_cfg = os.path.split(__file__)[-1].replace('.py','.json')
+    pth_cfg = os.path.join(outdir,name_cfg)
+    all_args = {**vars(args),**lcfg}
+    with open(pth_cfg, 'w') as f:
+            json.dump(all_args, f, indent=2)
     
-    #save configs
-    with open(os.path.join(outdir,'args_objgraph.txt'), 'w') as f:
-        for k,v in args.__dict__.items():
-            f.write('{}:{}\n'.format(k,v))
-        pass
+    '''create mapping'''
+    label_names, label_name_mapping, label_id_mapping = util_label.getLabelMapping(args.label_type,define.PATH_LABEL_MAPPING)
+    
+    '''create output file'''
     try:
-        h5f = h5py.File(os.path.join(outdir,'proposals.h5'), 'a')
+        h5f = h5py.File(os.path.join(outdir,define.NAME_OBJ_GRAPH), 'a')
     except:
-        os.remove(os.path.join(outdir,'proposals.h5'))
-        h5f = h5py.File(os.path.join(outdir,'proposals.h5'), 'a')
-    h5f.attrs['label_type'] = args.label_type
+        os.remove(os.path.join(outdir,define.NAME_OBJ_GRAPH))
+        h5f = h5py.File(os.path.join(outdir,define.NAME_OBJ_GRAPH), 'a')
+    h5f.attrs['label_type'] = args.label_type   
     
     '''read scenes'''
-    fdata = os.path.join('data','3RScan',"data","3RScan")# os.path.join(define.DATA_PATH)
-    train_ids = read_txt_to_list(os.path.join('files','train_scans.txt'))
-    val_ids = read_txt_to_list(os.path.join('files','validation_scans.txt'))
-    test_ids = read_txt_to_list(os.path.join('files','test_scans.txt'))
-    
-    print(len(train_ids))
-    print(len(val_ids))
-    print(len(test_ids))
-    scan_ids  = sorted( train_ids + val_ids + test_ids)
-    print(len(scan_ids))
-    
-    pbar = tqdm(scan_ids)
+    fdata = cfg.data.path_3rscan_data
+    '''read all scan ids'''
+    scan_ids  = sorted( read_all_scan_ids())
+    logger_py.info(f'There are {len(scan_ids)} scans to be processed')
     
     '''process'''
     invalid_scans=0
     valid_scans=0
+    pbar = tqdm(scan_ids)
     for scan_id in pbar: #['scene0000_00']: #glob.glob('scene*'):
         logger_py.info(scan_id)
         pbar.set_description('processing {}'.format(scan_id))
@@ -264,23 +214,28 @@ if __name__ == '__main__':
         
         # load image info
         info_3rscan = util_3rscan.read_3rscan_info(os.path.join(fdata,scan_id,define.IMG_FOLDER_NAME,define.INFO_NAME))
-        img_w,img_h = int(info_3rscan['m_colorWidth']), int(info_3rscan['m_colorHeight'])
+        img_h,img_w = int(info_3rscan['m_colorWidth']), int(info_3rscan['m_colorHeight'])# we already rotated the input view when generating the rendered views. so swap h and w
+        
         
         '''load 2dgt'''
-        gt2d_file = gt2d_dir+'/'+scan_id+'.2dgt'
+        gt2d_file = os.path.join(gt2d_dir,scan_id+define.TYPE_2DGT)
         if not os.path.isfile(gt2d_file):
-            print('file does not exists, skipping',scan_id+'.2dgt')
+            logger_py.debug('file does not exists, skipping',scan_id+define.TYPE_2DGT)
             continue
         '''check if the scene has been created'''
         if scan_id in h5f: 
-            if args.overwrite == 0: 
+            if not args.overwrite: 
                 logger_py.info('exist. skip')
                 continue
             else:
                 del h5f[scan_id]
         
         # read data and organize by frames
-        obj_by_img=get_bbx_wo_flatcheck(scan_id, gt2d_file, min_oc,label_name_mapping, [args.min_size,args.min_size])
+        obj_by_img=get_bbx_wo_flatcheck(lcfg, gt2d_file, min_oc,label_name_mapping, lcfg.min_box_size, (img_h,img_w))
+            
+        '''debug vis'''
+        if DEBUG:
+            vis(lcfg.path_3rscan_data,scan_id,obj_by_img,(img_h,img_w))
         
         # cluster the frames, each cluster correspond to a set of objects, all the elements of a cluster are images where these objects appear
         oidss={}
@@ -300,7 +255,16 @@ if __name__ == '__main__':
             if 'occlution' not in kf: kf['occlution'] = dict()
             for oid,olabel,oc,x1,y1,x2,y2 in seq:
                 if str(oid) in kf['bboxes']: raise RuntimeError('exist')
-                kf['bboxes'][str(oid)] = [x1/width,y1/height,x2/width,y2/height]
+                box = [x1/img_w,y1/img_h,x2/img_w,y2/img_h]
+                assert box[0]<=1 
+                assert box[0]>=0
+                assert box[1]<=1 
+                assert box[1]>=0
+                assert box[2]<=1 
+                assert box[2]>=0
+                assert box[3]<=1 
+                assert box[3]>=0
+                kf['bboxes'][str(oid)] = box
                 kf['occlution'][str(oid)] = oc
                 
                 if str(oid) not in objects:
@@ -314,13 +278,10 @@ if __name__ == '__main__':
                 if oid not in node2kfs:
                     node2kfs[oid] = list()
                 node2kfs[oid].append(fnum)
-                
-        # print_selection(scene, node2kfs,objects,kfs)
         
         '''check filtered instances'''
         int_filtered_insts = [int(x) for x in objects]
         diffs = set(mapping.keys()).difference(set(int_filtered_insts))
-        if DEBUG: print('missing instances', diffs)
         logger_py.debug('missing instances: {}'.format(diffs))
         
                 
@@ -334,13 +295,11 @@ if __name__ == '__main__':
             
         '''check if empty'''
         if len(objects) == 0:
-            # print('skip',scene)
             invalid_scans+=1
             continue
         valid_scans+=1
         
         h5g = h5f.create_group(scan_id)
-        # obj_ = list()
         seg2idx = dict()
         h5node = h5g.create_group('nodes')
         for idx, data in enumerate(objects.items()):
@@ -357,33 +316,24 @@ if __name__ == '__main__':
             boxes = v['bboxes']
             occlu = v['occlution']
             boxes_=list()
-            # occlu_ = list()
             seg2idx=dict()
             for ii, kk in enumerate(boxes):
-                # kk,vv = dd
                 boxes_.append(boxes[kk]+[occlu[kk]])
-                # occlu_.append()
                 seg2idx[int(kk)] = ii
             dset = dkfs.create_dataset(k,data=boxes_)
             dset.attrs['seg2idx'] = [(k,v) for k,v in seg2idx.items()]  
-            # dset = dkfs.create_dataset(k, data=occlu_)
-            # dset.attrs['seg2idx'] = [(k,v) for k,v in seg2idx.items()]  
-        
-        # break
-    print('')
+            
+    
+    
     if invalid_scans+valid_scans>0:
-        print('percentage of invalid scans:',invalid_scans/(invalid_scans+valid_scans), '(',invalid_scans,',',(invalid_scans+valid_scans),')')
+        logger_py.info('percentage of invalid scans: {}({}/{})'.format(invalid_scans/(invalid_scans+valid_scans),invalid_scans,(invalid_scans+valid_scans)))
         h5f.attrs['classes'] = util_label.NYU40_Label_Names
         # write args
-        tmp = vars(args)
         if 'args' in h5f: del h5f['args']
         h5f.create_dataset('args',data=())
-        for k,v in tmp.items():
+        for k,v in all_args.items():
             h5f['args'].attrs[k] = v
-        # with open(os.path.join(outdir,'classes.txt'), 'w') as f:
-        #     for cls in util_label.NYU40_Label_Names:
-        #         f.write('{}\n'.format(cls))
     else:
-        print('no scan processed')
+        logger_py.debug('no scan processed!')
     h5f.close()
     

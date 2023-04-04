@@ -1,13 +1,12 @@
+import os
 # ROOT_PATH = '/home/sc/research/PersistentSLAM/python/3DSSG/'
 # DATA_PATH = '/media/sc/SSD1TB/dataset/3RScan/data/3RScan/'
 # SCANNET_DATA_PATH = '/media/sc/space1/dataset/scannet/scans/'
 # SCANNET_SPLIT_TRAIN = '/media/sc/space1/dataset/scannet/Tasks/Benchmark/scannetv2_train.txt'
 # SCANNET_SPLIT_VAL = '/media/sc/space1/dataset/scannet/Tasks/Benchmark/scannetv2_val.txt'
 
-# FILE_PATH = ROOT_PATH+'files/'
+
 # Scan3RJson_PATH = FILE_PATH+'3RScan.json'
-# LABEL_MAPPING_FILE = FILE_PATH+'3RScan.v2 Semantic Classes - Mapping.csv'
-# CLASS160_FILE = FILE_PATH+'classes160.txt'
 # RELATIONSHIP27_FILE = FILE_PATH+'relationships.txt'
 
 # Coco
@@ -44,3 +43,11 @@ NAME_NONE='none'
 NAME_IMAGE_FEAUTRE_FORMAT= 'image_feature_{}_{}'
 NAME_FILTERED_KF_INDICES = 'kf_indices'
 NAME_FILTERED_OBJ_INDICES = 'obj_indices'
+
+# Processed file realted
+TYPE_2DGT = '.2dgt'
+PATH_FILE = 'files'
+NAME_OBJ_GRAPH = 'proposals.h5'
+NAME_ROI_IMAGE = 'roi_images'
+PATH_LABEL_MAPPING = os.path.join(PATH_FILE,'3RScan.v2 Semantic Classes - Mapping.csv')
+PATH_CLASS160_FILE = os.path.join(PATH_FILE,'classes160.txt')
