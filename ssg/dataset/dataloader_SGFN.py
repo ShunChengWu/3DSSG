@@ -1,6 +1,7 @@
 from collections import defaultdict
 import torch.utils.data as data
 import os, random, torch, json, trimesh, h5py, copy
+from tqdm import tqdm
 import numpy as np
 import multiprocessing as mp
 
@@ -596,7 +597,7 @@ class SGFNDataset (data.Dataset):
             '''
             This is to make sure the 2D and 3D methdos have the same amount of data for training 
             '''
-            print('generating filtered data...')
+            # print('generating filtered data...')
             ''' load data '''
             
             self.open_mv_graph()
@@ -621,7 +622,7 @@ class SGFNDataset (data.Dataset):
             self.open_data()
             self.open_mv_graph()
             # filtered_data = defaultdict(dict)
-            for scan_id in inter:
+            for scan_id in tqdm(inter,desc='generating filtered data...'):
                 if scan_id in h5f:
                     continue
                     
