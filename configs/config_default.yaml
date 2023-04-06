@@ -4,7 +4,7 @@ GPU: [0]
 log_level: 'DEBUG'
 training:
  batch: 1
- data_workers: 4
+ data_workers: 8
  lr: 1e-4
  patient: 30
  optimizer: 'adamw'
@@ -99,6 +99,7 @@ data:
  label_file_gt: "labels.instances.align.annotated.v2.ply"
  roi_img_path: "${data.path_3rscan}/data/roi_images.h5"
  path_image_feature: "./data/3RScan/"
+ path_split: "${data.path_file}/cvpr/"
  data_augmentation: false
  sample_in_runtime: true
  is_roi_img: true
@@ -129,10 +130,14 @@ data:
   min_occ: 0.2 #The threshold for the visibility of an object. If below this value, discard (higher, more occurance)
   min_box_size: [60,60] # The bounding box of each object should have at least x in width or height
   min_obj: 1 # each image should have at least x object(s)
-  structure_labels: ['wall','floor','ceiling'] 
   skip_structure: false # enble enble filtering on structure objects
   skip_edge: false # enable filtering on objects near the edge of images
   skip_size: true # enable filtering on small objects
+ scene_graph_generation:
+  relation: 'relationships' #['relationships_extended','relationships']
+  mapping: true #map label from 3RScan to other label type. otherwise discard them.
+  neighbor_search_method: 'BBOX' #['BBOX','KNN'] 
+  radius_receptive: 0.5 # the raidus for checking neighbors
 logging:
  method: wandb # [tensorboard, wandb, none]
  log_grad_freq: 1000 

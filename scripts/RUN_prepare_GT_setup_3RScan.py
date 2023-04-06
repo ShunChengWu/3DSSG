@@ -46,4 +46,24 @@ if __name__ == '__main__':
            '-o',os.path.join(cfg.data.path_3rscan,'data'),
            '-f',os.path.join(path_3RScan_3RScan160,define.NAME_OBJ_GRAPH)]
     if args.overwrite: cmd += ['--overwrite']
+    # run_python(cmd)
+    
+    '''generate scene graph data for GT'''
+    py_exe = os.path.join('data_processing','gen_data_gt.py')
+    cmd = [py_exe,
+            '-o',path_3RScan_ScanNet20,
+            '-l','ScanNet20',
+            '--only_support_type'
+            ]
+    if args.overwrite: cmd += ['--overwrite']
+    print('running cmd',cmd)
+    run_python(cmd)
+    
+    # 3RScan160
+    cmd = [py_exe,
+            '-o',path_3RScan_3RScan160,
+            '-l','3RScan160',
+            ]
+    if args.overwrite: cmd += ['--overwrite']
+    print('running cmd',cmd)
     run_python(cmd)

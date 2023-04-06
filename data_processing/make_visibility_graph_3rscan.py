@@ -161,7 +161,7 @@ if __name__ == '__main__':
     min_oc=lcfg.min_occ#  float(args.min_occ) # maximum occlusion rate authorised
     min_obj=lcfg.min_obj# float(args.min_object)
     gt2d_dir = lcfg.path_2dgt#args.gt2d_dir
-    structure_labels = lcfg.structure_labels
+    structure_labels = define.STRUCTURE_LABELS
     
     '''create log'''
     pathlib.Path(outdir).mkdir(exist_ok=True,parents=True)
@@ -191,7 +191,7 @@ if __name__ == '__main__':
     except:
         os.remove(os.path.join(outdir,define.NAME_OBJ_GRAPH))
         h5f = h5py.File(os.path.join(outdir,define.NAME_OBJ_GRAPH), 'a')
-    h5f.attrs['label_type'] = args.label_type   
+    h5f.attrs['label_type'] = args.label_type
     
     '''read scenes'''
     fdata = cfg.data.path_3rscan_data

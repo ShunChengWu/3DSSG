@@ -31,7 +31,6 @@ RGB_NAME_FORMAT = (FRAME_NAME_FORMAT+'.color.jpg')
 DEPTH_NAME_FORMAT = (FRAME_NAME_FORMAT+'.depth.pgm')
 POSE_NAME_FORMAT = (FRAME_NAME_FORMAT+'.pose.txt')
 
-
 # ScanNet file names
 SCANNET_SEG_SUBFIX = '_vh_clean_2.0.010000.segs.json'
 SCANNET_AGGRE_SUBFIX = '.aggregation.json'
@@ -48,6 +47,12 @@ NAME_FILTERED_OBJ_INDICES = 'obj_indices'
 TYPE_2DGT = '.2dgt'
 PATH_FILE = 'files'
 NAME_OBJ_GRAPH = 'proposals.h5'
+NAME_RELATIONSHIPS = 'relationships.h5'
 NAME_ROI_IMAGE = 'roi_images'
 PATH_LABEL_MAPPING = os.path.join(PATH_FILE,'3RScan.v2 Semantic Classes - Mapping.csv')
 PATH_CLASS160_FILE = os.path.join(PATH_FILE,'classes160.txt')
+
+
+#
+STRUCTURE_LABELS = ['wall','floor','ceiling'] 
+SUPPORT_TYPE_RELATIONSHIPS = ['supported by', 'attached to','standing on','hanging on','connected to','part of','build in']

@@ -41,11 +41,13 @@ class SGFNDataset (data.Dataset):
         self.path = config.data.path
         self.label_file = config.data.label_file
         self.use_data_augmentation=self.mconfig.data_augmentation
-        self.root_3rscan = config.data.path_3rscan
-        self.path_h5 = os.path.join(self.path,'relationships_%s.h5' % (mode))
+        self.root_3rscan = config.data.path_3rscan_data
+        # self.path_h5 = os.path.join(self.path,'relationships_%s.h5' % (mode))
+        self.path_h5 = os.path.join(self.path,'relationships.h5')
         self.path_mv = os.path.join(self.path,'proposals.h5')
         self.path_roi_img = self.mconfig.roi_img_path
-        self.pth_filtered = os.path.join(self.path,'filtered_scans_detection_%s.h5' % (mode))
+        # self.pth_filtered = os.path.join(self.path,'filtered_scans_detection_%s.h5' % (mode))
+        self.pth_filtered = os.path.join(self.path,'filtered_scans_detection.h5')
         self.pth_node_weights = os.path.join(self.path,'node_weights.txt')
         self.pth_edge_weights = os.path.join(self.path,'edge_weights.txt')
         self.pth_node_occ = os.path.join(self.path,'node_occ.txt')
@@ -213,7 +215,7 @@ class SGFNDataset (data.Dataset):
             for key, item in self.cache_data.items():
                 self.cache_data[key] = item.get()
                 
-        del self.filtered_data
+        self.reset_data()
                 
     def open_filtered(self):
         self.filtered_data = h5py.File(self.pth_filtered,'r')
@@ -531,19 +533,6 @@ class SGFNDataset (data.Dataset):
         for key in to_delete:
             if hasattr(self,key):
                 del self.__dict__[key]
-        # if hasattr(self,'sg_data'):
-        #     del self.sg_data
-        # del self.sg_data
-        # if self.mconfig.load_images:
-        #     if self.mconfig.is_roi_img:
-        #         del self.roi_imgs
-        #     # else:
-        #         # del self.filtered_data
-        #     del self.mv_data
-        # if hasattr(self,'filtered_data'):
-        #     del self.filtered_data
-        # if hasattr(self,'image_feature'):
-        #     del self.image_feature
     
     def norm_tensor(self, points):
         assert points.ndim == 2
@@ -609,27 +598,33 @@ class SGFNDataset (data.Dataset):
             '''
             print('generating filtered data...')
             ''' load data '''
-            selected_scans = read_txt_to_list(os.path.join(self.path,'%s_scans.txt' % (self.mode)))
+            
             self.open_mv_graph()
             self.open_data()
             c_sg_data = cvt_all_to_dict_from_h5(self.sg_data)
             
             '''check scan_ids'''
-            # filter input scans with relationship data
-            tmp   = set(c_sg_data.keys())
-            inter = sorted(list(tmp.intersection(selected_scans)))
-            # filter input scans with image data
-            tmp   = set(self.mv_data.keys())
-            inter = sorted(list(tmp.intersection(inter)))
+            # # filter input scans with relationship data
+            # tmp   = set(c_sg_data.keys())
+            # inter = sorted(list(tmp.intersection(selected_scans)))
+            # # filter input scans with image data
+            # tmp   = set(self.mv_data.keys())
+            inter = sorted(list(set(c_sg_data.keys()).intersection(self.mv_data.keys())))
             
-        if not os.path.isfile(pth_filtered):
+            '''check if filtered scan is generated'''
+            try:
+                h5f = h5py.File(pth_filtered, 'a')
+            except:
+                os.remove(pth_filtered)
+                h5f = h5py.File(pth_filtered, 'a')
+                
             self.open_data()
             self.open_mv_graph()
-            filtered_data = defaultdict(dict)
-            # filtered_kf_indices = dict()
-            # filtered_node_indices = dict()
-            
+            # filtered_data = defaultdict(dict)
             for scan_id in inter:
+                if scan_id in h5f:
+                    continue
+                    
                 scan_data = c_sg_data[scan_id]
                 
                 object_data = scan_data['nodes']
@@ -678,22 +673,28 @@ class SGFNDataset (data.Dataset):
                 
                 filtered_object_indices = [k for k in dict_objId_kfId.keys()]
                 
-                filtered_data[scan_id][define.NAME_FILTERED_KF_INDICES]  = kf_indices
-                filtered_data[scan_id][define.NAME_FILTERED_OBJ_INDICES] = filtered_object_indices
-                
-            
-            
-            with h5py.File(pth_filtered, 'w') as h5f:
-                for scan_id in filtered_data:
-                    buffer = data_to_raw(filtered_data[scan_id])
-                    h5f.create_dataset(scan_id,data=buffer,compression='gzip')
+                tmp = {
+                    define.NAME_FILTERED_KF_INDICES: kf_indices,
+                    define.NAME_FILTERED_OBJ_INDICES: filtered_object_indices
+                }
+                # filtered_data[scan_id] = tmp
+                buffer = data_to_raw(tmp)
+                h5f.create_dataset(scan_id,data=buffer,compression='gzip')
+            h5f.close()
+        # with h5py.File(pth_filtered, 'w') as h5f:
+        #     for scan_id in filtered_data:
+        #         buffer = data_to_raw(filtered_data[scan_id])
+        #         h5f.create_dataset(scan_id,data=buffer,compression='gzip')
             
         if not self.for_eval:
+            '''compute weights'''
             if not os.path.isfile(pth_node_weights) or not os.path.isfile(pth_edge_weights):
-                #TODO: also filter out nodes when only with points input. this gives fair comparison on points and images methods.
+                training_scans = read_txt_to_list(os.path.join(self.cfg.data.path_split,'train_scans.txt'))
+                
                 filtered_sg_data = dict()
                 self.open_filtered()
                 for scan_id in self.filtered_data.keys():
+                    if scan_id not in training_scans: continue # only compute over training scans
                     filtered_data = raw_to_data(self.filtered_data[scan_id])
                     node_indices = filtered_data[define.NAME_FILTERED_OBJ_INDICES]
                     
@@ -713,7 +714,7 @@ class SGFNDataset (data.Dataset):
                     edge_mode='nn'
                 # edge_mode='gt'
                 # print('edge_mode:',edge_mode)
-                wobjs, wrels, o_obj_cls, o_rel_cls = compute_weight.compute_sgfn(self.classNames, self.relationNames, c_sg_data, selected_scans,
+                wobjs, wrels, o_obj_cls, o_rel_cls = compute_weight.compute_sgfn(self.classNames, self.relationNames, c_sg_data, training_scans,
                                                                             normalize=config.data.normalize_weight,
                                                                             for_BCE=self.multi_rel_outputs==True,
                                                                             edge_mode=edge_mode,
@@ -740,12 +741,6 @@ class SGFNDataset (data.Dataset):
                 # test
                 w_node_cls = np.loadtxt(pth_node_weights)
                 w_edge_cls = np.loadtxt(pth_edge_weights)
-                # self.w_node_cls = torch.from_numpy(np.array(wobjs)).float()
-                # self.w_edge_cls = torch.from_numpy(np.array(wrels)).float()
-                
-        if should_process:
-            del self.sg_data
-            del self.mv_data   
     
     def __sample_points(self, scan_id, points, instances, cat:list, filtered_instances:list):
         bboxes = list()
