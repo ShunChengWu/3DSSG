@@ -1,3 +1,4 @@
+import glob
 import numpy as np
 import torch,random
 import copy,os
@@ -46,12 +47,24 @@ import copy
 #             idx2seg[idx] = iid
 #     return idx2seg
 
+def get_all_scan_id_splits(path:str):
+    files = glob.glob(os.path.join(path,'*.txt'))
+    splits = {}
+    for file in files:
+        name = os.path.basename(file).split('.')[0]
+        splits[name] = read_txt_to_list(file)
+    return splits
 
-def read_all_scan_ids():
-    train_ids = read_txt_to_list(os.path.join(define.PATH_FILE,'train_scans.txt'))
-    val_ids = read_txt_to_list(os.path.join(define.PATH_FILE,'validation_scans.txt'))
-    test_ids = read_txt_to_list(os.path.join(define.PATH_FILE,'test_scans.txt'))
-    return train_ids+val_ids+test_ids
+def read_all_scan_ids(path:str):
+    # get all splits
+    splits = get_all_scan_id_splits(path)
+    scan_ids = []
+    for v in splits.values():
+        scan_ids += v
+    # train_ids = read_txt_to_list(os.path.join(define.PATH_FILE,'train_scans.txt'))
+    # val_ids = read_txt_to_list(os.path.join(define.PATH_FILE,'validation_scans.txt'))
+    # test_ids = read_txt_to_list(os.path.join(define.PATH_FILE,'test_scans.txt'))
+    return scan_ids
 
 def merge_batch_mask2inst(mask2insts):
     '''

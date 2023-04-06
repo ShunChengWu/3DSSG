@@ -9,7 +9,9 @@ from codeLib.subprocess import run, run_python
 import argparse
 # from utils import util_parser
 from tqdm import tqdm
-from tqdm.contrib.concurrent import process_map 
+from tqdm.contrib.concurrent import process_map
+
+from ssg.utils.util_data import read_all_scan_ids 
 
 helpmsg = 'Prepare all dataset'
 parser = argparse.ArgumentParser(description=helpmsg,formatter_class = argparse.ArgumentDefaultsHelpFormatter)
@@ -50,10 +52,7 @@ if __name__ == '__main__':
     path_3rscan_data = cfg.data.path_3rscan_data
     
     '''read all scan ids'''
-    train_ids = read_txt_to_list(os.path.join(cfg.data.path_file,'train_scans.txt'))
-    val_ids = read_txt_to_list(os.path.join(cfg.data.path_file,'validation_scans.txt'))
-    test_ids = read_txt_to_list(os.path.join(cfg.data.path_file,'test_scans.txt'))
-    scan_ids  = sorted( train_ids + val_ids + test_ids)
+    scan_ids = sorted(read_all_scan_ids(cfg.data.path_split))
     
     # download all required files
     if args.download:
