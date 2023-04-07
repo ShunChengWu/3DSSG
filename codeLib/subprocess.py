@@ -4,7 +4,9 @@ def execute(cmd,cwd):
     '''
     Executate something with realtime stdout catch
     '''
-    popen = subprocess.Popen(cmd,cwd=cwd, stdout=subprocess.PIPE, universal_newlines=True)
+    shell = isinstance(cmd,str)
+    popen = subprocess.Popen(cmd,cwd=cwd, stdout=subprocess.PIPE, universal_newlines=True,
+                             shell=shell)
     for stdout_line in iter(popen.stdout.readline, ""):
         yield stdout_line 
     popen.stdout.close()

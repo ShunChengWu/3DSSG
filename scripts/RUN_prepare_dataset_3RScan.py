@@ -17,32 +17,35 @@ helpmsg = 'Prepare all dataset'
 parser = argparse.ArgumentParser(description=helpmsg,formatter_class = argparse.ArgumentDefaultsHelpFormatter)
 parser.add_argument('-c','--config',default='./configs/config_default.yaml',required=False)
 parser.add_argument('--download', action='store_true', help='download 3rscan data.')
-parser.add_argument('--thread', type=int, default=0, help='The number of threads to be used.')
+parser.add_argument('--thread', type=int, default=8, help='The number of threads to be used.')
 parser.add_argument('--overwrite', action='store_true', help='overwrite or not.')
 args = parser.parse_args()
 
 py_transform_ply = os.path.join('data_processing','transform_ply.py')
 exe_rio_renderer = os.path.join('rio_renderer','bin','rio_renderer')
 
-def download_data_3rscan(path_3rscan:str):
+def download_data_3rscan(path_3rscan:str,path_3rscan_data:str):
     def run_download(cmd,cwd):
-        sp = subprocess.Popen(cmd,cwd=cwd, stdin=subprocess.PIPE)
-        sp.stdin.write("\r\n") # send the CR/LF for pause
+        sp = subprocess.Popen(cmd,cwd=cwd, stdout=subprocess.PIPE, stdin=subprocess.PIPE, stderr=subprocess.STDOUT)
+        sp.communicate('1'.encode())[0].rstrip()# send something to skip input()
         sp.stdin.close() # close so that it will proceed
         
+    # path_3rscan = os.path.abspath(path_3rscan)
+    # path_3rscan_data = os.path.abspath(path_3rscan_data)
     # check if download.py exist
     path_download = os.path.join(path_3rscan,'download.py')
     assert os.path.isfile(path_download), "download.py should be placed at the main 3RScan directory."
     
     types = ["semseg.v2.json","sequence.zip","labels.instances.annotated.v2.ply","mesh.refined.v2.obj","mesh.refined.mtl","mesh.refined_0.png"]
-    cwd = path_3rscan
-    for type in types:
+    pbar = tqdm(types)
+    for type in pbar:
+        pbar.set_description(f'downloadin type {type}...')
         cmd = [
-            path_download,
-            "-o","./data/3RScan/",
+            'python',path_download,
+            "-o",path_3rscan_data,
             "--type",type
         ]
-        run_download(cmd,cwd)
+        run_download(cmd,'./')
         
 if __name__ == '__main__':
     cfg = codeLib.Config(args.config)
@@ -54,12 +57,17 @@ if __name__ == '__main__':
     
     # download all required files
     if args.download:
-        download_data_3rscan(path_3rscan)
+        download_data_3rscan(path_3rscan,path_3rscan_data)
         
         # unzip all sequences
-        cmd = r"""find . -name '*.zip' -exec sh -c 'base={};filename="${base%.*}"; unzip -o -d $filename {};' ';'"""
-        run(cmd,path_3rscan)
-    
+        cmd = r"""find . -name '*.zip' -exec sh -c 'base={};filename="${base%.*}"; unzip -o -d $filename {};' ';'   """
+        run(cmd,path_3rscan_data)
+
+        # Download processed scans (inseg & orbslam3)
+        #TODO: add url
+    # import sys
+    # sys.exit()
+
     # Generate aligned instance ply
     cmd = [
         py_transform_ply,

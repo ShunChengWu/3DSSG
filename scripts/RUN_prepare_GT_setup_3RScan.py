@@ -12,7 +12,6 @@ from ssg import define
 helpmsg = 'Prepare all dataset'
 parser = argparse.ArgumentParser(description=helpmsg,formatter_class = argparse.ArgumentDefaultsHelpFormatter)
 parser.add_argument('-c','--config',default='./configs/config_default.yaml',required=False)
-parser.add_argument('--download', action='store_true', help='download 3rscan data.')
 parser.add_argument('--thread', type=int, default=0, help='The number of threads to be used.')
 parser.add_argument('--overwrite', action='store_true', help='overwrite or not.')
 

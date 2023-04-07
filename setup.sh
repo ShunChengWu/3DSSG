@@ -10,6 +10,6 @@ cd files; bash preparation.sh; cd ..;
 
 # Build RIO renderer
 git clone git@github.com:ShunChengWu/rio_renderer.git
-cd rio_renderer;
+cd rio_renderer; git submodule init; git submodule update;
 cmake . -B build;
 cmake --build build --config RelWithDebInfo -j
