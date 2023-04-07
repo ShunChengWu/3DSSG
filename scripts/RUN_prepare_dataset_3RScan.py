@@ -22,9 +22,7 @@ parser.add_argument('--overwrite', action='store_true', help='overwrite or not.'
 args = parser.parse_args()
 
 py_transform_ply = os.path.join('data_processing','transform_ply.py')
-exe_rio_renderer = "/media/sc/SSD4TB/research/rio_renderer/bin/rio_renderer"#TODO: add script to build this ? as a submodule?
-
-
+exe_rio_renderer = os.path.join('rio_renderer','bin','rio_renderer')
 
 def download_data_3rscan(path_3rscan:str):
     def run_download(cmd,cwd):

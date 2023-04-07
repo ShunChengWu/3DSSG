@@ -8,6 +8,7 @@ import numpy as np
 from shutil import copyfile
 from plyfile import PlyData
 from ssg import define
+from ssg.utils.util_data import read_all_scan_ids
 # try:
 #     from sets import Set
 # except ImportError:
@@ -67,11 +68,7 @@ def process(scan_id):
 
 if __name__ == "__main__": 
     '''read all scan ids'''
-    train_ids = read_txt_to_list(os.path.join(cfg.data.path_file,'train_scans.txt'))
-    val_ids = read_txt_to_list(os.path.join(cfg.data.path_file,'validation_scans.txt'))
-    test_ids = read_txt_to_list(os.path.join(cfg.data.path_file,'test_scans.txt'))
-    scan_ids  = sorted( train_ids + val_ids + test_ids)
-    
+    scan_ids = sorted(read_all_scan_ids(cfg.data.path_split))
     rescan2ref = read_transform_matrix()
     
     if args.thread > 0:
