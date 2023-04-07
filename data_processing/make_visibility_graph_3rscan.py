@@ -196,7 +196,7 @@ if __name__ == '__main__':
     '''read scenes'''
     fdata = cfg.data.path_3rscan_data
     '''read all scan ids'''
-    scan_ids  = sorted( read_all_scan_ids())
+    scan_ids  = sorted( read_all_scan_ids(cfg.data.path_split))
     logger_py.info(f'There are {len(scan_ids)} scans to be processed')
     
     '''process'''

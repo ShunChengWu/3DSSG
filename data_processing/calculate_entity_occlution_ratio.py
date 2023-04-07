@@ -218,7 +218,7 @@ if __name__ =='__main__':
     logger_py.info(f'create log file at {path_log}')
 
     '''read all scan ids'''
-    scan_ids  = sorted( read_all_scan_ids())
+    scan_ids  = sorted( read_all_scan_ids(cfg.data.path_split))
     logger_py.info(f'There are {len(scan_ids)} scans to be processed')
     
     '''get label mapping'''
