@@ -23,12 +23,15 @@ if __name__ == '__main__':
     path_3rscan_data = cfg.data.path_3rscan_data
     
     '''calculate per entity occlution'''
+    print('calculate per entity occlution')
     py_exe = os.path.join('data_processing','calculate_entity_occlution_ratio.py')
     cmd = [py_exe,'-c',args.config,'--thread',str(args.thread)]
     if args.overwrite: cmd += ['--overwrite']
     run_python(cmd)
+    print('done')
     
     '''build visibility graph'''
+    print('build visibility graph')
     py_exe = os.path.join('data_processing','make_visibility_graph_3rscan.py')
     cmd = [py_exe,'-c',args.config]
     if args.overwrite: cmd += ['--overwrite']
@@ -38,16 +41,21 @@ if __name__ == '__main__':
     # For label type 3RScan160
     path_3RScan_3RScan160 = os.path.join('data','3RScan_3RScan160')
     run_python(cmd+['-l','3rscan160','-o',path_3RScan_3RScan160])
+    print('done')
     
     '''extract multi-view image bounding box'''
+    print('extract multi-view image bounding box')
     py_exe = os.path.join('data_processing','extract_mv_box_image_3rscan.py')
-    cmd = [py_exe,'-c',args.config, # don't use thread for this one. 
+    cmd = [py_exe,'-c',args.config, 
+           '--thread',str(args.thread//4),# use fewer thread for this one
            '-o',os.path.join(cfg.data.path_3rscan,'data'),
            '-f',os.path.join(path_3RScan_3RScan160,define.NAME_OBJ_GRAPH)]
     if args.overwrite: cmd += ['--overwrite']
     run_python(cmd)
+    print('done')
     
     '''generate scene graph data for GT'''
+    print('generate scene graph data for GT')
     py_exe = os.path.join('data_processing','gen_data_gt.py')
     cmd = [py_exe,
             '-o',path_3RScan_ScanNet20,
@@ -66,3 +74,4 @@ if __name__ == '__main__':
     if args.overwrite: cmd += ['--overwrite']
     print('running cmd',cmd)
     run_python(cmd)
+    print('done')
