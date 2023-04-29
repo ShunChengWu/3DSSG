@@ -40,6 +40,7 @@ def load_config(args):
     # load config file
     config = codeLib.Config(config_path)
     # configure config based on the input arguments
+    config.config_path = config_path
     config.LOADBEST = args.loadbest
     config.MODE = args.mode
     if len(args.out_dir) > 0:

@@ -46,15 +46,16 @@ if __name__ == '__main__':
     logger_py.info('args:\n{}'.format(args.__dict__))
     logger_py.info('use backend {}'.format(cfg.model.image_encoder.backend))
     
-    if args.mode == 'eval':
-        args.mode = 'test' #TODO: fix data generation to make this consistent
+    # if args.mode == 'eval':
+    #     args.mode = 'test' #TODO: fix data generation to make this consistent
     
     '''read label type '''
     # fdata = define.DATA_PATH
     # rgb_filepattern =  define.RGB_NAME_FORMAT
     
     '''load'''
-    pth_filtered = os.path.join(cfg.data.path,'filtered_scans_detection_%s.h5' % (args.mode))
+    # pth_filtered = os.path.join(cfg.data.path,'filtered_scans_detection_%s.h5' % (args.mode))
+    pth_filtered = os.path.join(cfg.data.path,'filtered_scans_detection.h5')
     filtered_data = h5py.File(pth_filtered,'r')
     
     '''image encoder'''

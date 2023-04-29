@@ -144,49 +144,49 @@ class SGFNDataset (data.Dataset):
 
         '''check if pre-computed global image featur exist'''
         #TODO: uncomment me after debug
-        # if not self.mconfig.is_roi_img and self.mconfig.load_images and self.cfg.data.use_precompute_img_feature: # loading and memory issue. try to use precomputed
-        #     # self.open_filtered()
-        #     should_compute_image_feature=False
-        #     if not os.path.exists(self.path_img_feature):
-        #         should_compute_image_feature=True
-        #     else:
-        #         feature_type = self.cfg.model.image_encoder.backend
-        #         self.open_image_feature()
-        #         image_feature = self.image_feature[feature_type]
-        #         for scan_id in self.filtered_data:
-        #             # Check scan exist
-        #             if scan_id not in image_feature:
-        #                 should_compute_image_feature=True
-        #             else:
-        #                 # check image exist
-        #                 filtered_data = raw_to_data(self.filtered_data[scan_id])[define.NAME_FILTERED_KF_INDICES]
+        if not self.mconfig.is_roi_img and self.mconfig.load_images and self.cfg.data.use_precompute_img_feature: # loading and memory issue. try to use precomputed
+            # self.open_filtered()
+            should_compute_image_feature=False
+            if not os.path.exists(self.path_img_feature):
+                should_compute_image_feature=True
+            else:
+                feature_type = self.cfg.model.image_encoder.backend
+                self.open_image_feature()
+                image_feature = self.image_feature[feature_type]
+                for scan_id in self.filtered_data:
+                    # Check scan exist
+                    if scan_id not in image_feature:
+                        should_compute_image_feature=True
+                    else:
+                        # check image exist
+                        filtered_data = raw_to_data(self.filtered_data[scan_id])[define.NAME_FILTERED_KF_INDICES]
                         
-        #                 # try to open it
-        #                 try:
-        #                     for kfId in filtered_data:
-        #                         if str(kfId) not in image_feature[scan_id]:
-        #                             should_compute_image_feature=True
-        #                             break
-        #                 except:
-        #                     should_compute_image_feature=True
+                        # try to open it
+                        try:
+                            for kfId in filtered_data:
+                                if str(kfId) not in image_feature[scan_id]:
+                                    should_compute_image_feature=True
+                                    break
+                        except:
+                            should_compute_image_feature=True
                             
-        #             if should_compute_image_feature: break
-        #     if should_compute_image_feature:
-        #         # Try to generate
-        #         os.environ['MKL_THREADING_LAYER'] = 'GNU'
-        #         # os.environ['PYTHONPATH'] = config.PYTHONPATH
-        #         # subprocess.call(["export PYTHONPATH={}".format(PYTHONPATH)], shell=True) 
-        #         mode_ = 'eval' if mode == 'test' else mode
-        #         bashCommand=[
-        #             'python','ssg/utils/compute_image_feature.py',
-        #             "--config",config.config_path,
-        #             '-n',image_feature_folder_name,
-        #             "-o",self.cfg.data.path_image_feature,
-        #             "--mode",mode_,
-        #         ]
-        #         run(bashCommand)
-        #         if not os.path.exists(self.path_img_feature):
-        #             raise RuntimeError('use precompute image feature is true but file not found.')
+                    if should_compute_image_feature: break
+            if should_compute_image_feature:
+                # Try to generate
+                os.environ['MKL_THREADING_LAYER'] = 'GNU'
+                # os.environ['PYTHONPATH'] = config.PYTHONPATH
+                # subprocess.call(["export PYTHONPATH={}".format(PYTHONPATH)], shell=True) 
+                # mode_ = 'eval' if mode == 'test' else mode
+                bashCommand=[
+                    'python','ssg/utils/compute_image_feature.py',
+                    "--config",config.config_path,
+                    '-n',image_feature_folder_name,
+                    "-o",self.cfg.data.path_image_feature,
+                    # "--mode",mode_,
+                ]
+                run(bashCommand)
+                if not os.path.exists(self.path_img_feature):
+                    raise RuntimeError('use precompute image feature is true but file not found.')
                 
         if not self.for_eval:
             w_node_cls = np.loadtxt(self.pth_node_weights)

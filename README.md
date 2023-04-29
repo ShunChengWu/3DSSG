@@ -1,23 +1,31 @@
 # TODO Open Source
 - [ ] script to generate data (include everything)
-  - [ ] extract MV graph for 
-    - [ ] IMP, VGfM
-    - [ ] 
+  - [x] For GT setup
+  - [ ] For Dense setup
+  - [ ] For Sparse setup
 - [ ] extract generated ply files
   - [ ] InSeg
   - [ ] OrbSLAM3
-- [ ] reproducibility
 - [x] support batch
 - [ ] make sure all data can be download with one script
   - [ ] ply
   - [ ] label
   - [ ] unzip sequence
-
+- [ ] reproducibility
 
 
 # Prepare 3RScan dataset
-'''
+Change `data:` in `configs/config_default.yaml` first. Then
+## New
+```
+PYTHONPATH=./ python script/Run_prepare_dataset_3RScan.py --download --thread 8  # require display
+```
+## OLD
+```
 git clone https://github.com/WaldJohannaU/3RScan.git
+cd 3RScan;
+# Init & Download
+# You should place the download.py script to the 3RScan folder
 bash setup.sh
 python download.py -o ./data/3RScan/ --type "semseg.v2.json"
 python download.py -o ./data/3RScan/ --type "sequence.zip"
@@ -30,17 +38,26 @@ python download.py -o ./data/3RScan/ --type "mesh.refined_0.png"
 cd data/3RScan
 find . -name '*.zip' -exec sh -c 'base={};filename="${base%.*}"; unzip -o -d $filename {};' ';'
 cd ../../
+```
 
-# Generate rendered view
-cd script;
-python Run_prepare_dataset_3RScan.py # require display
-'''
+# Generate Experiment data
+## For GT
+```
+PYTHONPATH=./ python scripts/RUN_prepare_GT_setup_3RScan.py --thread 16
+```
+## For Dense
 
-# Extract graph for GT scenes
+## For Sparse
+
+# Train
+```
+PYTHONPATH=./ python main.py --config configs/config_JointSSG_full_l20.yaml
+PYTHONPATH=./ python main.py --config configs/config_SGFN_full_l20.yaml
+```
 
 
 
-## see if new configs work
+## see if new configs work  
 - [ ] config_IMP_full_l20_6.yaml
 - [ ] config_IMP_FULL_l160_2_3.yaml
 - [ ] config_IMP_inseg_l20_3.yaml
@@ -49,6 +66,10 @@ python Run_prepare_dataset_3RScan.py # require display
 - [ ] config_VGfM_FULL_l160_4.yaml
 - [ ] config_VGfM_inseg_l20_1.yaml
 - [ ] config_VGfM_orbslam_l20_1.yaml
+- [ ] config_3DSSG_full_l160.yaml
+- [ ] config_3DSSG_full_l20.yaml
+- [ ] config_3DSSG_inseg_l20.yaml
+- [ ] config_3DSSG_orbslam_l20.yaml
 - [x] config_SGFN_full_l20_2.yaml
 - [x] config_SGFN_full_l160_4.yaml
 - [x] config_SGFN_inseg_l20_9.yaml
@@ -93,6 +114,7 @@ Please use `--help` to check the required input arguments on each script.
 ```
 python data_processing/makebb_img_3rscan.py --thread 8
 
+### OLD ###
 cd ssg/utils
 # calculate occlusion & instance label information
 python makebb_img_3rscan.py
@@ -103,7 +125,7 @@ python extract_mv_box_image_3rscan.py
 ```
 ## InSeg
 ```
-# Geenrate `inseg.ply` and `graph.json`
+# Genrate `inseg.ply` and `graph.json`
 python script/RUN_GenSeg.py --dataset 3RScan --type validation --thread 8 --overwrite 1
 python script/RUN_GenSeg.py --dataset 3RScan --type train --thread 8 --overwrite 1
 
