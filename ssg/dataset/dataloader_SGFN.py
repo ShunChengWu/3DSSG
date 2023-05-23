@@ -33,7 +33,6 @@ class SGFNDataset (data.Dataset):
     def __init__(self,config,mode, **args):
         super().__init__()
         assert mode in ['train','validation','test']
-        self.mode = mode
         self._device = config.DEVICE
         path = config.data['path']
         self.config = config
@@ -66,7 +65,6 @@ class SGFNDataset (data.Dataset):
         image_feature_folder_name =define.NAME_IMAGE_FEAUTRE_FORMAT.format(segment_type,label_type)
         self.path_img_feature = os.path.join(self.cfg.data.path_image_feature,image_feature_folder_name+'.h5')
         
-        # selected_scans = set()
         self.w_cls_obj=self.w_cls_rel=None
         self.multi_rel_outputs = multi_rel_outputs = config.model.multi_rel
         self.shuffle_objs = False
@@ -84,7 +82,7 @@ class SGFNDataset (data.Dataset):
         ''' read classes '''
         pth_classes = os.path.join(path,'classes.txt')
         pth_relationships = os.path.join(path,'relationships.txt')      
-        # selected_scans = read_txt_to_list(os.path.join(path,'%s_scans.txt' % (mode)))
+        selected_scans = read_txt_to_list(os.path.join(self.cfg.data.path_split,'%s_scans.txt' % (mode)))
         
         names_classes = read_txt_to_list(pth_classes)
         names_relationships = read_txt_to_list(pth_relationships)
@@ -139,11 +137,11 @@ class SGFNDataset (data.Dataset):
             
         '''pack with snp'''
         self.open_filtered()
-        self.scans = snp.pack([k for k in self.filtered_data.keys()])
-        self.size = len(self.filtered_data)
+        scan_ids = set(self.filtered_data.keys()).intersection(set(selected_scans))
+        self.scans = snp.pack(list(scan_ids))
+        self.size = len(scan_ids)
 
         '''check if pre-computed global image featur exist'''
-        #TODO: uncomment me after debug
         if not self.mconfig.is_roi_img and self.mconfig.load_images and self.cfg.data.use_precompute_img_feature: # loading and memory issue. try to use precomputed
             # self.open_filtered()
             should_compute_image_feature=False
@@ -153,7 +151,7 @@ class SGFNDataset (data.Dataset):
                 feature_type = self.cfg.model.image_encoder.backend
                 self.open_image_feature()
                 image_feature = self.image_feature[feature_type]
-                for scan_id in self.filtered_data:
+                for scan_id in scan_ids:
                     # Check scan exist
                     if scan_id not in image_feature:
                         should_compute_image_feature=True
@@ -202,7 +200,7 @@ class SGFNDataset (data.Dataset):
             pool = mp.Pool(8)
             pool.daemon = True
 
-            for scan_id in self.filtered_data:
+            for scan_id in scan_ids:
                 scan_id_no_split = scan_id.rsplit('_',1)[0]
                 if 'scene' in scan_id:
                     path = os.path.join(self.root_scannet, scan_id_no_split)
@@ -605,11 +603,9 @@ class SGFNDataset (data.Dataset):
             c_sg_data = cvt_all_to_dict_from_h5(self.sg_data)
             
             '''check scan_ids'''
-            # # filter input scans with relationship data
-            # tmp   = set(c_sg_data.keys())
-            # inter = sorted(list(tmp.intersection(selected_scans)))
-            # # filter input scans with image data
-            # tmp   = set(self.mv_data.keys())
+            # filter input scans with splits
+            # inter = set(c_sg_data.keys()).intersection(set(self.selected_scans))
+            # filter with mv_data
             inter = sorted(list(set(c_sg_data.keys()).intersection(self.mv_data.keys())))
             
             '''check if filtered scan is generated'''
@@ -740,8 +736,8 @@ class SGFNDataset (data.Dataset):
                 np.savetxt(pth_edge_weights,wrels)
                         
                 # test
-                w_node_cls = np.loadtxt(pth_node_weights)
-                w_edge_cls = np.loadtxt(pth_edge_weights)
+                _ = np.loadtxt(pth_node_weights)
+                _ = np.loadtxt(pth_edge_weights)
     
     def __sample_points(self, scan_id, points, instances, cat:list, filtered_instances:list):
         bboxes = list()

@@ -13,6 +13,30 @@
   - [ ] unzip sequence
 - [ ] reproducibility
 
+# Reproducibility
+SGFN
+- [-] full_l20
+- [-] full_l160
+- [ ] inseg_l20
+- [ ] orbslam3_l20
+
+3DSSG
+- [-] full_l20
+- [-] full_l160
+- [ ] inseg_l20
+- [ ] orbslam3_l20
+
+IMP
+- [ ] full_l20
+- [ ] full_l160
+- [ ] inseg_l20
+- [ ] orbslam3_l20
+
+VGfM
+- [ ] full_l20
+- [ ] full_l160
+- [ ] inseg_l20
+- [ ] orbslam3_l20
 
 # Prepare 3RScan dataset
 Change `data:` in `configs/config_default.yaml` first. Then
