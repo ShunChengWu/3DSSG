@@ -30,6 +30,7 @@ def default_parser():
     parser.add_argument('--log', type=str, default='DEBUG',choices=['DEBUG','INFO','WARNING','CRITICAL'], help='')
     parser.add_argument('-o','--out_dir', type=str, default='', help='overwrite output directory given in the config file.')
     parser.add_argument('--dry_run', action='store_true', help='disable logging in wandb (if that is the logger).')
+    parser.add_argument('--cache', action='store_true', help='load data to RAM.')
     return parser
 
 def load_config(args):
@@ -47,7 +48,8 @@ def load_config(args):
         config.training.out_dir = args.out_dir
     if args.dry_run:
         config.wandb.dry_run = True
-        
+    if args.cache:
+        config.data.load_cache=True
     
     # check if name exist
     if 'name' not in config:
