@@ -40,7 +40,8 @@ def download_data_3rscan(path_3rscan:str,path_3rscan_data:str):
     # path_3rscan_data = os.path.abspath(path_3rscan_data)
     # check if download.py exist
     path_download = os.path.join(path_3rscan,'download.py')
-    assert os.path.isfile(path_download), "download.py should be placed at the main 3RScan directory."
+    assert os.path.isfile(path_download), "download.py should be placed at the main 3RScan directory. \
+        Please fill the term of use in this page: https://waldjohannau.github.io/RIO/ to get the download script."
     
     types = ["semseg.v2.json","sequence.zip","labels.instances.annotated.v2.ply","mesh.refined.v2.obj","mesh.refined.mtl","mesh.refined_0.png"]
     pbar = tqdm(types)
@@ -63,49 +64,46 @@ if __name__ == '__main__':
     
     # download all required files
     
-    # if args.download:
-    #     logger_py.info('download dataset')
-    #     download_data_3rscan(path_3rscan,path_3rscan_data)
+    if args.download:
+        logger_py.info('download dataset')
+        download_data_3rscan(path_3rscan,path_3rscan_data)
         
-    #     # unzip all sequences
-    #     cmd = r"""find . -name '*.zip' -exec sh -c 'base={};filename="${base%.*}"; unzip -o -d $filename {};' ';'   """
-    #     run(cmd,path_3rscan_data)
-    #     logger_py.info('done')
+        # unzip all sequences
+        cmd = r"""find . -name '*.zip' -exec sh -c 'base={};filename="${base%.*}"; unzip -o -d $filename {};' ';'   """
+        run(cmd,path_3rscan_data)
+        logger_py.info('done')
 
-    #     # Download processed scans (inseg & orbslam3)
-    #     #TODO: add url
-
-    # # Generate aligned instance ply
-    # logger_py.info('generate aligned isntance ply')
-    # cmd = [
-    #     py_transform_ply,
-    #     "-c",args.config,
-    #     "--thread",str(args.thread)
-    # ]
-    # if args.overwrite: cmd += ['--overwrite']
-    # run_python(cmd)
-    # logger_py.info('done')
+    # Generate aligned instance ply
+    logger_py.info('generate aligned isntance ply')
+    cmd = [
+        py_transform_ply,
+        "-c",args.config,
+        "--thread",str(args.thread)
+    ]
+    if args.overwrite: cmd += ['--overwrite']
+    run_python(cmd)
+    logger_py.info('done')
     
-    # # Generate rendered views
-    # def generate_rendered_images(scan_id:str):
-    #     # check if file exist
-    #     if not args.overwrite:
-    #         first_name = os.path.join(path_3rscan_data,scan_id,"sequence","frame-000000.rendered.color.jpg")
-    #         if os.path.isfile(first_name):
-    #             return
-    #     run([
-    #         exe_rio_renderer,
-    #         "--pth_in",os.path.join(path_3rscan_data,scan_id,"sequence"),
-    #     ],verbose=False)
-    # pbar = tqdm(scan_ids)
-    # logger_py.info('generate rendered views')
-    # if args.thread > 0:
-    #     process_map(generate_rendered_images,scan_ids,max_workers=args.thread)
-    # else:
-    #     for scan_id in pbar:
-    #         pbar.set_description(f"generate rendered view for scan {scan_id}")
-    #         generate_rendered_images(scan_id)
-    # logger_py.info('done')
+    # Generate rendered views
+    def generate_rendered_images(scan_id:str):
+        # check if file exist
+        if not args.overwrite:
+            first_name = os.path.join(path_3rscan_data,scan_id,"sequence","frame-000000.rendered.color.jpg")
+            if os.path.isfile(first_name):
+                return
+        run([
+            exe_rio_renderer,
+            "--pth_in",os.path.join(path_3rscan_data,scan_id,"sequence"),
+        ],verbose=False)
+    pbar = tqdm(scan_ids)
+    logger_py.info('generate rendered views')
+    if args.thread > 0:
+        process_map(generate_rendered_images,scan_ids,max_workers=args.thread)
+    else:
+        for scan_id in pbar:
+            pbar.set_description(f"generate rendered view for scan {scan_id}")
+            generate_rendered_images(scan_id)
+    logger_py.info('done')
 
     # Align Pose
     #TODO: update the script

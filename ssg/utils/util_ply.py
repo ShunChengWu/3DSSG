@@ -65,14 +65,14 @@ def load_rgb(path, target_name = define.LABEL_FILE_NAME, with_worker=True):
         pass
     else: # 3RScan
         pth_label_raw = os.path.join(dirname,define.LABEL_FILE_NAME_RAW)
-        # if not os.path.exists(os.path.join(dirname, 'color.align.ply')):
-        pth_obj = os.path.join(dirname,define.OBJ_NAME)
-        pth_mtl = os.path.join(dirname,define.MTL_NAME)
-        pth_tex = os.path.join(dirname,define.TEXTURE_NAME)
-        check_file_exist(pth_mtl)
-        check_file_exist(pth_tex)
-        # else:
-        #     pth_obj = os.path.join(dirname, 'color.align.ply')
+        if not os.path.exists(os.path.join(dirname, 'color.align.ply')):
+            pth_obj = os.path.join(dirname,define.OBJ_NAME)
+            pth_mtl = os.path.join(dirname,define.MTL_NAME)
+            pth_tex = os.path.join(dirname,define.TEXTURE_NAME)
+            check_file_exist(pth_mtl)
+            check_file_exist(pth_tex)
+        else:
+            pth_obj = os.path.join(dirname, 'color.align.ply')
     
     # check file exist
     check_file_exist(pth_obj)
