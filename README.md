@@ -38,6 +38,20 @@ VGfM
 - [ ] inseg_l20
 - [ ] orbslam3_l20
 
+# Setup
+```
+# if you don't have miniconda
+source setup_conda.sh 
+
+# setup
+source setup.sh
+
+mkdir data
+ln -s /path/to/your/3RScan ./data/
+
+
+```
+
 # Prepare 3RScan dataset
 Change `data:` in `configs/config_default.yaml` first. Then
 ## New
