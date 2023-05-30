@@ -151,10 +151,13 @@ def process(scan_id):
     outdir = lcfg.path_2dgt
     foutput = os.path.join(outdir,scan_id+define.TYPE_2DGT)
     if os.path.isfile(foutput):
-        if args.overwrite:
+        if os.stat(foutput).st_size == 0:
             os.remove(foutput)
         else:
-            return    
+            if args.overwrite:
+                os.remove(foutput)
+            else:
+                return    
     
     # load semseg
     pth_semseg = os.path.join(cfg.data.path_3rscan_data,scan_id,define.SEMSEG_FILE_NAME)
@@ -234,7 +237,10 @@ if __name__ =='__main__':
     logger_py.info(f'start process {len(scan_ids)} scans with {args.thread} threads.')
     
     if args.thread > 0:
-        process_map(process, scan_ids, max_workers=args.thread, chunksize=1 )
+        print('process with process_map')
+        print("number of scans: {}. number of threads: {}".format(len(scan_ids),args.thread))
+        print('chunk size {}'.format(len(scan_ids)//args.thread))
+        process_map(process, scan_ids, max_workers=args.thread, chunksize=len(scan_ids)//args.thread )
     else:
         for scan_id in tqdm(scan_ids):
             process(scan_id)
