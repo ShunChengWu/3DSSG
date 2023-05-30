@@ -74,7 +74,7 @@ if __name__ == '__main__':
         logger_py.info('done')
 
     # Generate aligned instance ply
-    logger_py.info('generate aligned isntance ply')
+    logger_py.info('generate aligned instance ply')
     cmd = [
         py_transform_ply,
         "-c",args.config,
@@ -84,25 +84,48 @@ if __name__ == '__main__':
     run_python(cmd)
     logger_py.info('done')
     
-    # Generate rendered views
-    def generate_rendered_images(scan_id:str):
-        # check if file exist
-        if not args.overwrite:
-            first_name = os.path.join(path_3rscan_data,scan_id,"sequence","frame-000000.rendered.color.jpg")
-            if os.path.isfile(first_name):
-                return
-        run([
-            exe_rio_renderer,
-            "--pth_in",os.path.join(path_3rscan_data,scan_id,"sequence"),
-        ],verbose=False)
-    pbar = tqdm(scan_ids)
-    logger_py.info('generate rendered views')
-    if args.thread > 0:
-        process_map(generate_rendered_images,scan_ids,max_workers=args.thread)
+    if False:
+        # Generate rendered views
+        def generate_rendered_images(scan_id:str):
+            # check if file exist
+            if not args.overwrite:
+                first_name = os.path.join(path_3rscan_data,scan_id,"sequence","frame-000000.rendered.color.jpg")
+                if os.path.isfile(first_name):
+                    return
+            run([
+                exe_rio_renderer,
+                "--pth_in",os.path.join(path_3rscan_data,scan_id,"sequence"),
+            ],verbose=False)
+        pbar = tqdm(scan_ids)
+        logger_py.info('generate rendered views')
+        if args.thread > 0:
+            process_map(generate_rendered_images,scan_ids,max_workers=args.thread)
+        else:
+            for scan_id in pbar:
+                pbar.set_description(f"generate rendered view for scan {scan_id}")
+                generate_rendered_images(scan_id)
     else:
-        for scan_id in pbar:
-            pbar.set_description(f"generate rendered view for scan {scan_id}")
-            generate_rendered_images(scan_id)
+        # Download from the server
+        if os.path.isfile('rendered.zip') and not args.overwrite:
+            logger_py.info('rendered.zip already downloaded')
+            pass
+        else:
+            logger_py.info('download rendered.zip')
+            cmd = [
+                "wget","https://www.campar.in.tum.de/public_datasets/2023_cvpr_wusc/rendered.zip"
+            ]
+            run(cmd,path_3rscan)
+        # Unzip
+        logger_py.info('unzip rendered.zip')
+        cmd = [
+            "unzip","rendered.zip"
+        ]
+        sp = subprocess.Popen(cmd,cwd=path_3rscan, stdout=subprocess.PIPE, stdin=subprocess.PIPE, stderr=subprocess.STDOUT)
+        if args.overwrite:
+            sp.communicate('A'.encode())[0].rstrip()# send something to skip input()
+        else:
+            sp.communicate('N'.encode())[0].rstrip()# send something to skip input()
+        sp.stdin.close() # close so that it will proceed
     logger_py.info('done')
 
     # Align Pose
@@ -114,13 +137,13 @@ if __name__ == '__main__':
     # logger_py.info('done')
 
     # map color
-    logger_py.info('mapping color')
-    cmd = [
-        py_align_color,
-        "-c",args.config,
-    ]
-    if args.overwrite: cmd += ['--overwrite']
-    run_python(cmd)
-    logger_py.info('done')
+    # logger_py.info('mapping color')
+    # cmd = [
+    #     py_align_color,
+    #     "-c",args.config,
+    # ]
+    # if args.overwrite: cmd += ['--overwrite']
+    # run_python(cmd)
+    # logger_py.info('done')
 
     

@@ -10,8 +10,8 @@ python -m pip install --upgrade https://github.com/unlimblue/KNN_CUDA/releases/d
 cd files; bash preparation.sh; cd ..;
 
 # Build RIO renderer
-git clone git@github.com:ShunChengWu/rio_renderer.git
-cd rio_renderer; git submodule init; git submodule update;
-cmake . -B build;
-cmake --build build --config RelWithDebInfo -j
-cd ../
+#git clone git@github.com:ShunChengWu/rio_renderer.git
+#cd rio_renderer; git submodule init; git submodule update;
+#cmake . -B build;
+#cmake --build build --config RelWithDebInfo -j
+#cd ../
