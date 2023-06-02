@@ -8,32 +8,32 @@
   - [ ] OrbSLAM3
 - [x] support batch
 - [ ] make sure all data can be download with one script
-  - [ ] ply
-  - [ ] label
-  - [ ] unzip sequence
+  - [x] ply
+  - [x] label
+  - [x] unzip sequence
 - [ ] reproducibility
 
 # Reproducibility
 SGFN
-- [-] full_l20
+- [x] full_l20
 - [-] full_l160
 - [ ] inseg_l20
 - [ ] orbslam3_l20
 
 3DSSG
-- [-] full_l20
-- [-] full_l160
+- [x] full_l20
+- [x] full_l160
 - [ ] inseg_l20
 - [ ] orbslam3_l20
 
 IMP
-- [ ] full_l20
+- [x] full_l20
 - [ ] full_l160
 - [ ] inseg_l20
 - [ ] orbslam3_l20
 
 VGfM
-- [ ] full_l20
+- [x] full_l20
 - [ ] full_l160
 - [ ] inseg_l20
 - [ ] orbslam3_l20
