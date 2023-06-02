@@ -20,6 +20,26 @@ parser.add_argument('--overwrite', action='store_true', help='overwrite or not.'
 
 args = parser.parse_args()
 
+def download_unzip(url:str,overwrite:bool):
+    filename = os.path.basename(url)
+    if not os.path.isfile(os.path.join(path_3rscan,filename)):
+        logger_py.info('download {}'.format(filename))
+        cmd = [
+            "wget",url
+        ]
+        run(cmd,path_3rscan)
+    # Unzip
+    logger_py.info('unzip {}'.format(filename))
+    cmd = [
+        "unzip",filename
+    ]
+    sp = subprocess.Popen(cmd,cwd=path_3rscan, stdout=subprocess.PIPE, stdin=subprocess.PIPE, stderr=subprocess.STDOUT)
+    if overwrite:
+        sp.communicate('A'.encode())[0].rstrip()# send something to skip input()
+    else:
+        sp.communicate('N'.encode())[0].rstrip()# send something to skip input()
+    sp.stdin.close() # close so that it will proceed
+
 if __name__ == '__main__':
     cfg = codeLib.Config(args.config)
     path_3rscan = cfg.data.path_3rscan
@@ -40,28 +60,21 @@ if __name__ == '__main__':
     else:
         # Download it from the server
         ## check file exist
-        if not os.path.isfile(os.path.join(path_3rscan,"color_align.zip")):
-            logger_py.info('download color_align.zip')
-            cmd = [
-                "wget","https://www.campar.in.tum.de/public_datasets/2023_cvpr_wusc/color_align.zip"
-            ]
-            run(cmd,path_3rscan)
-        # Unzip
-        logger_py.info('unzip color_align.zip')
-        cmd = [
-            "unzip","color_align.zip"
-        ]
-        sp = subprocess.Popen(cmd,cwd=path_3rscan, stdout=subprocess.PIPE, stdin=subprocess.PIPE, stderr=subprocess.STDOUT)
-        if args.overwrite:
-            sp.communicate('A'.encode())[0].rstrip()# send something to skip input()
-        else:
-            sp.communicate('N'.encode())[0].rstrip()# send something to skip input()
-        sp.stdin.close() # close so that it will proceed
-    
+        download_unzip(
+            "https://www.campar.in.tum.de/public_datasets/2023_cvpr_wusc/color_align.zip",
+            args.overwrite)
+        
     # Download processed scans (inseg & orbslam3)
     #TODO: add url
     
     '''calculate per entity occlution'''
+    try:
+        '''Download from server'''
+        download_unzip(
+            "https://www.campar.in.tum.de/public_datasets/2023_cvpr_wusc/2dgt.zip",
+            args.overwrite)
+    except:
+        pass
     print('calculate per entity occlution')
     py_exe = os.path.join('data_processing','calculate_entity_occlution_ratio.py')
     cmd = [py_exe,'-c',args.config,'--thread',str(args.thread)]
