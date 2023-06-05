@@ -79,7 +79,7 @@ def merged_prediction_to_node(data:HeteroData):
     data['node'].y = node_y_new.detach().cpu()
     data['node'].oid = torch.tensor(oids_new).detach().cpu()
     data['node','to','node'].edge_index = torch.tensor(edge_index_new,dtype=torch.long).t().contiguous().detach().cpu()
-    data['node','to','node'].y = torch.tensor(edge_index_y_new).detach().cpu()
+    data['node','to','node'].y = torch.stack(edge_index_y_new).detach().cpu()
     # data['node_gt','to','node'].edge_index = torch.tensor(edge_index_gt,dtype=torch.long,device=device)
     
     
@@ -1179,7 +1179,7 @@ class EvaMultiBinaryClassification(object):
         self.reset()
         
     def reset(self):
-        self.c_mat = np.zeros([len(self.class_names),4], dtype=np.int) # cmat[gt][pd]
+        self.c_mat = np.zeros([len(self.class_names),4], dtype=int) # cmat[gt][pd]
         
     def __call__(self,pds,gts):
         self.update(pds,gts)

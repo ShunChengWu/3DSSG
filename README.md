@@ -16,7 +16,7 @@
 # Reproducibility
 SGFN
 - [x] full_l20
-- [-] full_l160
+- [x] full_l160
 - [ ] inseg_l20
 - [ ] orbslam3_l20
 
@@ -28,13 +28,13 @@ SGFN
 
 IMP
 - [x] full_l20
-- [ ] full_l160
+- [x] full_l160
 - [ ] inseg_l20
 - [ ] orbslam3_l20
 
 VGfM
 - [x] full_l20
-- [ ] full_l160
+- [x] full_l160
 - [ ] inseg_l20
 - [ ] orbslam3_l20
 
