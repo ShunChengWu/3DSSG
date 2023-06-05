@@ -989,7 +989,7 @@ def build_edge2name_value(values:torch.tensor,edges:torch.tensor, idx2gtcls:dict
 class EvaPairWeight():
     def __init__(self,class_names:list):
         self.class_names = class_names
-        self.c_mat = np.zeros([len(self.class_names),len(self.class_names)], dtype=np.float)
+        self.c_mat = np.zeros([len(self.class_names),len(self.class_names)], dtype=float)
     def update(self, values, edge_indices, idx2gtcls):
         nn2vs = build_edge2name_value(values, edge_indices, idx2gtcls, self.class_names)
         for name1, n2vs in nn2vs.items():
@@ -1000,7 +1000,7 @@ class EvaPairWeight():
                 idx2 = self.class_names.index(name2)
                 self.c_mat[idx1][idx2] += a_vs
     def reset(self):
-        self.c_mat = np.zeros([len(self.class_names),len(self.class_names)], dtype=np.float)
+        self.c_mat = np.zeros([len(self.class_names),len(self.class_names)], dtype=float)
         
 # class EvaClassificationSimple(object):
 #     def __init__(self,class_names):
@@ -1014,7 +1014,7 @@ class EvaPairWeight():
 
 #         '''
 #         self.class_names = class_names
-#         self.c_mat = np.zeros([len(self.class_names),len(self.class_names)], dtype=np.float) # cmat[gt][pd]
+#         self.c_mat = np.zeros([len(self.class_names),len(self.class_names)], dtype=float) # cmat[gt][pd]
 #         pass
 #     def __call__(self,pds, gts):
 #         self.update(pds,gts)
@@ -1032,7 +1032,7 @@ class EvaPairWeight():
 #     def get_mean_metrics(self):
 #         return cal_mean(self.get_all_metrics(), [], self.class_names)
 #     def reset(self):
-#         self.c_mat = np.zeros([len(self.class_names),len(self.class_names)], dtype=np.float)
+#         self.c_mat = np.zeros([len(self.class_names),len(self.class_names)], dtype=float)
 #     def draw(self, **args):
 #         args['y_labels']=self.class_names
 #         args['x_labels']=self.class_names
@@ -1066,7 +1066,7 @@ class EvaPairWeight():
 class ConfusionMatrix():
     def __init__(self, class_names:list):
         self.class_names = class_names
-        self.c_mat = np.zeros([len(self.class_names),len(self.class_names)], dtype=np.float) # cmat[gt][pd]
+        self.c_mat = np.zeros([len(self.class_names),len(self.class_names)], dtype=float) # cmat[gt][pd]
     def get_recall(self):
         return self.c_mat.diagonal().sum() / self.c_mat.sum()
     def get_all_metrics(self):
@@ -1074,7 +1074,7 @@ class ConfusionMatrix():
     def get_mean_metrics(self):
         return cal_mean(self.get_all_metrics(), [], self.class_names)
     def reset(self):
-        self.c_mat = np.zeros([len(self.class_names),len(self.class_names)], dtype=np.float)
+        self.c_mat = np.zeros([len(self.class_names),len(self.class_names)], dtype=float)
     def draw(self, **args):
         args['y_labels']=self.class_names
         args['x_labels']=self.class_names

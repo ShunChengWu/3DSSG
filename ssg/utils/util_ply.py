@@ -58,12 +58,12 @@ def load_rgb(path, target_name = define.LABEL_FILE_NAME, with_worker=True):
     '''
     dirname = path
     pth_label = os.path.join(dirname,target_name)
-    if path.find('scene') >=0:    
+    if path.find('scene') >=0: # ScanNet
         scan_id = os.path.basename(path)
         pth_obj = os.path.join(dirname,scan_id+'_vh_clean_2.ply')
         pth_label_raw = pth_label
         pass
-    else:
+    else: # 3RScan
         pth_label_raw = os.path.join(dirname,define.LABEL_FILE_NAME_RAW)
         if not os.path.exists(os.path.join(dirname, 'color.align.ply')):
             pth_obj = os.path.join(dirname,define.OBJ_NAME)
@@ -87,13 +87,40 @@ def load_rgb(path, target_name = define.LABEL_FILE_NAME, with_worker=True):
         label_mesh = trimesh.load(pth_label_raw, process=False)
         query_points = label_mesh.vertices        
         if isinstance(mesh, trimesh.base.Trimesh):
-            import open3d as o3d
-            tree = o3d.geometry.KDTreeFlann(mesh.vertices.transpose())
+            # mesh.refined.v2.obj should have exactly the same vertices as in labels.instances.annotated.v2.ply
+            # if not np.isclose(mesh.vertices,query_points):
+            #     raise RuntimeError('there is a problem with the input file.')
+            import torch
+            from knn_cuda import KNN
+            
+            knn = KNN(k=1, transpose_mode=True)
+            tmp_q = torch.tensor(mesh.vertices).cuda().unsqueeze(0)
+            tmp_t = torch.tensor(query_points).unsqueeze(0)
+            
+            indices = []
+            for split in torch.split(tmp_t,int(64), dim=1):
+                dist,idx = knn(tmp_q,split.cuda())
+                # dist = dist > 0.1
+                # if dist.any():
+                #     raise RuntimeError('there is a problem with the input file.')
+                idx = idx.cpu().squeeze()
+                if len(idx.shape)==0: idx = idx.unsqueeze(00)
+                indices.append(idx)
+            
+            # dist,idx = knn(tmp_q,tmp_t)
+            # del tmp_q,tmp_t
+            
+            indices = torch.cat(indices,dim=0)
+            # idx = idx.cpu().squeeze()
+            # import open3d as o3d
+            # o3d.core.Device
+            # tree = o3d.geometry.KDTreeFlann(mesh.vertices.transpose())
+            
             colors = trimesh.visual.uv_to_color(mesh.visual.uv,mesh.visual.material.image)
+            colors = colors[indices]
         else:
             colors = mesh.visual.vertex_colors
         # colors = mesh.visual.vertex_colors
-
         ply_raw = 'ply_raw' if 'ply_raw' in label_mesh_align.metadata else '_ply_raw'
         
         if 'nx' not in label_mesh_align.metadata[ply_raw]['vertex']['data']:
@@ -109,23 +136,29 @@ def load_rgb(path, target_name = define.LABEL_FILE_NAME, with_worker=True):
             label_mesh_align.metadata[ply_raw]['vertex']['data']['ny'] = label_mesh_align.vertex_normals[:,1]
             label_mesh_align.metadata[ply_raw]['vertex']['data']['nz'] = label_mesh_align.vertex_normals[:,2]
         
-        for i in range(len(query_points)):
-            if isinstance(mesh, trimesh.base.Trimesh):
-                point = query_points[i]
-                if with_worker: raise RuntimeError('open3d doesn\'t work with nn.DataLoader workers')
-                [k, idx, distance] = tree.search_radius_vector_3d(point,0.001)
-            else:
-                idx = [i]
-            label_mesh_align.visual.vertex_colors[i] = colors[idx[0]]
-            label_mesh_align.metadata[ply_raw]['vertex']['data']['red'][i] = colors[idx[0]][0]
-            label_mesh_align.metadata[ply_raw]['vertex']['data']['green'][i] = colors[idx[0]][1]
-            label_mesh_align.metadata[ply_raw]['vertex']['data']['blue'][i] = colors[idx[0]][2]
+        label_mesh_align.metadata[ply_raw]['vertex']['data']['red'] = colors[:,0]
+        label_mesh_align.metadata[ply_raw]['vertex']['data']['green'] = colors[:,1]
+        label_mesh_align.metadata[ply_raw]['vertex']['data']['blue'] = colors[:,2]
+        
+        
+        # for i in range(len(query_points)):
+        #     if isinstance(mesh, trimesh.base.Trimesh):
+        #         point = query_points[i]
+        #         if with_worker: raise RuntimeError('open3d doesn\'t work with nn.DataLoader workers')
+        #         # [k, idx, distance] = tree.search_radius_vector_3d(point,0.001)
+        #         [k, idx, distance] = tree.search_knn_vector_3d(point.transpose(),1)
+        #     else:
+        #         idx = [i]
+        #     label_mesh_align.visual.vertex_colors[i] = colors[idx[0]]
+        #     label_mesh_align.metadata[ply_raw]['vertex']['data']['red'][i] = colors[idx[0]][0]
+        #     label_mesh_align.metadata[ply_raw]['vertex']['data']['green'][i] = colors[idx[0]][1]
+        #     label_mesh_align.metadata[ply_raw]['vertex']['data']['blue'][i] = colors[idx[0]][2]
             
                 
-            # if hasattr(mesh, 'vertex_normals'):
-            #     label_mesh_align.metadata[ply_raw]['vertex']['data']['nx'][i] = mesh.vertex_normals[idx[0]][0]
-            #     label_mesh_align.metadata[ply_raw]['vertex']['data']['ny'][i] = mesh.vertex_normals[idx[0]][1]
-            #     label_mesh_align.metadata[ply_raw]['vertex']['data']['nz'][i] = mesh.vertex_normals[idx[0]][2]
+        #     # if hasattr(mesh, 'vertex_normals'):
+        #     #     label_mesh_align.metadata[ply_raw]['vertex']['data']['nx'][i] = mesh.vertex_normals[idx[0]][0]
+        #     #     label_mesh_align.metadata[ply_raw]['vertex']['data']['ny'][i] = mesh.vertex_normals[idx[0]][1]
+        #     #     label_mesh_align.metadata[ply_raw]['vertex']['data']['nz'][i] = mesh.vertex_normals[idx[0]][2]
         del label_mesh
     else:
         #trimesh.base.Trimesh

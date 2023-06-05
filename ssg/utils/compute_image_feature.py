@@ -158,7 +158,7 @@ if __name__ == '__main__':
             logger_py.info('save')
             with h5py.File(filepath,'a') as h5f:
                 for _, fid in enumerate(filtered_kf_indices):
-                    pth_rgb = os.path.join(cfg.data.path_3rscan,scan_id,'sequence', define.RGB_NAME_FORMAT.format(int(fid)))
+                    pth_rgb = os.path.join(cfg.data.path_3rscan_data,scan_id,'sequence', define.RGB_NAME_FORMAT.format(int(fid)))
                     img_data = Image.open(pth_rgb)
                     img_data = np.rot90(img_data,3)# Rotate image
                     img_data = torch.as_tensor(img_data.copy()).permute(2,0,1)
