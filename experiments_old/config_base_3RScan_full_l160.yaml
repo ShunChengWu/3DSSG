@@ -1,0 +1,60 @@
+inherit_from: experiments/config_default.yaml
+VERBOSE: true
+GPU: [0]
+training:
+ batch: 1
+ data_workers: 4
+ patient: 30
+ optimizer: 'adamw'
+ amsgrad: true
+ lambda_mode: dynamic # [constant, dynamic]. dynamic will calculate the ratio of the number of node and edge.
+ lambda_node: 0.1 # learning rate ratio
+ lambda_edge: 1.0 # learning rate ratio
+ scheduler:
+  method: reduceluronplateau # [none, multisteplr, reduceluronplateau]
+  args: {
+    mode: max, 
+    verbose: true,
+    milestones: [750, 1000],
+    gamma: 0.5,
+    factor: 0.9,
+  }
+ out_dir: experiments/
+ validate_every: 1
+ model_selection_metric: iou_node_cls
+ model_selection_mode: maximize # can be maximize or minimize. e.g. if it's "loss", should "minimize", if it's accuracy, should "maximize"
+ max_epoch: 500
+eval: #evaluation
+ mode: instance #eval on [segment, instance].  
+ data_workers: 4
+ topK: 100
+ ignore_missing: false
+logging:
+ method: wandb # [tensorboard, wandb, none]
+ log_grad_freq: 1000 
+ log_graph: False
+data:
+ input_type: sgfn #[3RScan, graph, sgfn, sgpn]
+ path: "./data/3RScan_3RScan160/"
+ path_gt: "./data/3RScan_3RScan160/"
+ img_feature_path: "/media/sc/SSD1TB/storage/kf_feature/"
+ label_file: "labels.instances.align.annotated.v2.ply"
+ roi_img_path: "./data/3RScan/roi_images.h5"
+ path_image_feature: "./data/3RScan/"
+ sample_in_runtime: true
+ sample_num_nn: 2
+ sample_num_seed: 4
+ drop_img_edge: 4 # if is int and >0, select given number. if is float/double, select percentage between [1-x,1]
+ drop_img_edge_eval: 0
+ drop_edge: 0.5 # if is int and >0, select given number. if is float/double, select percentage between [1-x,1]
+ drop_edge_eval: 0 # if is int and >0, select given number. if is float/double, select percentage between [1-x,1]
+ normalize_weight: true 
+ max_num_node: 64 # maximum number of nodes for training (memory)
+ max_num_edge: 256 # maximum number of edges for training (to save memory)
+ img_size: -1 # minimum image edge will be resize to this. (-1: keep origianl)
+ roi_img_size: [256,256]
+ full_edge: true
+ bbox_aug_ratio: 0.3 # [0.,1.]. 0: no aug. 
+wandb:
+ entity: 'shunchengwu'
+ project: "ssg"

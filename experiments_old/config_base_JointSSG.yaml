@@ -1,0 +1,75 @@
+model:
+ method: jointsg
+ multi_rel: false # multiple relationship 
+ use_rgb: false
+ use_normal: false
+ use_spatial: true
+ img_feature_dim: 256
+ node_feature_dim: 512
+ edge_feature_dim: 256
+ edge_descriptor_dim: 11
+ spatial_encoder:
+  method: fc #[identity,fc]
+  dim: 128
+ node_encoder:
+  method: sgfn #[none, basic]
+ edge_encoder:
+  method: 2dssg_1 #
+  with_bn: false
+ image_encoder:
+  backend: res18 #[vgg16,res18]
+  img_batch_size: 8 # this is the batch processing limit. if input is larger, the maximum batch process will still be 4.
+  backend_finetune: false # only works for the standard backend
+  use_global: false
+  roi_region: [3,3]
+  aggr: max # aggrigation method [mean, max, add]
+  with_bn: false
+  hidden: 1024
+  drop_out: 0.3
+  local_feature_dim: 64
+ gnn:
+  method: jointgnn # [none, fan, triplet]
+  dim_atten: 256
+  num_layers: 2
+  num_heads: 8
+  drop_out: 0.3
+  node_from_gnn: true
+  use_bn: false
+  jointgnn:
+   version: "v2"
+   pts_msg_method: MSG_FAN
+   img_msg_method: MSG_MV_DIRECT
+  MSG_FAN:
+   aggr: 'max'
+   dim_atten: 256
+   num_layers: 2
+   num_heads: 8
+   drop_out: 0.3
+   use_bn: false
+  MSG_MV_DIRECT:
+   aggr: mean
+   use_res: false
+  MSG_MV_GAT:
+   aggr: mean
+  MSG_MV_SDPA:
+   aggr: add
+   num_heads: 8
+  MSG_MV_FAN:
+   aggr: max
+   num_heads: 8
+  MSG_FAN:
+   aggr: 'max'
+   num_heads: 8
+   use_bn: false
+   attn_dropout: 0.5
+ node_classifier:
+  with_bn: false
+  dropout: 0.3
+data:
+ is_roi_img: true
+ load_images: true
+ load_points: true
+ rel_data_type: desc # [desc,points]
+ edge_desc: 'roi' #[roi,pts]
+ img_desc_6_pts: true # return 6 extreme points 
+ use_precompute_img_feature: false

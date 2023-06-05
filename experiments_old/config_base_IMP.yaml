@@ -1,0 +1,30 @@
+model:
+ method: imp
+ multi_rel: true # multiple relationship 
+ spatial_encoder:
+  method: fc #[none,fc]
+  dim: 128
+ image_encoder:
+  backend: vgg16 #[vgg16,res18]
+  img_batch_size: 8 # this is the batch processing limit. if input is larger, the maximum batch process will still be 4.
+  backend_finetune: false # only works for the standard backend
+  use_global: true
+  roi_region: [3,3]
+  aggr: max # aggrigation method [mean, max, sum]
+  with_bn: false
+  hidden: 1024
+  drop_out: 0.3
+  local_feature_dim: 64
+ gnn:
+  method: imp # [none, fan, triplet]
+  hidden_dim: 512
+  num_layers: 2
+  aggr: mean
+data:
+ use_precompute_img_feature: true
+ is_roi_img: false
+ load_images: true
+ load_points: false
+ load_cache: false
+ full_edge: false
+ max_full_img: 32 
