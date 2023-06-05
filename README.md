@@ -12,6 +12,9 @@
   - [x] label
   - [x] unzip sequence
 - [ ] reproducibility
+- [ ] Fix gen_data.py script
+- [ ] Fix gen_data for orbslam
+- [ ] write a script for the sparse setup
 
 # Reproducibility
 SGFN
