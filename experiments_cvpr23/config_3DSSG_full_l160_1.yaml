@@ -1,4 +1,4 @@
-inherit_from: [experiments/config_base_3RScan_full_l160.yaml,experiments/config_base_3DSSG.yaml]
+inherit_from: [experiments_cvpr23/config_base_3RScan_full_l160.yaml,experiments_cvpr23/config_base_3DSSG.yaml]
 name: '3DSSG_full_l160_1'
 model:
  multi_rel: true # multiple relationship
