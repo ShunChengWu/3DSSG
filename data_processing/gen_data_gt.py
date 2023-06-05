@@ -34,19 +34,20 @@ def Parser(add_help=True):
     
     # neighbor search parameters
     # parser.add_argument('--search_method', type=str, choices=['BBOX','KNN'],default='BBOX',help='How to split the scene.')
-    parser.add_argument('--radius_receptive', type=float,default=0.5,help='The receptive field of each seed.')
+    # parser.add_argument('--radius_receptive', type=float,default=0.5,help='The receptive field of each seed.')
     
     # constant
     parser.add_argument('--segment_type', type=str,default='GT')
     return parser
 
 class GenerateSceneGraph_GT(object):
-    def __init__(self, pth_3RScan_data, target_relationships):
-        self.pth_3RScan_data = pth_3RScan_data
+    def __init__(self, cfg: dir, target_relationships:list):
+        self.cfg = cfg
         self.target_relationships = target_relationships
         
     def __call__(self, scan_id, gt_relationships):
-        pth_3RScan_data = self.pth_3RScan_data
+        pth_3RScan_data = self.cfg.data.path_3rscan_data
+        lcfg = self.cfg.data.scene_graph_generation
         target_relationships = self.target_relationships
         pth_gt = os.path.join(pth_3RScan_data,scan_id, define.LABEL_FILE_NAME)
         # segseg_file_name = define.SEMSEG_FILE_NAME
@@ -56,12 +57,11 @@ class GenerateSceneGraph_GT(object):
         points_gt = np.array(cloud_gt.vertices.tolist())
         segments_gt = util_ply.get_label(cloud_gt, '3RScan', 'Segment').flatten()
         
-        segs_neighbors = find_neighbors(points_gt, segments_gt, search_method,receptive_field=args.radius_receptive)
+        segs_neighbors = find_neighbors(points_gt, segments_gt, search_method,receptive_field=lcfg.radius_receptive)
         # relationships_new['neighbors'][scan_id] = segs_neighbors
         
         segment_ids = np.unique(segments_gt) 
         segment_ids = segment_ids[segment_ids!=0]
-
 
         _, label_name_mapping, _ = util_label.getLabelMapping(args.label_type)
         pth_semseg = os.path.join(pth_3RScan_data,scan_id,define.SEMSEG_FILE_NAME)
@@ -217,7 +217,7 @@ if __name__ == '__main__':
         
     '''Create processor'''
     if args.segment_type == "GT":
-        processor = GenerateSceneGraph_GT(cfg.data.path_3rscan_data,target_relationships)
+        processor = GenerateSceneGraph_GT(cfg,target_relationships)
     else:
         raise NotImplementedError()
         

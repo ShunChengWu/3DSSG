@@ -44,6 +44,8 @@ if __name__ == '__main__':
     cfg = codeLib.Config(args.config)
     path_3rscan = cfg.data.path_3rscan
     path_3rscan_data = cfg.data.path_3rscan_data
+    path_3RScan_ScanNet20 = os.path.join('data','3RScan_ScanNet20')
+    path_3RScan_3RScan160 = os.path.join('data','3RScan_3RScan160')
     
     '''Download color_align.zip'''
     if False:
@@ -63,9 +65,6 @@ if __name__ == '__main__':
         download_unzip(
             "https://www.campar.in.tum.de/public_datasets/2023_cvpr_wusc/color_align.zip",
             args.overwrite)
-        
-    # Download processed scans (inseg & orbslam3)
-    #TODO: add url
     
     '''calculate per entity occlution'''
     try:
@@ -88,10 +87,9 @@ if __name__ == '__main__':
     cmd = [py_exe,'-c',args.config]
     if args.overwrite: cmd += ['--overwrite']
     # For label type: ScanNet20
-    path_3RScan_ScanNet20 = os.path.join('data','3RScan_ScanNet20')
+    
     run_python(cmd+['-l','scannet20','-o',path_3RScan_ScanNet20])
     # For label type 3RScan160
-    path_3RScan_3RScan160 = os.path.join('data','3RScan_3RScan160')
     run_python(cmd+['-l','3rscan160','-o',path_3RScan_3RScan160])
     logger_py.info('done')
     

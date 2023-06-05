@@ -80,279 +80,50 @@ def Parser(add_help=True):
     # parser.add_argument('--segment_type', type=str,default='INSEG')
     return parser
 
-def process(pth_3RScan, scan_id,label_type,
-            target_relationships:list,
-            gt_relationships:dict=None, verbose=False,split_scene=True) -> list:
-    pth_pd = os.path.join(pth_3RScan,scan_id,args.scan_name)
-    if args.v2:
-        pth_gt = os.path.join(pth_3RScan,scan_id,'labels.instances.align.annotated.v2.ply')
-    else:
-        pth_gt = os.path.join(pth_3RScan,scan_id,'labels.instances.align.annotated.ply')
-    segseg_file_name = 'semseg.v2.json' if args.v2 else 'semseg.json'
-    
-    # check file exist
-    if not os.path.isfile(pth_pd):
-        logger_py.info('skip {} due to no ply file exists'.format(scan_id))
-        return [], []
-
-    # some params
-    max_distance = args.max_dist
-    filter_segment_size = args.min_seg_size # if the num of points within a segment below this threshold, discard this
-    filter_corr_thres = args.corr_thres # if percentage of the corresponding label must exceed this value to accept the correspondence
-    filter_occ_ratio = args.occ_thres
-    
-    # load segments
-    cloud_pd = trimesh.load(pth_pd, process=False)
-    cloud_pd.apply_scale(args.scale)
-    points_pd = np.array(cloud_pd.vertices.tolist())
-    segments_pd = cloud_pd.metadata['ply_raw']['vertex']['data']['label'].flatten()
-    # get num of segments
-    segment_ids = np.unique(segments_pd) 
-    segment_ids = segment_ids[segment_ids!=0]
-    
-    if args.verbose: print('filtering input segments.. (ori num of segments:',len(segment_ids),')')
-    segments_pd_filtered=list()
-    for seg_id in segment_ids:
-        pts = points_pd[np.where(segments_pd==seg_id)]
-        if len(pts) > filter_segment_size:
-            segments_pd_filtered.append(seg_id)
-    segment_ids = segments_pd_filtered
-    if args.verbose: print('there are',len(segment_ids), 'segemnts:\n', segment_ids)
-    
-    # Find neighbors of each segment
-    segs_neighbors = find_neighbors(points_pd, segments_pd, search_method,receptive_field=args.radius_receptive,selected_keys=segment_ids)
-    if args.verbose:
-        print('segs_neighbors:\n',segs_neighbors.keys())
-
-    # load gt
-    cloud_gt = trimesh.load(pth_gt, process=False)
-    points_gt = np.array(cloud_gt.vertices.tolist()).transpose()
-    segments_gt = util_ply.get_label(cloud_gt, '3RScan', 'Segment').flatten()
-
-    _, label_name_mapping, _ = util_label.getLabelMapping(args.label_type)
-    pth_semseg_file = os.path.join(pth_3RScan, scan_id, segseg_file_name)
-    instance2labelName = util.load_semseg(pth_semseg_file, label_name_mapping,args.mapping)
-    
-    '''extract object bounding box info'''
-    # objs_obbinfo=dict()
-    # with open(pth_semseg_file) as f: 
-    #     data = json.load(f)
-    # for group in data['segGroups']:
-    #     obb = group['obb']
-    #     obj_obbinfo = objs_obbinfo[group["id"]] = dict()
-    #     obj_obbinfo['center'] = copy.deepcopy(obb['centroid'])
-    #     obj_obbinfo['dimension'] = copy.deepcopy(obb['axesLengths'])
-    #     obj_obbinfo['normAxes'] = copy.deepcopy( np.array(obb['normalizedAxes']).reshape(3,3).transpose().tolist() )
-    # del data
-    
-    objs_obbinfo=dict()
-    pth_obj_graph = os.path.join(pth_3RScan,scan_id,args.graph_name)
-    
-    with open(pth_obj_graph) as f: 
-        data = json.load(f)
-    for nid, node in data[scan_id]['nodes'].items():
-        
-        obj_obbinfo = objs_obbinfo[int(nid)] = dict()
-        obj_obbinfo['center'] = copy.deepcopy(node['center'])
-        obj_obbinfo['dimension'] = copy.deepcopy(node['dimension'])
-        obj_obbinfo['normAxes'] = copy.deepcopy( np.array(node['rotation']).reshape(3,3).transpose().tolist() )
-    del data
-        
-    # count gt segment size
-    size_segments_gt = dict()
-    for segment_id in segments_gt:
-        segment_indices = np.where(segments_gt == segment_id)[0]
-        size_segments_gt[segment_id] = len(segment_indices)
-    
-    ''' Find and count all corresponding segments'''
-    tree = o3d.geometry.KDTreeFlann(points_gt)
-    count_seg_pd_2_corresponding_seg_gts = dict() # counts each segment_pd to its corresonding segment_gt
-    
-    size_segments_pd = dict()
-    instance2labelName_filtered = dict()
-    for segment_id in segment_ids:
-        if int(segment_id) not in objs_obbinfo: continue
-        
-        segment_indices = np.where(segments_pd == segment_id)[0]
-        segment_points = points_pd[segment_indices]        
-
-        size_segments_pd[segment_id] = len(segment_points)
-        
-        if filter_segment_size > 0:
-            if size_segments_pd[segment_id] < filter_segment_size:
-                # print('skip segment',segment_id,'with size',size_segments_pd[segment_id],'that smaller than',filter_segment_size)
-                continue
-            
-        for i in range(len(segment_points)):
-            point = segment_points[i]
-            # [k, idx, distance] = tree.search_radius_vector_3d(point,0.001)
-            k, idx, distance = tree.search_knn_vector_3d(point,1)
-            if distance[0] > max_distance: continue
-            # label_gt = labels_gt[idx][0]
-            segment_gt = segments_gt[idx][0]
-            
-            if segment_gt not in instance2labelName: continue
-            if instance2labelName[segment_gt] == 'none': continue
-            instance2labelName_filtered[segment_gt] = instance2labelName[segment_gt]
-
-            if segment_id not in count_seg_pd_2_corresponding_seg_gts: 
-                count_seg_pd_2_corresponding_seg_gts[segment_id] = dict()            
-            if segment_gt not in count_seg_pd_2_corresponding_seg_gts[segment_id]: 
-                count_seg_pd_2_corresponding_seg_gts[segment_id][segment_gt] = 0
-            count_seg_pd_2_corresponding_seg_gts[segment_id][segment_gt] += 1
-    
-    instance2labelName = instance2labelName_filtered
-    
-        # break
-    if verbose or debug:
-        print('There are {} segments have found their correponding GT segments.'.format(len(count_seg_pd_2_corresponding_seg_gts)))
-        for k,i in count_seg_pd_2_corresponding_seg_gts.items():
-            print('\t{}: {}'.format(k,len(i)))
-
-    ''' Save as ply '''
-    if debug:
-        if args.label_type == 'NYU40':
-            colors = util_label.get_NYU40_color_palette()
-            cloud_gt.visual.vertex_colors = [0,0,0,255]
-            for seg, label_name in instance2labelName.items():
-                segment_indices = np.where(segments_gt == seg)[0]
-                if label_name == 'none':continue
-                label = util_label.NYU40_Label_Names.index(label_name)+1
-                for index in segment_indices:
-                    cloud_gt.visual.vertex_colors[index][:3] = colors[label]
-            cloud_gt.export('tmp_gtcloud.ply')
-        else:
-            for seg, label_name in instance2labelName.items():
-                segment_indices = np.where(segments_gt == seg)[0]
-                if label_name != 'none':
-                    continue
-                for index in segment_indices:
-                    cloud_gt.visual.vertex_colors[index][:3] = [0,0,0]
-            cloud_gt.export('tmp_gtcloud.ply')
-
-    ''' Find best corresponding segment '''
-    map_segment_pd_2_gt = dict() # map segment_pd to segment_gt
-    gt_segments_2_pd_segments = defaultdict(list) # how many segment_pd corresponding to this segment_gt
-    for segment_id, cor_counter in count_seg_pd_2_corresponding_seg_gts.items():
-        size_pd = size_segments_pd[segment_id]
-        if verbose: print('segment_id', segment_id, size_pd)
-        
-        max_corr_ratio = -1
-        max_corr_seg   = -1
-        list_corr_ratio = list()
-        for segment_gt, count in cor_counter.items():
-            size_gt = size_segments_gt[segment_gt]
-            corr_ratio = count/size_pd
-            list_corr_ratio.append(corr_ratio)
-            if corr_ratio > max_corr_ratio:
-                max_corr_ratio = corr_ratio
-                max_corr_seg   = segment_gt
-            if verbose or debug: print('\t{0:s} {1:3d} {2:8d} {3:2.3f} {4:2.3f}'.\
-                                       format(instance2labelName[segment_gt],segment_gt,count, count/size_gt, corr_ratio))
-        if len(list_corr_ratio ) > 2:
-            list_corr_ratio = sorted(list_corr_ratio,reverse=True)
-            occ_ratio = list_corr_ratio[1]/list_corr_ratio[0]
-        else:
-            occ_ratio = 0
-
-        if max_corr_ratio > filter_corr_thres and occ_ratio < filter_occ_ratio:
-            '''
-            This is to prevent a segment is almost equally occupied two or more gt segments. 
-            '''
-            if verbose or debug: print('add correspondence of segment {:s} {:4d} to label {:4d} with the ratio {:2.3f} {:1.3f}'.\
-                  format(instance2labelName[segment_gt],segment_id,max_corr_seg,max_corr_ratio,occ_ratio))
-            map_segment_pd_2_gt[segment_id] = max_corr_seg
-            gt_segments_2_pd_segments[max_corr_seg].append(segment_id)
-        else:
-            if verbose or debug: print('filter correspondence segment {:s} {:4d} to label {:4d} with the ratio {:2.3f} {:1.3f}'.\
-                  format(instance2labelName[segment_gt],segment_id,max_corr_seg,max_corr_ratio,occ_ratio))
-                
-    if verbose: 
-        print('final correspondence:')
-        print('  pd  gt')
-        for segment, label in sorted(map_segment_pd_2_gt.items()):
-            print("{:4d} {:4d}".format(segment,label))
-        print('final pd segments within the same gt segment')
-        for gt_segment, pd_segments in sorted(gt_segments_2_pd_segments.items()):
-            print('{:4d}:'.format(gt_segment),end='')
-            for pd_segment in pd_segments:
-                print('{} '.format(pd_segment),end='')        
-            print('')
-
-    ''' Save as ply '''
-    if debug:        
-        if args.label_type == 'NYU40':
-            colors = util_label.get_NYU40_color_palette()
-            cloud_pd.visual.vertex_colors = [0,0,0,255]
-            for segment_pd, segment_gt in map_segment_pd_2_gt.items():
-                segment_indices = np.where(segments_pd == segment_pd)[0]
-                label = util_label.NYU40_Label_Names.index(instance2labelName[segment_gt])+1
-                color = colors[label]
-                for index in segment_indices:
-                    cloud_pd.visual.vertex_colors[index][:3] = color
-            cloud_pd.export('tmp_corrcloud.ply')
-        else:
-            cloud_pd.visual.vertex_colors = [0,0,0,255]
-            for segment_pd, segment_gt in map_segment_pd_2_gt.items():
-                segment_indices = np.where(segments_pd == segment_pd)[0]
-                for index in segment_indices:
-                    cloud_pd.visual.vertex_colors[index] = [255,255,255,255]
-            cloud_pd.export('tmp_corrcloud.ply')
-
-    '''' Save as relationship_*.json '''
-    list_relationships = list()
-    relationships = gen_relationship(scan_id,0,gt_relationships, map_segment_pd_2_gt, instance2labelName, 
-                                                gt_segments_2_pd_segments)
-    if len(relationships["objects"]) != 0 and len(relationships['relationships']) != 0:
-            list_relationships.append(relationships)
-                
-    for relationships in list_relationships:
-        for oid in relationships['objects'].keys():
-            try:
-                relationships['objects'][oid] = {**objs_obbinfo[oid], **relationships['objects'][oid]}
-            except:
-                print('oid({}) in objs_obbinfo'.format(oid),oid in objs_obbinfo)
-                print('oid({}) in relationships[\'objects\']'.format(oid),oid in relationships['objects'])
-                print(objs_obbinfo)
-                relationships['objects'][oid] = {**objs_obbinfo[oid], **relationships['objects'][oid]}
-    
-    return list_relationships, segs_neighbors
-
 class GenerateSceneGraph(object):
-    def __init__(self, pth_3RScan_data, target_relationships):
-        self.pth_3RScan_data = pth_3RScan_data
+    def __init__(self, cfg:dir , target_relationships:list):
+        self.cfg = cfg
         self.target_relationships = target_relationships
         
     def __call__(
             self, 
-            pth_3RScan, 
-            scan_id,
-            label_type,
-            target_relationships:list,
-            gt_relationships:dict=None, 
-            verbose=False,
-            split_scene=True) -> Any:
-        pth_pd = os.path.join(pth_3RScan,scan_id,args.scan_name)
-        if args.v2:
-            pth_gt = os.path.join(pth_3RScan,scan_id,'labels.instances.align.annotated.v2.ply')
-        else:
-            pth_gt = os.path.join(pth_3RScan,scan_id,'labels.instances.align.annotated.ply')
+            scan_id, gt_relationships
+            # pth_3RScan, 
+            # scan_id,
+            # label_type,
+            # target_relationships:list,
+            # gt_relationships:dict=None, 
+            # verbose=False,
+            # split_scene=True
+            ):
+        pth_3RScan_data = self.cfg.data.path_3rscan_data
+        lcfg = self.cfg.data.scene_graph_generation
+        target_relationships = self.target_relationships
+        
+        # 
+        pth_pd = os.path.join(pth_3RScan_data,scan_id,args.scan_name)
+        pth_gt = os.path.join(pth_3RScan_data,scan_id, define.LABEL_FILE_NAME)
         segseg_file_name = 'semseg.v2.json' if args.v2 else 'semseg.json'
         
-        # check file exist
-        if not os.path.isfile(pth_pd):
-            logger_py.info('skip {} due to no ply file exists'.format(scan_id))
-            return [], []
+        # load gt
+        cloud_gt = trimesh.load(pth_gt, process=False)
+        points_gt = np.array(cloud_gt.vertices.tolist()).transpose()
+        segments_gt = util_ply.get_label(cloud_gt, '3RScan', 'Segment').flatten()
+        
+        # # check file exist
+        # if not os.path.isfile(pth_pd):
+        #     logger_py.info('skip {} due to no ply file exists'.format(scan_id))
+        #     return [], []
 
         # some params
-        max_distance = args.max_dist
-        filter_segment_size = args.min_seg_size # if the num of points within a segment below this threshold, discard this
-        filter_corr_thres = args.corr_thres # if percentage of the corresponding label must exceed this value to accept the correspondence
-        filter_occ_ratio = args.occ_thres
+        max_distance = lcfg.max_dist
+        filter_segment_size = lcfg.min_seg_size # if the num of points within a segment below this threshold, discard this
+        filter_corr_thres = lcfg.corr_thres # if percentage of the corresponding label must exceed this value to accept the correspondence
+        filter_occ_ratio = lcfg.occ_thres
         
         # load segments
         cloud_pd = trimesh.load(pth_pd, process=False)
-        cloud_pd.apply_scale(args.scale)
+        cloud_pd.apply_scale(lcfg.scale)
         points_pd = np.array(cloud_pd.vertices.tolist())
         segments_pd = cloud_pd.metadata['ply_raw']['vertex']['data']['label'].flatten()
         # get num of segments
@@ -373,10 +144,7 @@ class GenerateSceneGraph(object):
         if args.verbose:
             print('segs_neighbors:\n',segs_neighbors.keys())
 
-        # load gt
-        cloud_gt = trimesh.load(pth_gt, process=False)
-        points_gt = np.array(cloud_gt.vertices.tolist()).transpose()
-        segments_gt = util_ply.get_label(cloud_gt, '3RScan', 'Segment').flatten()
+        
 
         _, label_name_mapping, _ = util_label.getLabelMapping(args.label_type)
         pth_semseg_file = os.path.join(pth_3RScan, scan_id, segseg_file_name)
@@ -736,7 +504,8 @@ if __name__ == '__main__':
     except:
         os.remove(pth_relationships_json)
         h5f = h5py.File(pth_relationships_json, 'a')
-        
+    
+    processor = GenerateSceneGraph(cfg.data.path_3rscan_data,target_relationships)    
     
     # Path(args.pth_out).mkdir(parents=True, exist_ok=True)
     # logging.basicConfig(filename=os.path.join(args.pth_out,'gen_data_'+args.type+'.log'), level=logging.DEBUG)
@@ -797,11 +566,15 @@ if __name__ == '__main__':
                 
         gt_relationships = s["relationships"]
         logger_py.info('processing scene {}'.format(scan_id))
-        relationships, segs_neighbors = process(
-            cfg.data.path_3rscan_data, 
-            scan_id, 
-            target_relationships,
-            gt_relationships)
+        relationships, segs_neighbors = processor(
+            scan_id,gt_relationships
+        )
+        
+        # relationships, segs_neighbors = process(
+        #     cfg.data.path_3rscan_data, 
+        #     scan_id, 
+        #     target_relationships,
+        #     gt_relationships)
         if len(relationships) == 0:
             logger_py.info('skip {} due to not enough objs and relationships'.format(scan_id))
             continue
