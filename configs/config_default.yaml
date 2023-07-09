@@ -129,6 +129,7 @@ data:
   occupancy_downscale: 8 # The factor of downscaling while calculating the occurance. The larger the less accurate but faster speed.
   min_occ: 0.2 #The threshold for the visibility of an object. If below this value, discard (higher, more occurance)
   min_box_size: [60,60] # The bounding box of each object should have at least x in width or height
+  min_box_ratio: 0.1 # A bounding box should have at least this ratio on the respective height and width of the input image # used in make_visibility_graph_incremental.py
   min_obj: 1 # each image should have at least x object(s)
   skip_structure: false # enble enble filtering on structure objects
   skip_edge: false # enable filtering on objects near the edge of images

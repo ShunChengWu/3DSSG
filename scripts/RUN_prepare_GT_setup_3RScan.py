@@ -111,8 +111,7 @@ if __name__ == '__main__':
     py_exe = os.path.join('data_processing', 'extract_mv_box_image_3rscan.py')
     cmd = [py_exe, '-c', args.config,
            '--thread', str(args.thread//4),  # use fewer thread for this one
-           '-o', os.path.join(cfg.data.path_3rscan, 'data'),
-           '-f', os.path.join(path_3RScan_3RScan160, define.NAME_OBJ_GRAPH)]
+           '-f', os.path.join(path_3RScan_3RScan160, define.NAME_VIS_GRAPH)]
     if args.overwrite:
         cmd += ['--overwrite']
     run_python(cmd)
@@ -126,7 +125,7 @@ if __name__ == '__main__':
            '-o', path_3RScan_ScanNet20,
            '-l', 'ScanNet20',
            '--only_support_type',
-           '--segment_type','GT',
+           '--segment_type', 'GT',
            ]
     if args.overwrite:
         cmd += ['--overwrite']
@@ -138,7 +137,7 @@ if __name__ == '__main__':
     cmd = [py_exe, '-c', args.config,
            '-o', path_3RScan_3RScan160,
            '-l', '3RScan160',
-           '--segment_type','GT',
+           '--segment_type', 'GT',
            ]
     if args.overwrite:
         cmd += ['--overwrite']

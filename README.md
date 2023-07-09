@@ -54,21 +54,29 @@ source setup.sh
 
 mkdir data
 ln -s /path/to/your/3RScan ./data/
+
+source Init.sh # This will set PYTHONPATH and activate the environment for you.
 ```
 
 # Prepare 3RScan dataset
 Change `data:` in `configs/config_default.yaml` first. Then
 ```
-PYTHONPATH=./ python script/Run_prepare_dataset_3RScan.py --download --thread 8
+python script/Run_prepare_dataset_3RScan.py --download --thread 8
 ```
 
 # Generate Experiment data
+Please make sure you agree the [3RScan Terms of Use](https://forms.gle/NvL5dvB4tSFrHfQH6).
 ## For GT
+This script downloads preprocessed data for GT data generation, and generate GT data.
 ```
-PYTHONPATH=./ python scripts/RUN_prepare_GT_setup_3RScan.py --thread 16
+python scripts/RUN_prepare_GT_setup_3RScan.py --thread 16
 ```
 ## For Dense
-
+This script downloads the inseg.ply files and unzip them to your 3rscan folder, and 
+generates training data.
+```
+python scripts/RUN_prepare_InSeg_setup_3RScan.py -c configs/dataset/config_base_3RScan_inseg_l20.yaml --thread 16
+```
 ## For Sparse
 
 # Train

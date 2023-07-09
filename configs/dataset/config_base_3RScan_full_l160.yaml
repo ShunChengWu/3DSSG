@@ -4,4 +4,4 @@ data:
  path: "./data/3RScan_3RScan160/"
  path_gt: "./data/3RScan_3RScan160/"
  label_file: "labels.instances.align.annotated.v2.ply"
- roi_img_path: "${data.path_3rscan}/data/roi_images.h5"
+ roi_img_path: "${data.path_3rscan}/data/roi_gt/"

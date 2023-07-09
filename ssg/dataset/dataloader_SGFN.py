@@ -43,9 +43,9 @@ class SGFNDataset (data.Dataset):
         self.use_data_augmentation=self.mconfig.data_augmentation
         self.root_3rscan = config.data.path_3rscan_data
         # self.path_h5 = os.path.join(self.path,'relationships_%s.h5' % (mode))
-        self.path_h5 = os.path.join(self.path,'relationships.h5')
-        self.path_mv = os.path.join(self.path,'proposals.h5')
-        self.path_roi_img = self.mconfig.roi_img_path
+        self.path_h5 = os.path.join(self.path,define.NAME_RELATIONSHIPS)
+        self.path_mv = os.path.join(self.path,define.NAME_VIS_GRAPH)
+        self.path_roi_img = os.path.join(self.mconfig.roi_img_path,define.NAME_ROI_IMAGE)
         # self.pth_filtered = os.path.join(self.path,'filtered_scans_detection_%s.h5' % (mode))
         self.pth_filtered = os.path.join(self.path,'filtered_scans_detection.h5')
         self.pth_node_weights = os.path.join(self.path,'node_weights.txt')

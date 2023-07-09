@@ -188,10 +188,10 @@ if __name__ == '__main__':
     
     '''create output file'''
     try:
-        h5f = h5py.File(os.path.join(outdir,define.NAME_OBJ_GRAPH), 'a')
+        h5f = h5py.File(os.path.join(outdir,define.NAME_VIS_GRAPH), 'a')
     except:
-        os.remove(os.path.join(outdir,define.NAME_OBJ_GRAPH))
-        h5f = h5py.File(os.path.join(outdir,define.NAME_OBJ_GRAPH), 'a')
+        os.remove(os.path.join(outdir,define.NAME_VIS_GRAPH))
+        h5f = h5py.File(os.path.join(outdir,define.NAME_VIS_GRAPH), 'a')
     h5f.attrs['label_type'] = args.label_type
     
     '''read scenes'''

@@ -46,9 +46,9 @@ NAME_FILTERED_OBJ_INDICES = 'obj_indices'
 # Processed file realted
 TYPE_2DGT = '.2dgt'
 PATH_FILE = 'files'
-NAME_OBJ_GRAPH = 'proposals.h5'
+NAME_VIS_GRAPH = 'proposals.h5'
 NAME_RELATIONSHIPS = 'relationships.h5'
-NAME_ROI_IMAGE = 'roi_images'
+NAME_ROI_IMAGE = 'roi_images.h5'
 PATH_LABEL_MAPPING = os.path.join(PATH_FILE,'3RScan.v2 Semantic Classes - Mapping.csv')
 PATH_CLASS160_FILE = os.path.join(PATH_FILE,'classes160.txt')
 

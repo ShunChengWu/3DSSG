@@ -6,4 +6,4 @@ data:
  path_gt: "./data/3RScan_ScanNet20_gt/"
  label_file: "2dssg_orbslam3.ply"
  label_file_seq: "2dssg_seq"
- roi_img_path: "./data/3RScan/roi_2dssg_orbslam3/roi_images.h5"
+ roi_img_path: "${data.path_3rscan}/data/roi_2dssg_orbslam3/"
