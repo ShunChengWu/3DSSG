@@ -59,6 +59,7 @@ if __name__ == '__main__':
             '-o',path_3RScan_ScanNet20,
             '-l','ScanNet20',
             '--only_support_type'
+            '--segment_type','InSeg',
             ]
     if args.overwrite: cmd += ['--overwrite']
     print('running cmd',cmd)
@@ -66,6 +67,10 @@ if __name__ == '__main__':
     
     import sys
     sys.exit()
+    
+    ''' Generate object-image graph '''
+    
+    ''' extract mv images '''
     
     # 3RScan160
     cmd = [py_exe,

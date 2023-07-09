@@ -120,11 +120,13 @@ if __name__ == '__main__':
 
     '''generate scene graph data for GT'''
     logger_py.info('generate scene graph data for GT')
-    py_exe = os.path.join('data_processing', 'gen_data_gt.py')
+    py_exe = os.path.join('data_processing', 'gen_data.py')
+    # For ScanNet20, support_type relationship
     cmd = [py_exe, '-c', args.config,
            '-o', path_3RScan_ScanNet20,
            '-l', 'ScanNet20',
-           '--only_support_type'
+           '--only_support_type',
+           '--segment_type','GT',
            ]
     if args.overwrite:
         cmd += ['--overwrite']
@@ -136,6 +138,7 @@ if __name__ == '__main__':
     cmd = [py_exe, '-c', args.config,
            '-o', path_3RScan_3RScan160,
            '-l', '3RScan160',
+           '--segment_type','GT',
            ]
     if args.overwrite:
         cmd += ['--overwrite']

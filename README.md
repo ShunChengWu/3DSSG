@@ -41,6 +41,9 @@ VGfM
 - [ ] inseg_l20
 - [ ] orbslam3_l20
 
+# Cleanup
+- [ ] delete data_processing/gen_data_gt_.py
+
 # Setup
 ```
 # if you don't have miniconda
@@ -51,34 +54,12 @@ source setup.sh
 
 mkdir data
 ln -s /path/to/your/3RScan ./data/
-
-
 ```
 
 # Prepare 3RScan dataset
 Change `data:` in `configs/config_default.yaml` first. Then
-## New
 ```
-PYTHONPATH=./ python script/Run_prepare_dataset_3RScan.py --download --thread 8  # require display
-```
-## OLD
-```
-git clone https://github.com/WaldJohannaU/3RScan.git
-cd 3RScan;
-# Init & Download
-# You should place the download.py script to the 3RScan folder
-bash setup.sh
-python download.py -o ./data/3RScan/ --type "semseg.v2.json"
-python download.py -o ./data/3RScan/ --type "sequence.zip"
-python download.py -o ./data/3RScan/ --type "labels.instances.annotated.v2.ply"
-python download.py -o ./data/3RScan/ --type "mesh.refined.v2.obj"
-python download.py -o ./data/3RScan/ --type "mesh.refined.mtl"
-python download.py -o ./data/3RScan/ --type "mesh.refined_0.png"
-
-# Unzip all sequence 
-cd data/3RScan
-find . -name '*.zip' -exec sh -c 'base={};filename="${base%.*}"; unzip -o -d $filename {};' ';'
-cd ../../
+PYTHONPATH=./ python script/Run_prepare_dataset_3RScan.py --download --thread 8
 ```
 
 # Generate Experiment data

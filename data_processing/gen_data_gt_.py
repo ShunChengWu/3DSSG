@@ -46,7 +46,7 @@ def Parser(add_help=True):
     # parser.add_argument('--radius_receptive', type=float,default=0.5,help='The receptive field of each seed.')
 
     # constant
-    parser.add_argument('--segment_type', type=str, default='GT')
+    parser.add_argument('--segment_type', type=str, default='GT',choices=['GT','InSeg'])
     return parser
 
 
@@ -200,7 +200,7 @@ if __name__ == '__main__':
     elif args.neighbor_search_method == 'KNN':
         search_method = SAMPLE_METHODS.RADIUS
 
-    codeLib.utils.util.set_random_seed(2020)
+    codeLib.utils.util.set_random_seed(cfg.SEED)
 
     '''create mapping'''
     label_names, * \
@@ -247,6 +247,8 @@ if __name__ == '__main__':
     if args.segment_type == "GT":
         processor = GenerateSceneGraph_GT(
             cfg, target_relationships, args.label_type)
+    elif args.segment_type == "InSeg":
+        raise NotImplementedError()
     else:
         raise NotImplementedError()
 

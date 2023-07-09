@@ -38,7 +38,7 @@ def Parser(add_help=True):
                         help='overwrite or not.')
 
     # constant
-    parser.add_argument('--segment_type', type=str, default='InSeg')
+    parser.add_argument('--segment_type', type=str, default='GT',choices=['GT','InSeg'])
     return parser
 
 
@@ -413,6 +413,130 @@ class GenerateSceneGraph(object):
         relationships["relationships"] = split_relationships
         return relationships
 
+class GenerateSceneGraph_GT(object):
+    def __init__(self, cfg: dir, target_relationships: list, label_type: str):
+        self.cfg = cfg
+        self.target_relationships = target_relationships
+        self.label_type = label_type
+
+    def __call__(self, scan_id, gt_relationships):
+        pth_3RScan_data = self.cfg.data.path_3rscan_data
+        lcfg = self.cfg.data.scene_graph_generation
+        target_relationships = self.target_relationships
+        pth_gt = os.path.join(pth_3RScan_data, scan_id,
+                              self.cfg.data.label_file_gt)
+        # segseg_file_name = define.SEMSEG_FILE_NAME
+
+        # load gt
+        cloud_gt = trimesh.load(pth_gt, process=False)
+        points_gt = np.array(cloud_gt.vertices.tolist())
+        segments_gt = util_ply.get_label(
+            cloud_gt, '3RScan', 'Segment').flatten()
+
+        # find neighbors
+        segs_neighbors = find_neighbors(
+            points_gt, segments_gt, search_method, receptive_field=lcfg.radius_receptive)
+
+        # get segment ids
+        segment_ids = np.unique(segments_gt)
+        segment_ids = segment_ids[segment_ids != 0]
+
+        # get label mapping
+        _, label_name_mapping, _ = util_label.getLabelMapping(self.label_type)
+        pth_semseg = os.path.join(
+            pth_3RScan_data, scan_id, define.SEMSEG_FILE_NAME)
+        instance2labelName = util_3rscan.load_semseg(
+            pth_semseg, label_name_mapping)
+
+        '''extract object bounding box info'''
+        objs_obbinfo = dict()
+        with open(pth_semseg) as f:
+            data = json.load(f)
+        for group in data['segGroups']:
+            obb = group['obb']
+            obj_obbinfo = objs_obbinfo[group["id"]] = dict()
+            obj_obbinfo['center'] = copy.deepcopy(obb['centroid'])
+            obj_obbinfo['dimension'] = copy.deepcopy(obb['axesLengths'])
+            obj_obbinfo['normAxes'] = copy.deepcopy(
+                np.array(obb['normalizedAxes']).reshape(3, 3).transpose().tolist())
+        del data
+
+        ''' Find and count all corresponding segments'''
+        map_segment_pd_2_gt = dict()  # map segment_pd to segment_gt
+        for segment_id in segment_ids:
+            map_segment_pd_2_gt[segment_id] = segment_id
+
+        ''' Save as ply '''
+        # if debug:
+        #     for seg, label_name in instance2labelName.items():
+        #         segment_indices = np.where(segments_gt == seg)[0]
+        #         if label_name != 'none':
+        #             continue
+        #         for index in segment_indices:
+        #             cloud_gt.visual.vertex_colors[index][:3] = [0,0,0]
+        #     cloud_gt.export('tmp_gtcloud.ply')
+
+        '''' Save as relationship_*.json '''
+        relationships = self.generate_relationship(
+            scan_id,
+            target_relationships,
+            gt_relationships,
+            map_segment_pd_2_gt,
+            instance2labelName)
+
+        for oid in relationships['objects'].keys():
+            relationships['objects'][oid] = {
+                **objs_obbinfo[oid], **relationships['objects'][oid]}
+
+        return relationships, segs_neighbors
+
+    def generate_relationship(
+            self,
+            scan_id: str,
+            target_relationships: list,
+            gt_relationships: list,
+            map_segment_pd_2_gt: dict,
+            instance2labelName: dict,
+            target_segments: list = None) -> dict:
+        '''' Save as relationship_*.json '''
+        relationships = dict()  # relationships_new["scans"].append(s)
+        relationships["scan"] = scan_id
+
+        objects = dict()
+        for seg, segment_gt in map_segment_pd_2_gt.items():
+            if target_segments is not None:
+                if seg not in target_segments:
+                    continue
+            name = instance2labelName[segment_gt]
+            if name == '-' or name == 'none':
+                continue
+            objects[int(seg)] = dict()
+            objects[int(seg)]['label'] = name
+            objects[int(seg)]['instance_id'] = segment_gt
+        relationships["objects"] = objects
+
+        split_relationships = list()
+        ''' Inherit relationships from ground truth segments '''
+        if gt_relationships is not None:
+            relationships_names = codeLib.utils.util.read_txt_to_list(
+                os.path.join(define.PATH_FILE, lcfg.relation + ".txt"))
+            for rel in gt_relationships:
+                id_src = rel[0]
+                id_tar = rel[1]
+                num = rel[2]
+                name = rel[3]
+                if name not in target_relationships:
+                    # logger_py.debug('filter ' + name +
+                    #                 '. it is not in the target relationships')
+                    continue
+                idx_in_txt = relationships_names.index(name)
+                assert (num == idx_in_txt)
+                idx_in_txt_new = target_relationships.index(name)
+                split_relationships.append(
+                    [int(id_src), int(id_tar), idx_in_txt_new, name])
+
+        relationships["relationships"] = split_relationships
+        return relationships
 
 if __name__ == '__main__':
     args = Parser().parse_args()
@@ -438,7 +562,7 @@ if __name__ == '__main__':
     elif args.neighbor_search_method == 'KNN':
         search_method = SAMPLE_METHODS.RADIUS
 
-    codeLib.utils.util.set_random_seed(2020)
+    codeLib.utils.util.set_random_seed(cfg.SEED)
 
     '''create mapping'''
     label_names, * \
@@ -448,7 +572,8 @@ if __name__ == '__main__':
     '''get relationships'''
     target_relationships = sorted(codeLib.utils.util.read_txt_to_list(os.path.join(define.PATH_FILE, lcfg.relation + ".txt"))
                                   if not args.only_support_type else define.SUPPORT_TYPE_RELATIONSHIPS)
-    target_relationships.append(define.NAME_SAME_PART)
+    if args.segment_type != "GT": # for est. seg., add "same part" in the case of oversegmentation.
+        target_relationships.append(define.NAME_SAME_PART)
 
     ''' get all classes '''
     classes_json = list()
@@ -482,51 +607,15 @@ if __name__ == '__main__':
         os.remove(pth_relationships_json)
         h5f = h5py.File(pth_relationships_json, 'a')
 
-    processor = GenerateSceneGraph(cfg, target_relationships, args.label_type)
-
-    # Path(args.pth_out).mkdir(parents=True, exist_ok=True)
-    # logging.basicConfig(filename=os.path.join(args.pth_out,'gen_data_'+args.type+'.log'), level=logging.DEBUG)
-    # logger_py = logging.getLogger(__name__)
-
-    # debug |= args.debug>0
-    # args.verbose |= debug
-    # if args.search_method == 'BBOX':
-    #     search_method = SAMPLE_METHODS.BBOX
-    # elif args.search_method == 'KNN':
-    #     search_method = SAMPLE_METHODS.RADIUS
-
-    # label_names, _, _ = util_label.getLabelMapping(args.label_type)
-    # classes_json = list()
-    # for key,value in label_names.items():
-    #     if value == '-':continue
-    #     classes_json.append(value)
-
-    # ''' Read Scan and their type=['train', 'test', 'validation'] '''
-    # scan2type = {}
-    # with open(define.Scan3RJson_PATH, "r") as read_file:
-    #     data = json.load(read_file)
-    #     for scene in data:
-    #         scan2type[scene["reference"]] = scene["type"]
-    #         for scan in scene["scans"]:
-    #             scan2type[scan["reference"]] = scene["type"]
-
-    # '''read relationships'''
-    # target_relationships=list()
-    # if args.inherit:
-    #     # target_relationships += ['supported by', 'attached to','standing on', 'lying on','hanging on','connected to',
-    #                             # 'leaning against','part of','build in','standing in','lying in','hanging in']
-    #     target_relationships += ['supported by', 'attached to','standing on','hanging on','connected to','part of','build in']
-    # target_relationships.append(define.NAME_SAME_PART)
-
-    # target_scan=[]
-    # if args.target_scan != '':
-    #     target_scan = util.read_txt_to_list(args.target_scan)
-
-    # valid_scans=list()
-    # relationships_new = dict()
-    # relationships_new["scans"] = list()
-    # relationships_new['neighbors'] = dict()
-    # counter= 0
+    '''Create processor'''
+    if args.segment_type == "GT":
+        processor = GenerateSceneGraph_GT(
+            cfg, target_relationships, args.label_type)
+    elif args.segment_type == "InSeg":
+        processor = GenerateSceneGraph(cfg, target_relationships, args.label_type)
+    else:
+        raise NotImplementedError()
+    
     ''' generate data '''
     valid_scans = list()
     for s in tqdm(filtered_data):
@@ -601,66 +690,3 @@ if __name__ == '__main__':
     with open(pth_split, 'w') as f:
         for name in valid_scans:
             f.write('{}\n'.format(name))
-
-    # '''Save'''
-    # pth_args = os.path.join(args.pth_out,'args.json')
-    # with open(pth_args, 'w') as f:
-    #         tmp = vars(args)
-    #         json.dump(tmp, f, indent=2)
-
-    # pth_classes = os.path.join(args.pth_out, 'classes.txt')
-    # with open(pth_classes,'w') as f:
-    #     for name in classes_json:
-    #         if name == '-': continue
-    #         f.write('{}\n'.format(name))
-    # pth_relation = os.path.join(args.pth_out, 'relationships.txt')
-    # with open(pth_relation,'w') as f:
-    #     for name in target_relationships:
-    #         f.write('{}\n'.format(name))
-    # pth_split = os.path.join(args.pth_out, args.type+'_scans.txt')
-    # with open(pth_split,'w') as f:
-    #     for name in valid_scans:
-    #         f.write('{}\n'.format(name))
-    # # '''Save to json'''
-    # # pth_relationships_json = os.path.join(args.pth_out, "relationships_" + args.type + ".json")
-    # # with open(pth_relationships_json, 'w') as f:
-    # #     json.dump(relationships_new, f)
-
-    # '''Save to h5'''
-    # pth_relationships_json = os.path.join(args.pth_out, "relationships_" + args.type + ".h5")
-    # h5f = h5py.File(pth_relationships_json, 'w')
-    # # reorganize scans from list to dict
-    # scans = dict()
-    # for s in relationships_new['scans']:
-    #     scans[s['scan']] = s
-    # all_neighbors = relationships_new['neighbors']
-    # for scan_id in scans.keys():
-    #     scan_data = scans[scan_id]
-    #     neighbors = all_neighbors[scan_id]
-    #     objects = scan_data['objects']
-
-    #     d_scan = dict()
-    #     d_nodes = d_scan['nodes'] = dict()
-
-    #     ## Nodes
-    #     for idx, data in enumerate(objects.items()):
-    #         oid, obj_info = data
-    #         ascii_nn = [str(n).encode("ascii", "ignore") for n in neighbors[oid]]
-    #         d_nodes[oid] = dict()
-    #         d_nodes[oid] = obj_info
-    #         d_nodes[oid]['neighbors'] = ascii_nn
-
-    #     ## Relationships
-    #     str_relationships = list()
-    #     for rel in scan_data['relationships']:
-    #         str_relationships.append([str(s) for s in rel])
-    #     d_scan['relationships']= str_relationships
-
-    #     s_scan = str(d_scan)
-    #     h5_scan = h5f.create_dataset(scan_id,data=np.array([s_scan],dtype='S'),compression='gzip')
-    #     # test decode
-    #     tmp = h5_scan[0].decode()
-    #     assert isinstance(ast.literal_eval(tmp),dict)
-
-    #     # ast.literal_eval(h5_scan)
-    # h5f.close()
