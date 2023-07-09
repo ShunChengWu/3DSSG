@@ -143,6 +143,7 @@ data:
   corr_thres: 0.5 # How the percentage of the points to the same target segment must exceeds this value.
   occ_thres: 0.75 # 2nd/1st must smaller than this.
   point_cloud_scale: 1 # scaling input point cloud.
+  graph_name: '' # needed for gen_data.py. The estimated graph
 logging:
  method: wandb # [tensorboard, wandb, none]
  log_grad_freq: 1000 
