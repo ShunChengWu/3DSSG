@@ -163,8 +163,8 @@ class GenerateSceneGraph_GT(object):
                 num = rel[2]
                 name = rel[3]
                 if name not in target_relationships:
-                    logger_py.debug('filter ' + name +
-                                    '. it is not in the target relationships')
+                    # logger_py.debug('filter ' + name +
+                    #                 '. it is not in the target relationships')
                     continue
                 idx_in_txt = relationships_names.index(name)
                 assert (num == idx_in_txt)
