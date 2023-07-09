@@ -1,4 +1,5 @@
 import argparse, os, pandas, h5py, logging,json,torch
+import pathlib
 import numpy as np
 from tqdm import tqdm
 from PIL import Image
@@ -14,23 +15,22 @@ from ssg.utils import util_label
 from ssg.objects.node import Node
 from ssg.utils import util_data
 
-structure_labels = ['wall','floor','ceiling']
+# structure_labels = ['wall','floor','ceiling']
 
-width=540
-height=960
+# width=540
+# height=960
 
 DEBUG=True
 DEBUG=False
 
 random_clr_i = [color_rgb(rand_24_bit()) for _ in range(1500)]
 random_clr_i[0] = (0,0,0)
-ffont = '/home/sc/research/PersistentSLAM/python/2DTSG/files/Raleway-Medium.ttf'
+# ffont = '/home/sc/research/PersistentSLAM/python/2DTSG/files/Raleway-Medium.ttf'
 
 def Parse():
     parser = argparse.ArgumentParser(formatter_class = argparse.ArgumentDefaultsHelpFormatter)
-    parser.add_argument('-o','--outdir',default='/home/sc/research/PersistentSLAM/python/3DSSG/data/3RScan_ScanNet20/', help='output dir',required=True)
-    parser.add_argument('--min_object', help='if less thant min_obj objects, ignore image', default=1)
-    parser.add_argument('--min_size', default=0.1, help='min length on bbox')
+    parser.add_argument('-c','--config',default='./configs/config_default.yaml',required=False)
+    parser.add_argument('-o','--outdir', help='output dir',required=True)
     parser.add_argument('--target_name','-n', default='graph.json', help='target graph json file name')
     parser.add_argument('--overwrite', type=int, default=0, help='overwrite existing file.')
     parser.add_argument('--debug', action='store_true', help='debug mode')
@@ -38,55 +38,48 @@ def Parse():
 
 if __name__ == '__main__':
     args = Parse().parse_args()
-    DEBUG = args.debug
-    print(args)
+    cfg = codeLib.Config(args.config)
+    lcfg = cfg.data.image_graph_generation
+    
     outdir=args.outdir
-    # min_oc=float(args.min_occ) # maximum occlusion rate authorised
-    min_obj=float(args.min_object)
-    # gt2d_dir = args.gt2d_dir
+    min_size=lcfg.min_box_ratio
+    min_obj=lcfg.min_obj# float(args.min_object)
     
-    '''create output file'''
-    if not os.path.isdir(outdir):
-        os.mkdir(outdir)
-    
-    '''logging'''
-    logging.basicConfig(filename=os.path.join(outdir,'objgraph_incremental.log'), level=logging.DEBUG)
-    logger_py = logging.getLogger(__name__)
+    '''create log'''
+    pathlib.Path(outdir).mkdir(exist_ok=True,parents=True)
+    name_log = os.path.split(__file__)[-1].replace('.py','.log')
+    path_log = os.path.join(outdir,name_log)
+    logging.basicConfig(filename=path_log, level=logging.INFO)
+    logger_py = logging.getLogger(name_log)
+    logger_py.info(f'create log file at {path_log}')
     if DEBUG:
         logger_py.setLevel('DEBUG')
     else:
         logger_py.setLevel('INFO')
-    logger_py.debug('args')
-    logger_py.debug(args)
-   
-    #save configs
-    with open(os.path.join(outdir,'args_objgraph.txt'), 'w') as f:
-        for k,v in args.__dict__.items():
-            f.write('{}:{}\n'.format(k,v))
-        pass
+        
+    '''save config'''
+    name_cfg = os.path.split(__file__)[-1].replace('.py','.json')
+    pth_cfg = os.path.join(outdir,name_cfg)
+    all_args = {**vars(args),**lcfg}
+    with open(pth_cfg, 'w') as f:
+            json.dump(all_args, f, indent=2)
+    
+    '''create output file'''
     try:
         h5f = h5py.File(os.path.join(outdir,'proposals.h5'), 'a')
     except:
         h5f = h5py.File(os.path.join(outdir,'proposals.h5'), 'w')
-    # h5f.attrs['label_type'] = args.label_type
     
     '''read scenes'''
-    fdata = os.path.join('data','3RScan',"data","3RScan")# os.path.join(define.DATA_PATH)
-    train_ids = read_txt_to_list(os.path.join('files','train_scans.txt'))
-    val_ids = read_txt_to_list(os.path.join('files','validation_scans.txt'))
-    test_ids = read_txt_to_list(os.path.join('files','test_scans.txt'))
-    
-    print(len(train_ids))
-    print(len(val_ids))
-    print(len(test_ids))
-    scan_ids  = sorted( train_ids + val_ids + test_ids)
-    print(len(scan_ids))
-    
-    pbar = tqdm(scan_ids)
+    fdata = cfg.data.path_3rscan_data
+    '''read all scan ids'''
+    scan_ids  = sorted(util_data.read_all_scan_ids(cfg.data.path_split))
+    logger_py.info(f'There are {len(scan_ids)} scans to be processed')
     
     '''process'''
     invalid_scans=list()
     valid_scans=list()
+    pbar = tqdm(scan_ids)
     for scan_id in pbar: #['scene0000_00']: #glob.glob('scene*'):
         if DEBUG: scan_id = '095821f7-e2c2-2de1-9568-b9ce59920e29'
         logger_py.info(scan_id)
@@ -127,7 +120,7 @@ if __name__ == '__main__':
             kf['idx'] = fid
             kf['bboxes'] = dict()
             
-            
+            path = os.path.join(fdata,scan_id,'sequence',os.path.basename(path))
             img = np.array(Image.open(path))
             img = np.rot90(img,3).copy()# Rotate image
             
@@ -162,7 +155,7 @@ if __name__ == '__main__':
                 '''Check width and height'''
                 w_ori = box[2]-box[0]
                 h_ori = box[3]-box[1]
-                if w_ori  < args.min_size or h_ori < args.min_size: continue
+                if w_ori  < min_size or h_ori < min_size: continue
             
                 '''check format is correct'''
                 assert 0 <= box[0] < box[2]
@@ -274,10 +267,9 @@ if __name__ == '__main__':
             dset = dkfs.create_dataset(k,data=boxes_)
             dset.attrs['seg2idx'] = [(k,v) for k,v in seg2idx.items()]  
         if DEBUG: break
-        # break
-    print('')
+    
     if len(invalid_scans)+len(valid_scans)>0:
-        print('percentage of invalid scans:',len(invalid_scans)/(len(invalid_scans)+len(valid_scans)), '(',len(invalid_scans),',',(len(invalid_scans)+len(valid_scans)),')')
+        logger_py.info('percentage of invalid scans: {}({}/{})'.format(len(invalid_scans)/(len(invalid_scans)+len(valid_scans)),len(invalid_scans),(len(invalid_scans)+len(valid_scans))))
         h5f.attrs['classes'] = util_label.NYU40_Label_Names
         # write args
         tmp = vars(args)
@@ -285,11 +277,9 @@ if __name__ == '__main__':
         h5f.create_dataset('args',data=())
         for k,v in tmp.items():
             h5f['args'].attrs[k] = v
-        # with open(os.path.join(outdir,'classes.txt'), 'w') as f:
-        #     for cls in util_label.NYU40_Label_Names:
-        #         f.write('{}\n'.format(cls))
     else:
-        print('no scan processed')
-    print('invalid scans:',invalid_scans)
+        logger_py.debug('no scan processed!')
+        
+    logger_py.info('invalid scans: {}'.format(invalid_scans))
     h5f.close()
     

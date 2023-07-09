@@ -30,7 +30,7 @@ def Parse():
     helpmsg = 'Generate entity visibility graph for 3D scans'
     parser = argparse.ArgumentParser(description=helpmsg,formatter_class = argparse.ArgumentDefaultsHelpFormatter)
     parser.add_argument('-c','--config',default='./configs/config_default.yaml',required=False)
-    parser.add_argument('-o','--outdir',default='/home/sc/research/PersistentSLAM/python/3DSSG/data/3RScan_3RScan160/', help='output dir',required=True)
+    parser.add_argument('-o','--outdir', help='output dir',required=True)
     parser.add_argument('-l','--label_type',default='3rscan160', choices=['nyu40','eigen13','rio27', 'rio7','3rscan','3rscan160','scannet20'], 
                         help='target label type.',required=True)
     parser.add_argument('--overwrite', action='store_true', help='overwrite or not.')
@@ -157,6 +157,7 @@ if __name__ == '__main__':
     args = Parse().parse_args()
     cfg = codeLib.Config(args.config)
     lcfg = cfg.data.image_graph_generation
+    
     outdir=args.outdir
     min_oc=lcfg.min_occ#  float(args.min_occ) # maximum occlusion rate authorised
     min_obj=lcfg.min_obj# float(args.min_object)
