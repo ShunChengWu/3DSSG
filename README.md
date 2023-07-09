@@ -42,6 +42,12 @@ VGfM
 - [ ] inseg_l20
 - [ ] orbslam3_l20
 
+MonoSG
+- [x] full_l20
+- [x] full_l160
+- [ ] inseg_l20
+- [ ] orbslam3_l20
+
 # Cleanup
 - [ ] delete data_processing/gen_data_gt_.py
 
@@ -82,8 +88,9 @@ python scripts/RUN_prepare_InSeg_setup_3RScan.py -c configs/dataset/config_base_
 
 # Train
 ```
-PYTHONPATH=./ python main.py --config configs/config_JointSSG_full_l20.yaml
-PYTHONPATH=./ python main.py --config configs/config_SGFN_full_l20.yaml
+# Use --load_cache to load point cloud data to catch
+python main.py --config configs/config_JointSSG_full_l20.yaml
+python main.py --config configs/config_SGFN_full_l20.yaml
 ```
 
 
