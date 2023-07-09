@@ -1,4 +1,4 @@
-inherit_from: experiments/config_default.yaml
+inherit_from: experiments_cvpr23/config_default.yaml
 VERBOSE: true
 GPU: [0]
 training:

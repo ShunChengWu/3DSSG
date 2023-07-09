@@ -15,6 +15,7 @@
 - [ ] Fix gen_data.py script
 - [ ] Fix gen_data for orbslam
 - [ ] write a script for the sparse setup
+- [ ] check trained model and upload them to server
 
 # Reproducibility
 SGFN
