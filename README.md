@@ -1,33 +1,33 @@
 # TODO Open Source
 - [ ] script to generate data (include everything)
   - [x] For GT setup
-  - [ ] For Dense setup
+  - [x] For Dense setup
   - [ ] For Sparse setup
-- [ ] extract generated ply files
-  - [ ] InSeg
-  - [ ] OrbSLAM3
+- [x] extract generated ply files
+  - [x] InSeg
+  - [x] OrbSLAM3
 - [x] support batch
-- [ ] make sure all data can be download with one script
+- [x] make sure all data can be download with one script
   - [x] ply
   - [x] label
   - [x] unzip sequence
-- [ ] reproducibility
-- [ ] Fix gen_data.py script
+- [x] Fix gen_data.py script
 - [ ] Fix gen_data for orbslam
 - [ ] write a script for the sparse setup
-- [ ] check trained model and upload them to server
+- [ ] reproducibility
+  - [ ] Train all models again using the new code and uploade the checkpoints to the server.
 
 # Reproducibility
 SGFN
 - [x] full_l20
 - [x] full_l160
-- [ ] inseg_l20
+- [x] inseg_l20
 - [ ] orbslam3_l20
 
 3DSSG
 - [x] full_l20
 - [x] full_l160
-- [ ] inseg_l20
+- [x] inseg_l20
 - [ ] orbslam3_l20
 
 IMP
@@ -45,7 +45,7 @@ VGfM
 MonoSG
 - [x] full_l20
 - [x] full_l160
-- [ ] inseg_l20
+- [x] inseg_l20
 - [ ] orbslam3_l20
 
 # Cleanup
@@ -116,6 +116,40 @@ python main.py --config configs/config_SGFN_full_l20.yaml
 - [x] config_JointSSG_full_l160_0.yaml
 - [x] config_JointSSG_inseg_l20_1.yaml
 - [x] config_JointSSG_orbslam_l20_11_4.yaml
+
+# Structure
+kId: keyfame index
+imgBoxData: [x1/img_w,y1/img_h,x2/img_w,y2/img_h, occlu_level] 
+
+
+```
+proposals.h5
+{
+    'args': arguments.
+    'label_type': label type
+    scan_id: {
+        'nodes': {
+            oid: # object Index
+                data = [keyframe indices], 
+                attrs: {
+                    'label': the label of this object
+                }
+        }
+        'kfs': {
+            kid: # keyframe index
+                data = [[normalized image corners \in R^{4}, occlusion], ...]
+                attrs: {
+                    'seg2idx' [(kid, idx), ...] # the idx here is the list index in data
+                }
+        }
+    },
+    ...
+}
+# For estimated segments, the oid is the segment index instead of the object index.
+
+```
+
+# ==================================================
 
 # SceneGraphFusion
 ![teaser](img/teaser.png)

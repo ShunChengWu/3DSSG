@@ -1,8 +1,11 @@
 inherit_from: configs/config_default.yaml
+training:
+ batch: 1
+ data_workers: 0
 data:
  load_cache: false
  path: "./data/3RScan_ScanNet20_InSeg/"
- path_gt: "./data/3RScan_ScanNet20_gt/"
+ path_gt: "./data/3RScan_ScanNet20/"
  label_file: "inseg.ply"
  roi_img_path: "${data.path_3rscan}/data/roi_inseg/"
  scene_graph_generation:

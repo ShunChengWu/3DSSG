@@ -79,7 +79,7 @@ def merged_prediction_to_node(data:HeteroData):
     data['node'].y = node_y_new.detach().cpu()
     data['node'].oid = torch.tensor(oids_new).detach().cpu()
     data['node','to','node'].edge_index = torch.tensor(edge_index_new,dtype=torch.long).t().contiguous().detach().cpu()
-    data['node','to','node'].y = torch.stack(edge_index_y_new).detach().cpu()
+    data['node','to','node'].y = torch.stack(edge_index_y_new).detach().cpu() if len(edge_index_y_new)>0 else torch.tensor(edge_index_new)
     # data['node_gt','to','node'].edge_index = torch.tensor(edge_index_gt,dtype=torch.long,device=device)
     
     

@@ -223,6 +223,7 @@ if __name__ == '__main__':
         if not os.path.isfile(gt2d_file):
             logger_py.debug('file does not exists, skipping',scan_id+define.TYPE_2DGT)
             continue
+        
         '''check if the scene has been created'''
         if scan_id in h5f: 
             if not args.overwrite: 
@@ -245,13 +246,13 @@ if __name__ == '__main__':
         objects = dict()
         node2kfs = dict()
         
-        for (fnum,(fname,seq)) in list(obj_by_img.items()):
+        for (kId,(fname,seq)) in list(obj_by_img.items()):
             if len(seq)<min_obj:#if less thant min_obj objects, I don't keep the image
                 continue
-            if str(fnum) not in kfs: kfs[str(fnum)] = dict()
+            if str(kId) not in kfs: kfs[str(kId)] = dict()
             
-            kf = kfs[str(fnum)]
-            kf['idx'] = int(fnum)
+            kf = kfs[str(kId)]
+            kf['idx'] = int(kId)
             if 'bboxes' not in kf: kf['bboxes'] = dict()
             if 'occlution' not in kf: kf['occlution'] = dict()
             for oid,olabel,oc,x1,y1,x2,y2 in seq:
@@ -278,7 +279,7 @@ if __name__ == '__main__':
                 
                 if oid not in node2kfs:
                     node2kfs[oid] = list()
-                node2kfs[oid].append(fnum)
+                node2kfs[oid].append(kId)
         
         '''check filtered instances'''
         int_filtered_insts = [int(x) for x in objects]
@@ -313,7 +314,7 @@ if __name__ == '__main__':
         if 'kfs' in h5g: del h5g['kfs']
         dkfs = h5g.create_group('kfs')
         for idx, data in enumerate(kfs.items()):
-            k,v = data
+            kId,v = data
             boxes = v['bboxes']
             occlu = v['occlution']
             boxes_=list()
@@ -321,14 +322,14 @@ if __name__ == '__main__':
             for ii, kk in enumerate(boxes):
                 boxes_.append(boxes[kk]+[occlu[kk]])
                 seg2idx[int(kk)] = ii
-            dset = dkfs.create_dataset(k,data=boxes_)
+            dset = dkfs.create_dataset(kId,data=boxes_)
             dset.attrs['seg2idx'] = [(k,v) for k,v in seg2idx.items()]  
             
     
     
     if invalid_scans+valid_scans>0:
         logger_py.info('percentage of invalid scans: {}({}/{})'.format(invalid_scans/(invalid_scans+valid_scans),invalid_scans,(invalid_scans+valid_scans)))
-        h5f.attrs['classes'] = util_label.NYU40_Label_Names
+        # h5f.attrs['classes'] = util_label.NYU40_Label_Names
         # write args
         if 'args' in h5f: del h5f['args']
         h5f.create_dataset('args',data=())
