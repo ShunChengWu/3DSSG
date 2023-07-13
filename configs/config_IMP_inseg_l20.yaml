@@ -1,7 +1,4 @@
 inherit_from: [configs/dataset/config_base_3RScan_inseg_l20.yaml,configs/method/config_base_IMP.yaml]
-training:
- batch: 1
- data_workers: 0
 model:
  multi_rel: false # multiple relationship 
 wandb:

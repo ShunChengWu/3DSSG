@@ -152,7 +152,7 @@ logging:
 wandb:
  dry_run: false
  entity: 'shunchengwu'
- project: "ssg"
+ project: "ssg_release"
 # id: "001" # id will be set to name
  tags: ["ssg", "3dssg"]
  dir: logs/
