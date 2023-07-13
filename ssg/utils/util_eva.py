@@ -1888,7 +1888,7 @@ class EvalUpperBound():
             
         # convert them to list
         assert inst_node_edges.shape[0] == 2
-        assert seg_node_edges.shape[0] == 2
+        # assert seg_node_edges.shape[0] == 2
         inst_node_edges = inst_node_edges.tolist()
         seg_node_edges = seg_node_edges.tolist()
         seg_oids = seg_oids.tolist()
@@ -1911,10 +1911,11 @@ class EvalUpperBound():
         # build seg inst key
         
         seg_inst_pair_edges = set()
-        for idx in range(len(seg_node_edges[0])):
-            src, tgt = seg_node_edges[0][idx], seg_node_edges[1][idx]
-            src, tgt = seg_oids[src], seg_oids[tgt] #seg_mask2inst[src],seg_mask2inst[tgt]
-            seg_inst_pair_edges.add((src,tgt))
+        if len(seg_node_edges) > 0:
+            for idx in range(len(seg_node_edges[0])):
+                src, tgt = seg_node_edges[0][idx], seg_node_edges[1][idx]
+                src, tgt = seg_oids[src], seg_oids[tgt] #seg_mask2inst[src],seg_mask2inst[tgt]
+                seg_inst_pair_edges.add((src,tgt))
         
         # Find missing edges
         

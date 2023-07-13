@@ -120,7 +120,7 @@ class EvalInst(object):
                 
                 # convert them to list
                 assert inst_node_edges.shape[0] == 2
-                assert seg_node_edges.shape[0] == 2
+                # assert seg_node_edges.shape[0] == 2
                 inst_node_edges = inst_node_edges.tolist()
                 seg_node_edges = seg_node_edges.tolist()
                 seg_oids = seg_oids.tolist()
