@@ -145,6 +145,9 @@ data:
   occ_thres: 0.75 # 2nd/1st must smaller than this.
   point_cloud_scale: 1 # scaling input point cloud.
   graph_name: '' # needed for gen_data.py. The estimated graph
+  min_img_bbox_size: 100 # A detect obj in an image should have at least this size (can be a list)
+  min_entity_num: 2 # A scene must hhave at least this number of entities.
+  min_3D_bbox_size: 0.008 # 0.2*0.2*0.2. minimum bounding box region (m^3).
 logging:
  method: wandb # [tensorboard, wandb, none]
  log_grad_freq: 1000 

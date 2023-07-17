@@ -10,13 +10,12 @@ from pathlib import Path
 from tqdm import tqdm
 import codeLib
 from ssg import define
-from ssg.utils import util_3rscan, util_label, util_ply
+from ssg.utils import util_3rscan, util_data, util_label, util_ply
 from ssg.utils.util_search import SAMPLE_METHODS, find_neighbors
 import h5py
 import ast
 import copy
 import logging
-
 
 def Parser(add_help=True):
     parser = argparse.ArgumentParser(description='Generate custom scene graph dataset from the 3RScan dataset.',
@@ -38,11 +37,267 @@ def Parser(add_help=True):
                         help='overwrite or not.')
 
     # constant
-    parser.add_argument('--segment_type', type=str, default='GT',choices=['GT','InSeg'])
+    parser.add_argument('--segment_type', type=str, default='GT',choices=['GT','INSEG','ORBSLAM'])
     return parser
 
 
-class GenerateSceneGraph(object):
+class GenerateSceneGraph_Sparse(object):
+    def __init__(self, cfg: dir, target_relationships: list, label_type: str):
+        self.cfg = cfg
+        self.target_relationships = target_relationships
+        self.label_type = label_type
+
+    def __call__(self, scan_id, gt_relationships):
+        # some params
+        pth_3RScan_data = self.cfg.data.path_3rscan_data
+        lcfg = self.cfg.data.scene_graph_generation
+        target_relationships = self.target_relationships
+        pth_pd = os.path.join(pth_3RScan_data, scan_id, lcfg.graph_name)
+        pth_ply = os.path.join(pth_3RScan_data, scan_id, self.cfg.data.label_file)
+
+        # get label mapping
+        _, label_name_mapping, _ = util_label.getLabelMapping(self.label_type)
+        pth_semseg = os.path.join(
+            pth_3RScan_data, scan_id, define.SEMSEG_FILE_NAME)
+        instance2labelName = util_3rscan.load_semseg(
+            pth_semseg, label_name_mapping)
+
+        ''' load graph file '''
+        with open(pth_pd, 'r') as f:
+            data = json.load(f)[scan_id]
+        graph = util_data.load_graph(data, box_filter_size=[
+                                     int(lcfg.min_img_bbox_size)])
+        nodes = graph['nodes']
+        # keyframes = graph['kfs']
+
+        '''check at node has valid points'''
+        # Check file
+        if not os.path.isfile(pth_ply):
+            logger_py.info('skip {} due to no ply file exists'.format(scan_id))
+            return [], []
+            # raise RuntimeError('cannot find file {}'.format(pth_ply))
+        # Load
+        cloud_pd = trimesh.load(pth_ply, process=False)
+        segments_pd = util_ply.get_label(
+            cloud_pd, '3RScan', 'Segment').flatten()
+        # segments_pd_2 = cloud_pd.metadata['_ply_raw']['vertex']['data']['label'].flatten(
+        # )
+        # assert np.isclose(segments_pd, segments_pd_2).all()
+        # Get IDs
+        segment_ids_pts = np.unique(segments_pd)
+        segment_ids_pts = segment_ids_pts[segment_ids_pts != 0]
+
+        ''' get number of nodes '''
+        segment_ids = [k for k in nodes.keys()]
+        if 0 in segment_ids:
+            segment_ids.remove(0)  # ignore none
+        # if args.verbose:
+        #     print('filtering input segments.. (ori num of segments:',
+        #           len(segment_ids), ')')
+        segments_pd_filtered = list()
+        map_segment_pd_2_gt = dict()  # map segment_pd to segment_gt
+        # how many segment_pd corresponding to this segment_gt
+        gt_segments_2_pd_segments = dict()
+        segs_neighbors = dict()
+        for seg_id in segment_ids:
+            node = nodes[seg_id]
+            if node.kfs is None or len(node.kfs) == 0:
+                print('warning. each node should have at least 1 kf')
+
+            if node.size() <= lcfg.min_3D_bbox_size:
+            #     # name = instance2labelName.get(seg_id,'unknown')
+            #     if debug:
+            #         print('node', seg_id, 'too small (', node.size(),
+            #               '<', args.min_3D_bbox_size, ')')
+                continue
+
+            # Check at least has a valid pts
+            pts = segment_ids_pts[np.where(segment_ids_pts == seg_id)]
+            if len(pts) == 0:
+                continue
+
+            '''find GT instance'''
+            # get maximum
+            max_v = 0
+            max_k = 0
+            for k, v in node.gtInstance.items():
+                if v > max_v:
+                    max_v = v
+                    max_k = int(k)
+            if max_v < lcfg.occ_thres:
+            #     if debug:
+            #         print('node', seg_id, 'has too small overlappign to GT instance',
+            #               max_v, '<', args.occ_thres)
+                continue
+
+            '''skip nonknown'''
+            if instance2labelName[max_k] == '-' or instance2labelName[max_k] == 'none':
+                if debug:
+                    print('node', seg_id, 'has unknown GT instance', max_k)
+                continue
+
+            '''  '''
+            map_segment_pd_2_gt[int(seg_id)] = int(max_k)
+
+            if max_k not in gt_segments_2_pd_segments:
+                gt_segments_2_pd_segments[max_k] = list()
+            gt_segments_2_pd_segments[max_k].append(seg_id)
+
+            segs_neighbors[int(seg_id)] = node.neighbors
+
+            segments_pd_filtered.append(seg_id)
+        segment_ids = segments_pd_filtered
+        if debug:
+            print('there are', len(segment_ids), 'segemnts:\n', segment_ids)
+            print('sid iid label')
+            for sid in segment_ids:
+                print(
+                    sid, ':', map_segment_pd_2_gt[sid], instance2labelName[map_segment_pd_2_gt[sid]])
+
+        if len(segment_ids) < lcfg.min_entity_num:
+            # if debug:
+            #     print('num of entities ({}) smaller than {}'.format(
+            #         len(segment_ids), args.min_entity_num))
+            return {}, {}
+
+        '''process'''
+        objs_obbinfo = dict()
+        with open(pth_pd, 'r') as f:
+            data = json.load(f)[scan_id]
+        for nid, node in data['nodes'].items():
+            # if nid not in segment_ids: continue
+            obj_obbinfo = objs_obbinfo[int(nid)] = dict()
+            obj_obbinfo['center'] = copy.deepcopy(node['center'])
+            obj_obbinfo['dimension'] = copy.deepcopy(node['dimension'])
+            obj_obbinfo['normAxes'] = copy.deepcopy(
+                np.array(node['rotation']).reshape(3, 3).transpose().tolist())
+        del data
+
+        relationships = self.generate_relationship(
+            scan_id,
+            target_relationships,
+            gt_relationships,
+            map_segment_pd_2_gt,
+            instance2labelName,
+            gt_segments_2_pd_segments)
+
+        # list_relationships = list()
+        # if len(relationships["objects"]) != 0 and len(relationships['relationships']) != 0:
+        #     list_relationships.append(relationships)
+
+        # for relationships in list_relationships:
+        for oid in relationships['objects'].keys():
+            relationships['objects'][oid] = {
+                **objs_obbinfo[oid], **relationships['objects'][oid]}
+        return relationships, segs_neighbors
+
+    def generate_relationship(self,
+                              scan_id: str, 
+                              target_relationships,
+                              gt_relationships,
+                              map_segment_pd_2_gt: dict,
+                              instance2labelName: dict,
+                              gt_segments_2_pd_segments: dict,
+                              target_segments: list = None) -> dict:
+        lcfg = self.cfg.data.scene_graph_generation
+        '''' Save as relationship_*.json '''
+        relationships = dict()  # relationships_new["scans"].append(s)
+        relationships["scan"] = scan_id
+
+        objects = dict()
+        for seg, segment_gt in map_segment_pd_2_gt.items():
+            if target_segments is not None:
+                if seg not in target_segments:
+                    continue
+            name = instance2labelName[segment_gt]
+            assert (name != '-' and name != 'none')
+            objects[int(seg)] = dict()
+            objects[int(seg)]['label'] = name
+            objects[int(seg)]['instance_id'] = segment_gt
+        relationships["objects"] = objects
+
+        split_relationships = list()
+        ''' Inherit relationships from ground truth segments '''
+        if gt_relationships is not None:
+            relationships_names = codeLib.utils.util.read_txt_to_list(
+                os.path.join(define.PATH_FILE, lcfg.relation + ".txt"))
+
+            for rel in gt_relationships:
+                id_src = rel[0]
+                id_tar = rel[1]
+                num = rel[2]
+                name = rel[3]
+                
+                # idx_in_txt = relationships_names.index(name)
+                # assert (num == idx_in_txt)
+                if name not in target_relationships:
+                    continue
+                if id_src == id_tar:
+                    continue
+                    if debug:
+                        print('ignore relationship (', name, ') between', id_src,
+                              'and', id_tar, 'that has the same source and target')
+                    
+                idx_in_txt_new = target_relationships.index(name)
+
+                if id_src in gt_segments_2_pd_segments and id_tar in gt_segments_2_pd_segments:
+                    segments_src = gt_segments_2_pd_segments[id_src]
+                    segments_tar = gt_segments_2_pd_segments[id_tar]
+                    for segment_src in segments_src:
+                        if segment_src not in objects:
+                            # if debug:
+                            #     print('filter', name, 'segment_src',
+                            #           instance2labelName[id_src], ' is not in objects')
+                            continue
+                        for segment_tar in segments_tar:
+                            if segment_tar not in objects:
+                                # if debug:
+                                #     print(
+                                #         'filter', name, 'segment_tar', instance2labelName[id_tar], ' is not in objects')
+                                continue
+                            if target_segments is not None:
+                                ''' skip if they not in the target_segments'''
+                                if segment_src not in target_segments:
+                                    continue
+                                if segment_tar not in target_segments:
+                                    continue
+                            # if segment_tar == segments_src:continue
+                            ''' check if they are neighbors '''
+                            split_relationships.append(
+                                [int(segment_src), int(segment_tar), idx_in_txt_new, name])
+                            # if debug:
+                            #     print(
+                            #         'inherit', instance2labelName[id_src], '(', id_src, ')', name, instance2labelName[id_tar], '(', id_tar, ')')
+                # else:
+                #     if debug:
+                #         if id_src in gt_segments_2_pd_segments:
+                #             print('filter', instance2labelName[id_src],name, instance2labelName[id_tar],'id_src', id_src, 'is not in the gt_segments_2_pd_segments')
+                #         if id_tar in gt_segments_2_pd_segments:
+                #             print('filter', instance2labelName[id_src],name, instance2labelName[id_tar],'id_tar', id_tar, 'is not in the gt_segments_2_pd_segments')
+
+        ''' Build "same part" relationship '''
+        idx_in_txt_new = target_relationships.index(define.NAME_SAME_PART)
+        for _, groups in gt_segments_2_pd_segments.items():
+            if target_segments is not None:
+                filtered_groups = list()
+                for g in groups:
+                    if g in target_segments:
+                        filtered_groups.append(g)
+                groups = filtered_groups
+            if len(groups) <= 1:
+                continue
+
+            for i in range(len(groups)):
+                for j in range(i+1, len(groups)):
+                    split_relationships.append([int(groups[i]), int(
+                        groups[j]), idx_in_txt_new, define.NAME_SAME_PART])
+                    split_relationships.append([int(groups[j]), int(
+                        groups[i]), idx_in_txt_new, define.NAME_SAME_PART])
+
+        relationships["relationships"] = split_relationships
+        return relationships
+
+class GenerateSceneGraph_Dense(object):
     def __init__(self, cfg: dir, target_relationships: list, label_type: str):
         self.cfg = cfg
         self.target_relationships = target_relationships
@@ -300,6 +555,7 @@ class GenerateSceneGraph(object):
             instance2labelName: dict,
             gt_segments_2_pd_segments: dict,
             target_segments: list = None) -> dict:
+        lcfg = self.cfg.data.scene_graph_generation
         '''' Save as relationship_*.json '''
         relationships = dict()  # relationships_new["scans"].append(s)
         relationships["scan"] = scan_id
@@ -612,7 +868,9 @@ if __name__ == '__main__':
         processor = GenerateSceneGraph_GT(
             cfg, target_relationships, args.label_type)
     elif args.segment_type == "InSeg":
-        processor = GenerateSceneGraph(cfg, target_relationships, args.label_type)
+        processor = GenerateSceneGraph_Dense(cfg, target_relationships, args.label_type)
+    elif args.segment_type == "ORBSLAM":
+        processor = GenerateSceneGraph_Sparse(cfg, target_relationships, args.label_type)
     else:
         raise NotImplementedError()
     

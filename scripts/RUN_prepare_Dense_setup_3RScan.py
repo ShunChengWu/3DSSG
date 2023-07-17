@@ -13,7 +13,7 @@ logging.basicConfig(level=logging.INFO, stream=sys.stdout)
 logger_py = logging.getLogger(__name__)
 
 
-helpmsg = 'Prepare all dataset'
+helpmsg = 'Generate data for the Dense setup.'
 parser = argparse.ArgumentParser(
     description=helpmsg, formatter_class=argparse.ArgumentDefaultsHelpFormatter)
 parser.add_argument(
@@ -70,7 +70,7 @@ if __name__ == '__main__':
            '-o', path_3RScan_ScanNet20,
            '-l', 'ScanNet20',
            '--only_support_type',
-           '--segment_type', 'InSeg',
+           '--segment_type', 'INSEG',
            ]
     if args.overwrite:
         cmd += ['--overwrite']

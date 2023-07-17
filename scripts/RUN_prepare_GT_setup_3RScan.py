@@ -13,7 +13,7 @@ logging.basicConfig(level=logging.INFO, stream=sys.stdout)
 logger_py = logging.getLogger(__name__)
 
 
-helpmsg = 'Prepare all dataset'
+helpmsg = 'Generate data for the GT setup.'
 parser = argparse.ArgumentParser(
     description=helpmsg, formatter_class=argparse.ArgumentDefaultsHelpFormatter)
 parser.add_argument(

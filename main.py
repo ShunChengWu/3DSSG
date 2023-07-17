@@ -19,6 +19,7 @@ matplotlib.pyplot.switch_backend('agg')
 matplotlib.pyplot.set_loglevel("CRITICAL")
 logging.getLogger('PIL').setLevel('CRITICAL')
 logging.getLogger('trimesh').setLevel('CRITICAL')
+logging.getLogger("h5py").setLevel(logging.INFO)
 # import resource
 # resource.setrlimit(resource.RLIMIT_NOFILE, (131072, 131072))
 # logging.basicConfig()
