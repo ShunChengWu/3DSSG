@@ -49,7 +49,7 @@ if __name__ == '__main__':
     pathlib.Path(outdir).mkdir(exist_ok=True,parents=True)
     name_log = os.path.split(__file__)[-1].replace('.py','.log')
     path_log = os.path.join(outdir,name_log)
-    logging.basicConfig(filename=path_log, level=logging.INFO)
+    logging.basicConfig(filename=path_log, level=logging.DEBUG)
     logger_py = logging.getLogger(name_log)
     logger_py.info(f'create log file at {path_log}')
     if DEBUG:
@@ -155,7 +155,9 @@ if __name__ == '__main__':
                 '''Check width and height'''
                 w_ori = box[2]-box[0]
                 h_ori = box[3]-box[1]
-                if w_ori  < min_size or h_ori < min_size: continue
+                if w_ori  < min_size or h_ori < min_size: 
+                    logger_py.debug("fid({})oid({}) dims: {} {} < min_size {}".format(fid,oid,w_ori,h_ori,min_size))
+                    continue
             
                 '''check format is correct'''
                 assert 0 <= box[0] < box[2]

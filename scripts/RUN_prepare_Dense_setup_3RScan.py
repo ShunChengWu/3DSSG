@@ -54,7 +54,7 @@ if __name__ == '__main__':
     cfg = codeLib.Config(args.config)
     path_3rscan = cfg.data.path_3rscan
     path_3rscan_data = cfg.data.path_3rscan_data
-    path_3RScan_ScanNet20 = os.path.join('data', '3RScan_ScanNet20_InSeg')
+    path_3RScan_ScanNet20 = cfg.data.path# os.path.join('data', '3RScan_ScanNet20_InSeg')
 
     '''Download inseg.zip'''
     logger_py.info('Download Inseg.ply for all scans')

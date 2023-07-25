@@ -9,7 +9,7 @@
 - [x] VGfM
 - [x] 3DSSG     
 - [x] SGFN
-- [ ] JointSSG
+- [x] JointSSG
 # ORBSLAM
 - [ ] IMP
 - [ ] VGfM
@@ -30,6 +30,7 @@
 | 3DSSG                      | DENSE  | 14.5     | 37.0    | 88.0     | 12.9      | 37.4     | 22.0      | 26.2     | 23.7      |
 | SGFN                       | DENSE  | 27.7     | 49.7    | 89.9     | 22.0      | 51.6     | 27.5      | 37.7     | 32.6      |
 | JointSSG(not finished yet) | DENSE  | 20.7     | 45.0    | 86.0     | 20.5      | 46.7     | 27.3      | 37.0     | 33.3      |
+| JointSSG                   | DENSE  | 29.5     | 52.0    | 88.6     | 23.3      | 53.8     | 28.4      | 43.8     | 35.8      |
 | IMP                        | SPARSE |
 | VGfM                       | SPARSE |
 | 3DSSG                      | SPARSE |
@@ -37,3 +38,17 @@
 | JointSSG                   | SPARSE |
 
 The number of `GT` and `DENSE` are not the same as reported in the paper, but they follow the share the same trend. (Haven't compared jointSSG since the training is not yet finished. JointSSG should have the highest number in GT and Dense)
+
+# 160
+- [x] IMP
+- [x] VGfM
+- [ ] 3DSSG     
+- [x] SGFN
+- [ ] JointSSG
+| Name     | Input | Re.Trip. | Re.Obj. | Re.Pred. | Pre.Trip. | Pre.Obj. | Pre.Pred. | mRe.Obj. | mRe.Pred. |
+| -------- | ----- | -------- | ------- | -------- | --------- | -------- | --------- | -------- | --------- |
+| IMP      | GT    | 64.2     | 43.0    | 16.2     | 4.9       | 42.9     | 16.4      | 16.0     | 3.6       |
+| VGfM     | GT    | 64.5     | 46.0    | 17.4     | 5.9       | 46.0     | 17.6      | 19.1     | 5.5       |
+| 3DSSG    | GT    |
+| SGFN     | GT    | 64.7     | 36.9    | 48.4     | 6.6       | 36.8     | 48.4      | 16.2     | 14.4      |
+| JointSSG | GT    |

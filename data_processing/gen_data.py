@@ -74,15 +74,13 @@ class GenerateSceneGraph_Sparse(object):
         # Check file
         if not os.path.isfile(pth_ply):
             logger_py.info('skip {} due to no ply file exists'.format(scan_id))
-            return [], []
             # raise RuntimeError('cannot find file {}'.format(pth_ply))
+            return [], []
         # Load
         cloud_pd = trimesh.load(pth_ply, process=False)
         segments_pd = util_ply.get_label(
             cloud_pd, '3RScan', 'Segment').flatten()
-        # segments_pd_2 = cloud_pd.metadata['_ply_raw']['vertex']['data']['label'].flatten(
-        # )
-        # assert np.isclose(segments_pd, segments_pd_2).all()
+
         # Get IDs
         segment_ids_pts = np.unique(segments_pd)
         segment_ids_pts = segment_ids_pts[segment_ids_pts != 0]
@@ -91,9 +89,8 @@ class GenerateSceneGraph_Sparse(object):
         segment_ids = [k for k in nodes.keys()]
         if 0 in segment_ids:
             segment_ids.remove(0)  # ignore none
-        # if args.verbose:
-        #     print('filtering input segments.. (ori num of segments:',
-        #           len(segment_ids), ')')
+        if debug:
+            logger_py.debug('filtering input segments.. (ori num of segments: {})'.format(len(segment_ids)))
         segments_pd_filtered = list()
         map_segment_pd_2_gt = dict()  # map segment_pd to segment_gt
         # how many segment_pd corresponding to this segment_gt
@@ -102,13 +99,14 @@ class GenerateSceneGraph_Sparse(object):
         for seg_id in segment_ids:
             node = nodes[seg_id]
             if node.kfs is None or len(node.kfs) == 0:
-                print('warning. each node should have at least 1 kf')
+                logger_py.debug('warning. each node should have at least 1 kf. but node {} has none'.format(seg_id))
 
             if node.size() <= lcfg.min_3D_bbox_size:
-            #     # name = instance2labelName.get(seg_id,'unknown')
-            #     if debug:
-            #         print('node', seg_id, 'too small (', node.size(),
-            #               '<', args.min_3D_bbox_size, ')')
+                # name = instance2labelName.get(seg_id,'unknown')
+                if debug:
+                    logger_py.debug('node {} too small ({} < {})'.format(
+                        seg_id, node.size(), lcfg.min_3D_bbox_size
+                    ))
                 continue
 
             # Check at least has a valid pts
@@ -125,15 +123,18 @@ class GenerateSceneGraph_Sparse(object):
                     max_v = v
                     max_k = int(k)
             if max_v < lcfg.occ_thres:
-            #     if debug:
-            #         print('node', seg_id, 'has too small overlappign to GT instance',
-            #               max_v, '<', args.occ_thres)
+                if debug:
+                    logger_py.debug('node {} has too small overlappign to GT instance ({} < {})'.format(
+                        seg_id, max_v, lcfg.occ_thres
+                    ))
                 continue
 
             '''skip nonknown'''
             if instance2labelName[max_k] == '-' or instance2labelName[max_k] == 'none':
                 if debug:
-                    print('node', seg_id, 'has unknown GT instance', max_k)
+                    logger_py.debug('node {} has unknown GT instance {}'.format(
+                        seg_id, max_k
+                    ))
                 continue
 
             '''  '''
@@ -148,16 +149,14 @@ class GenerateSceneGraph_Sparse(object):
             segments_pd_filtered.append(seg_id)
         segment_ids = segments_pd_filtered
         if debug:
-            print('there are', len(segment_ids), 'segemnts:\n', segment_ids)
-            print('sid iid label')
+            logger_py.debug('there are {} segemnts:'.format(len(segment_ids)))
+            logger_py.debug('sid iid label')
             for sid in segment_ids:
-                print(
-                    sid, ':', map_segment_pd_2_gt[sid], instance2labelName[map_segment_pd_2_gt[sid]])
+                logger_py.debug("{} : {} {}".format(sid,map_segment_pd_2_gt[sid], instance2labelName[map_segment_pd_2_gt[sid]]))
 
         if len(segment_ids) < lcfg.min_entity_num:
-            # if debug:
-            #     print('num of entities ({}) smaller than {}'.format(
-            #         len(segment_ids), args.min_entity_num))
+            logger_py.info('num of entities ({}) smaller than {}'.format(
+                    len(segment_ids), lcfg.min_entity_num))
             return {}, {}
 
         '''process'''
@@ -228,10 +227,12 @@ class GenerateSceneGraph_Sparse(object):
                 num = rel[2]
                 name = rel[3]
                 
-                # idx_in_txt = relationships_names.index(name)
-                # assert (num == idx_in_txt)
                 if name not in target_relationships:
                     continue
+                
+                idx_in_txt = relationships_names.index(name)
+                assert (num == idx_in_txt)
+                
                 if id_src == id_tar:
                     continue
                     if debug:
@@ -800,6 +801,7 @@ if __name__ == '__main__':
     lcfg = cfg.data.scene_graph_generation
     outdir = args.pth_out
     debug = args.debug
+    debug = True
 
     '''create log'''
     pathlib.Path(outdir).mkdir(exist_ok=True, parents=True)
@@ -896,8 +898,8 @@ if __name__ == '__main__':
             logger_py.info(
                 'skip {} due to not enough objs and relationships'.format(scan_id))
             continue
-        else:
-            logger_py.debug('no skip', scan_id)
+        # else:
+        #     logger_py.debug('no skip {}'.format(scan_id))
 
         '''save to h5'''
         # save everything to dict. convert it to str. decode it back to dict later
