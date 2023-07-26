@@ -3,12 +3,12 @@ import yaml
 import re
 from copy import copy, deepcopy
 # General config
-def load_config(path, default_path=None):
+def load_config(path, level:int=0):
     ''' Loads config file.
 
     Args:
         path (str): path to config file
-        default_path (bool): whether to use default path
+        default_path (str): whether to use default path
     '''
     # Load configuration from file itself
     with open(path, 'r') as f:
@@ -21,12 +21,12 @@ def load_config(path, default_path=None):
     # If no, use the default_path
     if inherit_from is not None:
         if isinstance(inherit_from,list):
-            cfg = [load_config(path, default_path) for path in inherit_from]
+            cfg = [load_config(path,level+1) for path in inherit_from]
         else:
-            cfg = [load_config(inherit_from, default_path)]
-    elif default_path is not None:
-        with open(default_path, 'r') as f:
-            cfg = [yaml.load(f, Loader=yaml.Loader)]
+            cfg = [load_config(inherit_from,level+1)]
+    # elif default_path is not None:
+    #     with open(default_path, 'r') as f:
+    #         cfg = [yaml.load(f, Loader=yaml.Loader)]
     else:
         cfg = [dict()]
 
@@ -38,7 +38,8 @@ def load_config(path, default_path=None):
         update_recursive(out_cfg, c)
         
     # Replace var to value
-    replace_var_in_json_dict(out_cfg,out_cfg)
+    if level == 0:
+        replace_var_in_json_dict(out_cfg,out_cfg)
     
     return out_cfg
 
