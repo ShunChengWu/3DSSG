@@ -1,6 +1,5 @@
 import logging
-#import trimesh
-import argparse,os
+import os
 import codeLib
 import ssg
 import torch
@@ -10,9 +9,6 @@ from ssg.checkpoints import CheckpointIO
 import torch.multiprocessing
 import cProfile
 import matplotlib
-import PIL
-import copy
-import codeLib.utils.string_numpy as snp
 # disable GUI
 matplotlib.pyplot.switch_backend('agg')
 # change log setting
