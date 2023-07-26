@@ -77,6 +77,12 @@ class Trainer():
         self.metric_val_best = load_dict.get('loss_val_best', -self.metric_sign * np.inf)
         self.patient = load_dict.get('patient', 0)            
         
+        '''check if exist criteria has met'''
+        if self.patient > max_patient or epoch_it >= max_epoch:
+            logger_py.info("Reach exist criteria (self.patient({}) > max_patient({}) or epoch_it({}) >= max_epoch({}) ). Stop training.".format(
+                self.patient,max_patient,epoch_it,max_epoch
+            ))
+            return 
         '''  '''
         if logger:
             try:

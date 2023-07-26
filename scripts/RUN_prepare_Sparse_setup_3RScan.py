@@ -62,7 +62,7 @@ if __name__ == '__main__':
     #                args.overwrite)
     # logger_py.info('done')
 
-    # '''generate scene graph data for InSeg'''
+    '''generate scene graph data for InSeg'''
     # logger_py.info('generate scene graph data for ORBSlam3')
     # py_exe = os.path.join('data_processing', 'gen_data.py')
     # cmd = [py_exe,
@@ -78,7 +78,7 @@ if __name__ == '__main__':
     # run_python(cmd)
     # logger_py.info('done')
 
-    # ''' Generate visibility graph '''
+    ''' Generate visibility graph '''
     # logger_py.info('Generate visibility graph')
     # py_exe = os.path.join(
     #     'data_processing', 'make_visibility_graph_incremental.py')
@@ -92,7 +92,7 @@ if __name__ == '__main__':
     # run_python(cmd)
     # logger_py.info('done')
 
-    '''extract multi-view image bounding box'''
+    # '''extract multi-view image bounding box'''
     logger_py.info('extract multi-view image bounding box')
     py_exe = os.path.join('data_processing', 'extract_mv_box_image_3rscan.py')
     cmd = [py_exe, '-c', args.config,
