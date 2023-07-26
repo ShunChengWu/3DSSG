@@ -134,6 +134,7 @@ data:
   skip_structure: false # enble enble filtering on structure objects
   skip_edge: false # enable filtering on objects near the edge of images
   skip_size: true # enable filtering on small objects
+  graph_name: ${data.scene_graph_generation.graph_name}
  scene_graph_generation:
   relation: 'relationships' #['relationships_extended','relationships']
   mapping: true #map label from 3RScan to other label type. otherwise discard them.

@@ -31,7 +31,7 @@ def Parse():
     parser = argparse.ArgumentParser(formatter_class = argparse.ArgumentDefaultsHelpFormatter)
     parser.add_argument('-c','--config',default='./configs/config_default.yaml',required=False)
     parser.add_argument('-o','--outdir', help='output dir',required=True)
-    parser.add_argument('--target_name','-n', default='graph.json', help='target graph json file name')
+    # parser.add_argument('--target_name','-n', default='graph.json', help='target graph json file name')
     parser.add_argument('--overwrite', type=int, default=0, help='overwrite existing file.')
     parser.add_argument('--debug', action='store_true', help='debug mode')
     return parser
@@ -66,9 +66,9 @@ if __name__ == '__main__':
     
     '''create output file'''
     try:
-        h5f = h5py.File(os.path.join(outdir,'proposals.h5'), 'a')
+        h5f = h5py.File(os.path.join(outdir,define.NAME_VIS_GRAPH), 'a')
     except:
-        h5f = h5py.File(os.path.join(outdir,'proposals.h5'), 'w')
+        h5f = h5py.File(os.path.join(outdir,define.NAME_VIS_GRAPH), 'w')
     
     '''read scenes'''
     fdata = cfg.data.path_3rscan_data
@@ -85,7 +85,7 @@ if __name__ == '__main__':
         logger_py.info(scan_id)
         pbar.set_description('processing {}'.format(scan_id))
         
-        pth_graph = os.path.join(fdata,scan_id,args.target_name)
+        pth_graph = os.path.join(fdata,scan_id, lcfg.graph_name)
         if os.path.isfile(pth_graph):
             with open(pth_graph, "r") as read_file:
                 data = json.load(read_file)[scan_id]
