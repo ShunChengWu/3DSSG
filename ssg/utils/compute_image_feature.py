@@ -7,20 +7,14 @@ Load graph file. Compute image feature for all the keyframes and save
 import os,logging, argparse
 import ssg
 from ssg import define
-import torch,json
+import torch
 from PIL import Image
-from ssg.models import encoder
 from torchvision import transforms
-# import open3d as o3d
-# import numpy as np
-# from pathlib import Path
 from tqdm import tqdm
-import codeLib
-from codeLib.common import normalize_imagenet, create_folder
-from ssg.utils import util_data
+from codeLib.common import normalize_imagenet
 from ssg.utils.util_data import raw_to_data
 import ssg.define as define
-import h5py,glob,pathlib
+import h5py,pathlib
 import numpy as np
 logger_py = logging.getLogger(__name__)
 debug = True

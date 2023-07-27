@@ -1,13 +1,10 @@
-# from .ssg2d import SSG2D
-# __all__ = ['SSG2D']
-from .node_encoder import node_encoder_list
 from . import edge_encoder
-from .classifier import classifider_list
+from .node_encoder import node_encoder_list
+from .classifier import classifier_list
 from .network_GNN import GraphEdgeAttenNetworkLayers,FAN_GRU,FAN_GRU_2, JointGNN,TripletGCNModel,TripletIMP,TripletVGfM
 from .network_GNN import *
 
 edge_encoder_list = {
-    #'basic': edge_encoder.EdgeEncoder,
     'sgfn': edge_encoder.EdgeEncoder_SGFN,
     'sgpn': edge_encoder.EdgeEncoder_SGPN,
     '2dssg': edge_encoder.EdgeEncoder_2DSSG,

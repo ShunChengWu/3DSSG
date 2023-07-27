@@ -435,7 +435,8 @@ class SGFNDataset (data.Dataset):
                     relationships_img, img_idx2oid, image_edge_indices)
 
                 # img_oid_indices = [oid for oid in img_idx2oid.values()]
-                img_oid_indices = [seg2inst[oid] for oid in img_idx2oid.values()]
+                img_oid_indices = [seg2inst[oid]
+                                   for oid in img_idx2oid.values()]
                 img_oid_indices = torch.from_numpy(np.array(img_oid_indices))
                 # gt_rels_2D, image_edge_indices, final_edge_indices_2D = self.__drop_edge(
                 #     gt_rels_2D, image_edge_indices,edge_index_has_gt_2D)

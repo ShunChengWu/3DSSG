@@ -6,7 +6,7 @@ import torch
 from torch import nn
 import ssg
 import torchvision
-from .models.classifier import PointNetCls, PointNetRelClsMulti, PointNetRelCls
+from .models.classifier import PointNetRelClsMulti, PointNetRelCls
 from codeLib.utils.util import pytorch_count_params
 import logging
 logger_py = logging.getLogger(__name__)
@@ -143,7 +143,7 @@ class JointSG(nn.Module):
         
         # models['obj_predictor'] = PointNetCls(num_obj_cls, in_size=node_feature_dim,
         #                              batch_norm=with_bn,drop_out=cfg.model.node_classifier.dropout)
-        models['obj_predictor'] = ssg.models.classifider_list['res18'](
+        models['obj_predictor'] = ssg.models.classifier_list['res18'](
             in_channels=node_feature_dim, 
             out_channels=num_obj_cls)
         

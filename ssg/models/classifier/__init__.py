@@ -1,16 +1,20 @@
 from .point_classifier import PointNetCls, PointNetRelClsMulti, PointNetRelCls
 from . import image_classifier
 import torch.nn as nn
+
+
 def get_cvr(in_channels, out_channels):
     return nn.Sequential(
-                nn.Linear(in_channels, 256),
-                nn.Dropout(),
-                nn.LeakyReLU(0.2, inplace=True),
-                nn.Linear(256,out_channels)
-            )
+        nn.Linear(in_channels, 256),
+        nn.Dropout(),
+        nn.LeakyReLU(0.2, inplace=True),
+        nn.Linear(256, out_channels)
+    )
+
 
 def get_res18(in_channels, out_channels):
     return nn.Linear(in_channels, out_channels)
+
 
 class FastRCNNPredictor(nn.Module):
     def __init__(self, in_channels, out_channels):
@@ -29,11 +33,11 @@ class FastRCNNPredictor(nn.Module):
         return cls_logit
 
 
-classifider_list = {
-	"pointnet": PointNetCls,
-	"pointnet_multi": PointNetRelClsMulti,
-	"pointnet_rel": PointNetRelCls,
-	"vgg16": image_classifier.VGG16,
+classifier_list = {
+    "pointnet": PointNetCls,
+    "pointnet_multi": PointNetRelClsMulti,
+    "pointnet_rel": PointNetRelCls,
+    "vgg16": image_classifier.VGG16,
     # "basic": image_classifier.basic,
     'basic': get_res18,
     'cvr': get_cvr,

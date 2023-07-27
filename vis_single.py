@@ -4,7 +4,6 @@ import numpy as np
 
 import argparse,os
 import codeLib
-import ssg
 import torch
 import ssg.config as config
 from ssg.data.collate import graph_collate#, batch_graph_collate
@@ -12,7 +11,6 @@ from ssg.checkpoints import CheckpointIO
 import torch.multiprocessing
 import cProfile
 import matplotlib
-import PIL
 import copy
 import json
 import codeLib.utils.string_numpy as snp
@@ -26,9 +24,6 @@ import time
 from ssg import define
 from PIL import Image
 from ssg.data.collate import graph_collate
-
-import graphviz
-import operator
 from ssg.utils import util_label, util_merge_same_part
 from ssg.utils.util_data import raw_to_data, cvt_all_to_dict_from_h5
 from codeLib.common import rgb_2_hex

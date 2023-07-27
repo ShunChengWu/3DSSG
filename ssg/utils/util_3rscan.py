@@ -1,8 +1,9 @@
 # -*- coding: utf-8 -*-
 import json
 
+
 def read_3rscan_info(pth):
-    with open(pth,'r') as f:
+    with open(pth, 'r') as f:
         lines = f.readlines()
         output = dict()
         for line in lines:
@@ -10,7 +11,8 @@ def read_3rscan_info(pth):
             output[split[0]] = split[1]
     return output
 
-def load_semseg(json_file, name_mapping_dict=None, mapping = True):    
+
+def load_semseg(json_file, name_mapping_dict=None, mapping=True):
     '''
     Create a dict that maps instance id to label name.
     If name_mapping_dict is given, the label name will be mapped to a corresponding name.
@@ -48,15 +50,17 @@ def load_semseg(json_file, name_mapping_dict=None, mapping = True):
                     if not labelName in name_mapping_dict.values():
                         labelName = 'none'
 
-            instance2labelName[segGroups["id"]] = labelName.lower()#segGroups["label"].lower()
+            # segGroups["label"].lower()
+            instance2labelName[segGroups["id"]] = labelName.lower()
     return instance2labelName
 
+
 def get_train_val_split(pth_3rscan_json):
-    with open(pth_3rscan_json,'r') as f:
+    with open(pth_3rscan_json, 'r') as f:
         scan3r = json.load(f)
-    
+
     train_list = list()
-    val_list  = list()
+    val_list = list()
     for scan in scan3r:
         ref_id = scan['reference']
 
@@ -69,5 +73,5 @@ def get_train_val_split(pth_3rscan_json):
         l.append(ref_id)
         for sscan in scan['scans']:
             l.append(sscan['reference'])
-    
-    return train_list ,val_list
+
+    return train_list, val_list

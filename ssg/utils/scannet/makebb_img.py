@@ -216,11 +216,10 @@ def process(scan_id):
                          format(frame_id, inst, detection.label.replace(' ','_').encode('utf8'), detection.max_iou, detection.box[0], detection.box[1], detection.box[2], detection.box[3]  ))
 
     fp.close()
+    
 if __name__ =='__main__':
     n_workers=args.thread
-    
     scan_ids = read_txt_to_list(args.scene_list)
     create_folder(args.outdir)
     print('num of scans:',len(scan_ids), 'processing with',n_workers,'threads')
-    
     process_map(process, scan_ids, max_workers=n_workers, chunksize=1 )

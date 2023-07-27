@@ -38,8 +38,8 @@ SCANNET_PLY_SUBFIX = '_vh_clean_2.labels.ply'
 
 # Defined
 NAME_SAME_PART = 'same part'
-NAME_NONE='none'
-NAME_IMAGE_FEAUTRE_FORMAT= 'image_feature_{}_{}'
+NAME_NONE = 'none'
+NAME_IMAGE_FEAUTRE_FORMAT = 'image_feature_{}_{}'
 NAME_FILTERED_KF_INDICES = 'kf_indices'
 NAME_FILTERED_OBJ_INDICES = 'obj_indices'
 
@@ -49,10 +49,12 @@ PATH_FILE = 'files'
 NAME_VIS_GRAPH = 'proposals.h5'
 NAME_RELATIONSHIPS = 'relationships.h5'
 NAME_ROI_IMAGE = 'roi_images.h5'
-PATH_LABEL_MAPPING = os.path.join(PATH_FILE,'3RScan.v2 Semantic Classes - Mapping.csv')
-PATH_CLASS160_FILE = os.path.join(PATH_FILE,'classes160.txt')
+PATH_LABEL_MAPPING = os.path.join(
+    PATH_FILE, '3RScan.v2 Semantic Classes - Mapping.csv')
+PATH_CLASS160_FILE = os.path.join(PATH_FILE, 'classes160.txt')
 
 
 #
-STRUCTURE_LABELS = ['wall','floor','ceiling'] 
-SUPPORT_TYPE_RELATIONSHIPS = ['supported by', 'attached to','standing on','hanging on','connected to','part of','build in']
+STRUCTURE_LABELS = ['wall', 'floor', 'ceiling']
+SUPPORT_TYPE_RELATIONSHIPS = ['supported by', 'attached to',
+                              'standing on', 'hanging on', 'connected to', 'part of', 'build in']

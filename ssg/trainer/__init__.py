@@ -12,4 +12,4 @@ trainer_dict = {
     'sgpn': Trainer_SGFN,
     'imp': Trainer_IMP,
     'jointsg': Trainer_SGFN,
-    }
+}

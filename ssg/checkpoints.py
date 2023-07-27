@@ -76,7 +76,8 @@ class CheckpointIO(object):
         if os.path.exists(filename):
             print(filename)
             print('=> Loading checkpoint from local file...')
-            state_dict = torch.load(filename, map_location=torch.device(device))
+            state_dict = torch.load(
+                filename, map_location=torch.device(device))
             scalars = self.parse_state_dict(state_dict)
             return scalars
         else:
@@ -89,11 +90,13 @@ class CheckpointIO(object):
         Args:
             url (str): url to saved model
         '''
-        download_path = os.path.join(self.checkpoint_dir,os.path.basename(url))
+        download_path = os.path.join(
+            self.checkpoint_dir, os.path.basename(url))
         if not os.path.exists(download_path):
             print(url)
             print('=> Loading checkpoint from url...')
-            state_dict = model_zoo.load_url(url, progress=False, map_location=torch.device(device), model_dir=self.checkpoint_dir)
+            state_dict = model_zoo.load_url(url, progress=False, map_location=torch.device(
+                device), model_dir=self.checkpoint_dir)
             scalars = self.parse_state_dict(state_dict)
         else:
             scalars = self.load_file(os.path.basename(url), device)

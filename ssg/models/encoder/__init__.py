@@ -11,5 +11,5 @@ image_encoder_dict = {
 }
 
 point_encoder_dict = {
-    'pointnet' : point_encoders.PointNetfeat
+    'pointnet': point_encoders.PointNetfeat
 }

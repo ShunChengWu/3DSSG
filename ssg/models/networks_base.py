@@ -1,31 +1,31 @@
-if __name__ == '__main__' and __package__ is None:
-    from os import sys#, path
-    sys.path.append('../')
-
 import torch.nn as nn
 from codeLib.common import filter_args_create
+
+
 class BaseNetwork(nn.Module):
     def __init__(self):
         super(BaseNetwork, self).__init__()
-    def init_weights(self, init_op, target_op = None, **args):
+
+    def init_weights(self, init_op, target_op=None, **args):
         '''
         initialize network's weights
         init_type: normal | xavier_normal | kaiming | orthogonal | xavier_unifrom
         https://github.com/junyanz/pytorch-CycleGAN-and-pix2pix/blob/9451e70673400885567d08a9e97ade2524c700d0/models/networks.py#L39
         '''
-        
+
         def init_func(m):
             classname = m.__class__.__name__
-                    
+
             if target_op is not None:
                 if classname.find(target_op) == -1:
                     return False
-                
+
             if hasattr(m, 'param_inited'):
-                return 
-                
-            # print('classname',classname)    
-            if hasattr(m, 'weight'):# and (classname.find('Conv') != -1 or classname.find('Linear') != -1):
+                return
+
+            # print('classname',classname)
+            # and (classname.find('Conv') != -1 or classname.find('Linear') != -1):
+            if hasattr(m, 'weight'):
                 args_ = {'tensor': m.weight.data, **args}
                 filter_args_create(init_op, args_)
                 # if init_type == 'normal':
@@ -50,24 +50,25 @@ class BaseNetwork(nn.Module):
                 # nn.init.constant_(m.bias.data, bias_value)
             m.param_inited = True
         self.init_apply(init_func)
-        
-    def getParamList(self,x):
+
+    def getParamList(self, x):
         return list(x.parameters())
-    
+
     def init_apply(self, fn):
         for m in self.children():
             if hasattr(m, 'param_inited'):
                 if m.param_inited is False:
                     m.init_apply(fn)
             else:
-                m.apply(fn)    
+                m.apply(fn)
         fn(self)
         return self
-    
+
 
 class mySequential(nn.Sequential, BaseNetwork):
     def __init__(self, *args):
         super(mySequential, self).__init__(*args)
+
     def forward(self, *inputs):
         for module in self._modules.values():
             if type(inputs) == tuple:
@@ -75,6 +76,3 @@ class mySequential(nn.Sequential, BaseNetwork):
             else:
                 inputs = module(inputs)
         return inputs
-    
-if __name__ == "__main__":
-    pass
