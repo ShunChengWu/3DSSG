@@ -56,41 +56,41 @@ if __name__ == '__main__':
     path_3rscan_data = cfg.data.path_3rscan_data
     path_3RScan_ScanNet20 = cfg.data.path# os.path.join('data', '3RScan_ScanNet20_ORBSLAM3')
 
-    # '''Download inseg.zip'''
-    # logger_py.info('Download Inseg.ply for all scans')
-    # download_unzip("https://www.campar.in.tum.de/public_datasets/2023_cvpr_wusc/reconstruction_orbslam3.zip",
-    #                args.overwrite)
-    # logger_py.info('done')
+    '''Download orbslam.zip'''
+    logger_py.info('Download orbslam.ply for all scans')
+    download_unzip("https://www.campar.in.tum.de/public_datasets/2023_cvpr_wusc/reconstruction_orbslam3.zip",
+                   args.overwrite)
+    logger_py.info('done')
 
-    '''generate scene graph data for InSeg'''
-    # logger_py.info('generate scene graph data for ORBSlam3')
-    # py_exe = os.path.join('data_processing', 'gen_data.py')
-    # cmd = [py_exe,
-    #        '-c', args.config,
-    #        '-o', path_3RScan_ScanNet20,
-    #        '-l', 'ScanNet20',
-    #        '--only_support_type',
-    #        '--segment_type', 'ORBSLAM',
-    #        ]
-    # if args.overwrite:
-    #     cmd += ['--overwrite']
-    # print('running cmd', cmd)
-    # run_python(cmd)
-    # logger_py.info('done')
+    '''generate scene graph data for orbslam'''
+    logger_py.info('generate scene graph data for ORBSlam3')
+    py_exe = os.path.join('data_processing', 'gen_data.py')
+    cmd = [py_exe,
+           '-c', args.config,
+           '-o', path_3RScan_ScanNet20,
+           '-l', 'ScanNet20',
+           '--only_support_type',
+           '--segment_type', 'ORBSLAM',
+           ]
+    if args.overwrite:
+        cmd += ['--overwrite']
+    print('running cmd', cmd)
+    run_python(cmd)
+    logger_py.info('done')
 
     ''' Generate visibility graph '''
-    # logger_py.info('Generate visibility graph')
-    # py_exe = os.path.join(
-    #     'data_processing', 'make_visibility_graph_incremental.py')
-    # cmd = [py_exe,
-    #        '-c', args.config,
-    #        '-o', path_3RScan_ScanNet20,
-    #        ]
-    # if args.overwrite:
-    #     cmd += ['--overwrite']
-    # print('running cmd', cmd)
-    # run_python(cmd)
-    # logger_py.info('done')
+    logger_py.info('Generate visibility graph')
+    py_exe = os.path.join(
+        'data_processing', 'make_visibility_graph_incremental.py')
+    cmd = [py_exe,
+           '-c', args.config,
+           '-o', path_3RScan_ScanNet20,
+           ]
+    if args.overwrite:
+        cmd += ['--overwrite']
+    print('running cmd', cmd)
+    run_python(cmd)
+    logger_py.info('done')
 
     # '''extract multi-view image bounding box'''
     logger_py.info('extract multi-view image bounding box')
