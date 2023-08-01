@@ -1,0 +1,5 @@
+inherit_from: [configs/dataset/config_base_3RScan_inseg_l20.yaml,configs/method/config_base_3DSSG.yaml]
+model:
+ multi_rel: false # multiple relationship 
+wandb:
+ tags: ["ssg", "3dssg","inseg","l20"]

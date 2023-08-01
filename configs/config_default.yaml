@@ -1,0 +1,163 @@
+SEED: 2021
+VERBOSE: true
+GPU: [0]
+log_level: 'DEBUG'
+training:
+ batch: 1
+ data_workers: 8
+ lr: 1e-4
+ patient: 30
+ optimizer: 'adamw'
+ amsgrad: true
+ lambda_mode: dynamic # [constant, dynamic]. dynamic will calculate the ratio of the number of node and edge.
+ lambda_node: 0.1 # learning rate ratio
+ lambda_edge: 1.0 # learning rate ratio
+ scheduler:
+  method: reduceluronplateau # [none, multisteplr, reduceluronplateau]
+  args: {
+    mode: max, 
+    verbose: true,
+    milestones: [750, 1000],
+    gamma: 0.5,
+    factor: 0.9,
+  }
+ log_every: 10
+ print_every: 50
+ checkpoint_every: 500
+ validate_every: 1
+ visualize_every: 500
+ backup_every: 5000
+ out_dir: experiments/
+ model_selection_metric: iou_node_cls
+ model_selection_mode: maximize # can be maximize or minimize. e.g. if it's "loss", should "minimize", if it's accuracy, should "maximize"
+ metric_smoothing:
+  method: ema #[none,ema,ma]
+  args: {
+   alpha: 0.8,
+   correction: true,
+  }
+ max_epoch: 500
+eval: #evaluation
+ mode: instance #eval on [segment, instance].  
+ data_workers: 4
+ topK: 10
+ ignore_missing: false
+model:
+ method: sgfn
+ multi_rel: true # multiple relationship 
+ use_rgb: false
+ use_normal: false
+ img_feature_dim: 256
+ num_points_union: 512 # for 3DSSG
+ node_feature_dim: 256
+ edge_feature_dim: 256
+# edge_descriptor_dim: 11
+ spatial_encoder:
+  method: identity #[none,identity,fc]
+  dim: 128
+ node_encoder:
+  method: none #[none, basic]
+  with_bn: false
+ image_encoder:
+  method: mvcnn #[none,mvcnn,mean]
+  backend: vgg16
+  img_batch_size: 4 # this is the batch processing limit. if input is larger, the maximum batch process will still be 4.
+  backend_finetune: true # only works for the standard backend
+  use_global: false
+  roi_region: [3,3]
+  aggr: max # aggrigation method [mean, max, sum]
+  with_bn: false
+  hidden: 1024
+  drop_out: 0.3
+  local_feature_dim: 64
+ edge_encoder:
+  method: 2dssg # [basic,sgfn,2dssg]
+  with_bn: false
+ gnn:
+  method: none # [none, fan, triplet]
+  hidden_dim: 256
+  num_layers: 5
+  num_heads: 0
+  drop_out: 0
+  node_from_gnn: true
+  with_bn: false
+ node_classifier:
+  with_bn: false
+  dropout: 0.3
+data:
+ # Basic paths
+ path_3rscan: "./data/3RScan" #"./data/3RScan/data/3RScan/"
+ path_3rscan_data: "${data.path_3rscan}/data/3RScan"
+ path_scannet: './data/scannet/scans/'
+ path_file: "./files"
+ # 
+ input_type: sgfn #[3RScan, graph, sgfn, sgpn]
+ path: "./data/3RScan_3RScan160/"
+ path_gt: "./data/3RScan_3RScan160/"
+ img_feature_path: "/media/sc/SSD1TB/storage/kf_feature/"
+ label_file: "labels.instances.align.annotated.v2.ply"
+ label_file_gt: "labels.instances.align.annotated.v2.ply"
+ roi_img_path: "${data.path_3rscan}/data/roi_images.h5"
+ path_image_feature: "${data.path_3rscan}/data/"
+ path_split: "${data.path_file}/cvpr/"
+ data_augmentation: false
+ sample_in_runtime: true
+ is_roi_img: true
+ rel_data_type: descriptor # [points, descriptor]
+ load_images: true
+ load_points: false
+ load_cache: false
+ load_incremental: false
+ img_desc_6_pts: false # return 6 extreme points 
+ sample_num_nn: 2
+ sample_num_seed: 4
+ drop_img_edge: 4 # if is int and >0, select given number. if is float/double, select percentage between [1-x,1]
+ drop_img_edge_eval: 0
+ drop_edge: 0.5 # if is int and >0, select given number. if is float/double, select percentage between [1-x,1]
+ drop_edge_eval: 0 # if is int and >0, select given number. if is float/double, select percentage between [1-x,1]
+ normalize_weight: true
+ max_num_node: 64 # maximum number of nodes for training (memory)
+ max_num_edge: 512 # maximum number of edges for training (memory)
+ max_full_img: -1 
+ img_size: -1 # minimum image edge will be resize to this. (-1: keep origianl)
+ roi_img_size: [256,256]
+ obj_ignore_list: []
+ use_precompute_img_feature: false
+ bbox_aug_ratio: 0.3 # [0.,1.]. 0: no aug. 
+ image_graph_generation:
+  path_2dgt: "${data.path_3rscan}/data/2dgt/"
+  occupancy_downscale: 8 # The factor of downscaling while calculating the occurance. The larger the less accurate but faster speed.
+  min_occ: 0.2 #The threshold for the visibility of an object. If below this value, discard (higher, more occurance)
+  min_box_size: [60,60] # The bounding box of each object should have at least x in width or height
+  min_box_ratio: 0.1 # A bounding box should have at least this ratio on the respective height and width of the input image # used in make_visibility_graph_incremental.py
+  min_obj: 1 # each image should have at least x object(s)
+  skip_structure: false # enble enble filtering on structure objects
+  skip_edge: false # enable filtering on objects near the edge of images
+  skip_size: true # enable filtering on small objects
+  graph_name: ${data.scene_graph_generation.graph_name}
+ scene_graph_generation:
+  relation: 'relationships' #['relationships_extended','relationships']
+  mapping: true #map label from 3RScan to other label type. otherwise discard them.
+  neighbor_search_method: 'BBOX' #['BBOX','KNN'] 
+  radius_receptive: 0.5 # the raidus for checking neighbors
+  max_dist: 0.1 # maximum distance to find corresopndence.
+  min_seg_size: 512 # Minimum number of points of a segment.
+  corr_thres: 0.5 # How the percentage of the points to the same target segment must exceeds this value.
+  occ_thres: 0.75 # 2nd/1st must smaller than this.
+  point_cloud_scale: 1 # scaling input point cloud.
+  graph_name: '' # needed for gen_data.py. The estimated graph
+  min_img_bbox_size: 100 # A detect obj in an image should have at least this size (can be a list)
+  min_entity_num: 2 # A scene must hhave at least this number of entities.
+  min_3D_bbox_size: 0.008 # 0.2*0.2*0.2. minimum bounding box region (m^3).
+logging:
+ method: wandb # [tensorboard, wandb, none]
+ log_grad_freq: 1000 
+ log_graph: True
+wandb:
+ dry_run: false
+ entity: 'shunchengwu'
+ project: "ssg_release"
+# id: "001" # id will be set to name
+ tags: ["ssg", "3dssg"]
+ dir: logs/
+

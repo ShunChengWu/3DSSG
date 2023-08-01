@@ -1,0 +1,10 @@
+inherit_from: [configs/dataset/config_base_3RScan_full_l20.yaml,configs/method/config_base_SGFN.yaml]
+training:
+ batch: 32
+ data_workers: 8
+model:
+ multi_rel: false # multiple relationship 
+data:
+ load_catch: true
+wandb:
+ tags: ["ssg", "sgfn","full","l20"]

@@ -1,0 +1,7 @@
+inherit_from: configs/config_default.yaml
+data:
+ load_cache: false
+ path: "./data/3RScan_ScanNet20/"
+ path_gt: "./data/3RScan_ScanNet20/"
+ label_file: "labels.instances.align.annotated.v2.ply"
+ roi_img_path: "${data.path_3rscan}/data/roi_gt/"

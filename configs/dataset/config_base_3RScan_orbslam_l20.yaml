@@ -1,0 +1,12 @@
+inherit_from: configs/config_default.yaml
+data:
+ load_cache: false
+ path: "./data/3RScan_ScanNet20_2DSSG_ORBSLAM3/"
+ path_seq: "./data/3RScan_ScanNet20_2DSSG_ORBSLAM3_seq/"
+ path_gt: "./data/3RScan_ScanNet20/"
+ label_file: "2dssg_orbslam3.ply"
+ label_file_seq: "2dssg_seq"
+ roi_img_path: "${data.path_3rscan}/data/roi_2dssg_orbslam3/"
+ scene_graph_generation:
+  graph_name: '2dssg_orbslam3.json' # needed for gen_data.py. The estimated graph
+  occ_thres: 0.5 # 2nd/1st must smaller than this.

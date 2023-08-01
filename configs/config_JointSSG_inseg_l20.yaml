@@ -1,0 +1,7 @@
+inherit_from: [configs/dataset/config_base_3RScan_inseg_l20.yaml, configs/method/config_base_JointSSG.yaml]
+training:
+ data_workers: 0 # This method requires more RAM usage. If you have 64 GB Ram you can remove this.
+model:
+ multi_rel: false # multiple relationship 
+wandb:
+ tags: ["ssg", "jointSSG",'inseg','l20']

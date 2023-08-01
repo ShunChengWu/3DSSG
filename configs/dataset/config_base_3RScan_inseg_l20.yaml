@@ -1,0 +1,9 @@
+inherit_from: configs/config_default.yaml
+data:
+ load_cache: false
+ path: "./data/3RScan_ScanNet20_InSeg/"
+ path_gt: "./data/3RScan_ScanNet20/"
+ label_file: "inseg.ply"
+ roi_img_path: "${data.path_3rscan}/data/roi_inseg/"
+ scene_graph_generation:
+  graph_name: 'graph.json' # needed for gen_data.py. The estimated graph

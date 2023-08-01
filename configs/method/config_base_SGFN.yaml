@@ -1,0 +1,26 @@
+model:
+ method: sgfn
+ multi_rel: false # multiple relationship 
+ use_rgb: true
+ use_normal: true
+ use_spatial: true
+ node_feature_dim: 256
+ edge_feature_dim: 256
+ edge_descriptor_dim: 11
+ node_encoder:
+  method: sgfn #
+ edge_encoder:
+  method: sgfn #
+ image_encoder:
+  method: none #[none,mvcnn,mean]
+ gnn:
+  method: fan # [none, fan, triplet]
+  hidden_dim: 256
+  num_layers: 2
+  num_heads: 8
+  drop_out: 0.3
+  node_from_gnn: true
+data:
+ load_images: false
+ load_points: true
+ full_edge: false # connect all selected nodes

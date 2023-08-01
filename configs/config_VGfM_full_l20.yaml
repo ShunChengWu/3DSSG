@@ -1,0 +1,5 @@
+inherit_from: [configs/dataset/config_base_3RScan_full_l20.yaml,configs/method/config_base_VGfM.yaml]
+model:
+ multi_rel: false
+wandb:
+ tags: ["ssg", "vgfm",'full','l20']

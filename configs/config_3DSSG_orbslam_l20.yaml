@@ -1,0 +1,7 @@
+inherit_from: [configs/dataset/config_base_3RScan_orbslam_l20.yaml,configs/method/config_base_3DSSG.yaml]
+model:
+ multi_rel: false # multiple relationship 
+ use_rgb: false # color is also bad
+ use_normal: false # no normal for orbslam ply file
+wandb:
+ tags: ["ssg", "3dssg","orbslam","l20"]

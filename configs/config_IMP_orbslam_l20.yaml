@@ -1,0 +1,5 @@
+inherit_from: [configs/dataset/config_base_3RScan_orbslam_l20.yaml,configs/method/config_base_IMP.yaml]
+model:
+ multi_rel: false # multiple relationship 
+wandb:
+ tags: ["ssg", "imp",'orbslam','l20']

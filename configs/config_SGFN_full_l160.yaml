@@ -1,0 +1,5 @@
+inherit_from: [configs/dataset/config_base_3RScan_full_l160.yaml,configs/method/config_base_SGFN.yaml]
+model:
+ multi_rel: true # multiple relationship 
+wandb:
+ tags: ["ssg", "sgfn",'full','l160']

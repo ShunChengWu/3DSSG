@@ -16,3 +16,11 @@ files/*.json
 files/*.txt
 files/
 *.zip
+out/
+*.txt
+.vscode
+.mlp
+rio_renderer
+experiments_bk/
+experiments_old/
+experiments_*
