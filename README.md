@@ -139,7 +139,7 @@ With the same setup as the Table 2. 3RSca dataset with 160 objects and 26 predic
 [1]:  https://www.campar.in.tum.de/public_datasets/2023_cvpr_wusc/trained_models/IMP_full_l20.zip
 [2]: https://www.campar.in.tum.de/public_datasets/2023_cvpr_wusc/trained_models/VGfM_full_l20.zip
 [3]: https://www.campar.in.tum.de/public_datasets/2023_cvpr_wusc/trained_models/3DSSG_full_l20.zip
-[4]: https://www.campar.in.tum.de/public_datasets/2023_cvpr_wusc/trained_models/SGFM_full_l20.zip
+[4]: https://www.campar.in.tum.de/public_datasets/2023_cvpr_wusc/trained_models/SGFN_full_l20.zip
 [5]: https://www.campar.in.tum.de/public_datasets/2023_cvpr_wusc/trained_models/JointSSG_full_l20.zip
 [6]: https://www.campar.in.tum.de/public_datasets/2023_cvpr_wusc/trained_models/IMP_inseg_l20.zip
 [7]: https://www.campar.in.tum.de/public_datasets/2023_cvpr_wusc/trained_models/VGfM_inseg_l20.zip
