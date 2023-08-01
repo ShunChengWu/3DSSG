@@ -1,16 +1,16 @@
 # 3D Semantic Scene Graph Estimations
 
 This is a framework for developing 3D semantic scene graph estimations.
-The repository includes five different methods, namely [IMP](IMP), [VGfM](VGfM), [3DSSG](3DSSG), [SGFN](SGFN) and [MonoSSG](MonoSSG). 
+The repository includes five different methods, namely [IMP][IMP], [VGfM][VGfM], [3DSSG][3DSSG], [SGFN][SGFN] and [MonoSSG][MonoSSG]. 
 
 <details>
   <summary>This repository has been used for the following publications:</summary>
 
-* **Title**: [Incremental 3D Semantic Scene Graph Prediction from RGB Sequences](MonoSSG)  
+* **Title**: [Incremental 3D Semantic Scene Graph Prediction from RGB Sequences][MonoSSG]
  **Authors**: [Shun-Cheng Wu][sc], [Keisuke Tateno][keisu], [Nassir Navab][nassir] and [Federico Tombari][fede]
 <img src="img/teaser_monoSSG.png" alt="teaser_monoSSG" width="900"/>
 
-* **Title**: [SceneGraphFusion: Incremental 3D Scene Graph Prediction from RGB-D Sequences](SGFN)  
+* **Title**: [SceneGraphFusion: Incremental 3D Scene Graph Prediction from RGB-D Sequences][SGFN]
  **Authors**: [Shun-Cheng Wu][sc], [Johanna Wald][jojo], [Keisuke Tateno][keisu], [Nassir Navab][nassir] and [Federico Tombari][fede]
 <img src="img/teaser_SGFN.png" alt="teaser_SGFN" width="900"/>
 
@@ -89,7 +89,7 @@ We provide trained model using the optimized code (this one), instead of the one
 
 Download the trained models and unzip them under `experiments` folder (you may need to create one by yourself). 
 
-Note that the implementation of [SceneGraphFusion](SGFN) and [3DSSG](3DSSG) are different from the original papers. We tried to make all methods shared the same model settings in order to compare them fairly. 
+Note that the implementation of [SceneGraphFusion][SGFN] and [3DSSG][3DSSG] are different from the original papers. We tried to make all methods shared the same model settings in order to compare them fairly. 
 
 <details>
   <summary>Results</summary>
@@ -130,10 +130,10 @@ With the same setup as the Table 2. 3RSca dataset with 160 objects and 26 predic
 
 | Input Type \ Mehtod | IMP        | VGfM       | 3DSSG      | SGFN       | Ours       |
 | ------------------- | ---------- | ---------- | ---------- | ---------- | ---------- |
-| GT                  | [Link](1)  | [Link](2)  | [Link](3)  | [Link](4)  | [Link](5)  |
-| DENSE               | [Link](6)  | [Link](7)  | [Link](8)  | [Link](9)  | [Link](10) |
-| SPARSE              | [Link](11) | [Link](12) | [Link](13) | [Link](14) | [Link](15) |
-| GT (160/26)         | [Link](16) | [Link](17) | [Link](18) | [Link](19) | [Link](20) |
+| GT                  | [Link][1]  | [Link][2]  | [Link][3]  | [Link][4]  | [Link][5]  |
+| DENSE               | [Link][6]  | [Link][7]  | [Link][8]  | [Link][9]  | [Link][10] |
+| SPARSE              | [Link][11] | [Link][12] | [Link][13] | [Link][14] | [Link][15] |
+| GT [160/26]         | [Link][16] | [Link][17] | [Link][18] | [Link][19] | [Link][20] |
 
 
 [1]:  https://www.campar.in.tum.de/public_datasets/2023_cvpr_wusc/trained_models/IMP_full_l20.zip
