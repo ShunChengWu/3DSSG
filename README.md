@@ -158,10 +158,7 @@ With the same setup as the Table 2. 3RSca dataset with 160 objects and 26 predic
 [20]: https://www.campar.in.tum.de/public_datasets/2023_cvpr_wusc/trained_models/JointSSG_full_l160.zip
 
 # License
-<!-- [![License](img/CC-BY-NC-SA.png)](LICENSE) -->
-
-
-<!-- CC-BY-NC-SA -->
+<a rel="license" href="http://creativecommons.org/licenses/by-nc-sa/4.0/"><img alt="Creative Commons License" style="border-width:0" src="https://i.creativecommons.org/l/by-nc-sa/4.0/88x31.png" /></a><br />This work is licensed under a <a rel="license" href="http://creativecommons.org/licenses/by-nc-sa/4.0/">Creative Commons Attribution-NonCommercial-ShareAlike 4.0 International License</a>.
 
 # Citations
 If you find the code useful please consider citing our papers:
