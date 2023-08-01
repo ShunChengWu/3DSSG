@@ -1,9 +1,0 @@
-inherit_from: [experiments/config_base_3RScan_full_l20.yaml,experiments/config_base_VGfM.yaml]
-name: 'VGfM_full_l20_7'
-training:
- data_workers: 4
-model:
- multi_rel: false
-wandb:
- dry_run: false
- tags: ["ssg", "vgfm",'full','l20']

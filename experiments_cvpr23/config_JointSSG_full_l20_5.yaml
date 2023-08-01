@@ -1,9 +1,0 @@
-inherit_from: [experiments/config_base_3RScan_full_l20.yaml, experiments/config_base_JointSSG.yaml]
-name: 'JointSSG_full_l20_5' # 
-model:
- multi_rel: false # multiple relationship 
-data:
- load_cache: true
-wandb:
- dry_run: false
- tags: ["ssg", "jointSSG",'full','l20']

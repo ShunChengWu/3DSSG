@@ -1,3 +1,21 @@
+# ==================================================
+This repo has been used for following publiscations
+
+### Incremental 3D Semantic Scene Graph Prediction from RGB Sequences
+![teaser](img/teaser_monoSSG.png)
+
+**Authors**: [Shun-Cheng Wu][sc], [Keisuke Tateno][keisu], [Nassir Navab][nassir] and [Federico Tombari][fede]
+
+### SceneGraphFusion
+<!-- ![teaser](img/teaser_SGFN.png) -->
+**Authors**: [Shun-Cheng Wu][sc], [Johanna Wald][jojo], [Keisuke Tateno][keisu], [Nassir Navab][nassir] and [Federico Tombari][fede]
+
+[sc]:http://campar.in.tum.de/Main/ShunChengWu
+[keisu]:http://campar.in.tum.de/Main/KeisukeTateno
+[jojo]:http://campar.in.tum.de/Main/JohannaWald
+[nassir]:http://campar.in.tum.de/Main/NassirNavabCv
+[fede]:http://campar.in.tum.de/Main/FedericoTombari
+
 # Setup
 ## Environment.
 ```
@@ -126,28 +144,8 @@ With the same setup as the Table 2. 3RSca dataset with 160 objects and 26 predic
 [19]: https://www.campar.in.tum.de/public_datasets/2023_cvpr_wusc/trained_models/SGFN_full_l160.zip
 [20]: https://www.campar.in.tum.de/public_datasets/2023_cvpr_wusc/trained_models/JointSSG_full_l160.zip
 
-
-
-# ==================================================
-This repo has been used for following publiscations
-
-## Incremental 3D Semantic Scene Graph Prediction from RGB Sequences
-**Authors**: [Shun-Cheng Wu][sc], [Keisuke Tateno][keisu], [Nassir Navab][nassir] and [Federico Tombari][fede]
-
-# SceneGraphFusion
-<!-- ![teaser](img/teaser_SGFN.png) -->
-**Authors**: [Shun-Cheng Wu][sc], [Johanna Wald][jojo], [Keisuke Tateno][keisu], [Nassir Navab][nassir] and [Federico Tombari][fede]
-
-[sc]:http://campar.in.tum.de/Main/ShunChengWu
-[keisu]:http://campar.in.tum.de/Main/KeisukeTateno
-[jojo]:http://campar.in.tum.de/Main/JohannaWald
-[nassir]:http://campar.in.tum.de/Main/NassirNavabCv
-[fede]:http://campar.in.tum.de/Main/FedericoTombari
-
 # License
 [![License](https://img.shields.io/badge/License-BSD%202--Clause-orange.svg)](https://opensource.org/licenses/BSD-2-Clause)
-
-
 
 ### Paper
 If you find the code useful please consider citing our papers:

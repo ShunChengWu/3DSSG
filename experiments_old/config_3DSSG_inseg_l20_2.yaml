@@ -1,9 +1,0 @@
-inherit_from: [experiments/config_base_INSEG_full_l20.yaml,experiments/config_base_3DSSG.yaml]
-name: '3DSSG_INSEG_l20_2'
-model:
- multi_rel: false # multiple relationship 
-data:
- use_precompute_img_feature: true
-wandb:
- dry_run: false
- tags: ["ssg", "3dssg",'inseg','l20']

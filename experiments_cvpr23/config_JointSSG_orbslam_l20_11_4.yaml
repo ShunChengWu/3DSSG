@@ -1,9 +1,0 @@
-inherit_from: [experiments/config_base_3RScan_orbslam_l20_3.yaml, experiments/config_base_JointSSG.yaml]
-name: 'JointSSG_orbslam_l20_11_4'  
-model:
- multi_rel: false # multiple relationship 
-data:
- load_cache: true
-wandb:
- dry_run: false
- tags: ["ssg", "jointSSG",'orbslam','l20']

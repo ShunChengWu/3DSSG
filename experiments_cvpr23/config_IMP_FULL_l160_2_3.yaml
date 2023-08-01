@@ -1,7 +1,0 @@
-inherit_from: [experiments/config_base_3RScan_full_l160.yaml,experiments/config_base_IMP.yaml]
-name: 'IMP_FULL_l160_2_3'
-model:
- multi_rel: true # multiple relationship 
-wandb:
- dry_run: false
- tags: ["ssg", "imp",'full','l160']
