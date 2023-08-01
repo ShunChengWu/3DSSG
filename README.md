@@ -1,20 +1,26 @@
-# ==================================================
-This repo has been used for following publiscations
+# 3D Semantic Scene Graph Estimations
 
-### Incremental 3D Semantic Scene Graph Prediction from RGB Sequences
-![teaser](img/teaser_monoSSG.png)
+This is a framework for developing 3D semantic scene graph estimations.
+The repository includes five different methods, namely [IMP](IMP), [VGfM](VGfM), [3DSSG](3DSSG), [SGFN](SGFN) and [MonoSSG](MonoSSG). 
 
-**Authors**: [Shun-Cheng Wu][sc], [Keisuke Tateno][keisu], [Nassir Navab][nassir] and [Federico Tombari][fede]
+<details>
+  <summary>This repository has been used for the following publications:</summary>
 
-### SceneGraphFusion
-<!-- ![teaser](img/teaser_SGFN.png) -->
-**Authors**: [Shun-Cheng Wu][sc], [Johanna Wald][jojo], [Keisuke Tateno][keisu], [Nassir Navab][nassir] and [Federico Tombari][fede]
+* **Title**: [Incremental 3D Semantic Scene Graph Prediction from RGB Sequences](MonoSSG)  
+ **Authors**: [Shun-Cheng Wu][sc], [Keisuke Tateno][keisu], [Nassir Navab][nassir] and [Federico Tombari][fede]
+<img src="img/teaser_monoSSG.png" alt="teaser_monoSSG" width="900"/>
+
+* **Title**: [SceneGraphFusion: Incremental 3D Scene Graph Prediction from RGB-D Sequences](SGFN)  
+ **Authors**: [Shun-Cheng Wu][sc], [Johanna Wald][jojo], [Keisuke Tateno][keisu], [Nassir Navab][nassir] and [Federico Tombari][fede]
+<img src="img/teaser_SGFN.png" alt="teaser_SGFN" width="900"/>
 
 [sc]:http://campar.in.tum.de/Main/ShunChengWu
 [keisu]:http://campar.in.tum.de/Main/KeisukeTateno
 [jojo]:http://campar.in.tum.de/Main/JohannaWald
 [nassir]:http://campar.in.tum.de/Main/NassirNavabCv
 [fede]:http://campar.in.tum.de/Main/FedericoTombari
+
+</details>
 
 # Setup
 ## Environment.
@@ -76,7 +82,7 @@ We provide trained model using the optimized code (this one), instead of the one
 
 Download the trained models and unzip them under `experiments` folder (you may need to create one by yourself). 
 
-Note that the implementation of [SceneGraphFusion](101) and [3DSSG](102) are different from the original papers. We tried to make all methods shared the same model settings in order to compare them fairly. 
+Note that the implementation of [SceneGraphFusion](SGFN) and [3DSSG](3DSSG) are different from the original papers. We tried to make all methods shared the same model settings in order to compare them fairly. 
 
 <details>
   <summary>Results</summary>
@@ -147,7 +153,7 @@ With the same setup as the Table 2. 3RSca dataset with 160 objects and 26 predic
 # License
 [![License](https://img.shields.io/badge/License-BSD%202--Clause-orange.svg)](https://opensource.org/licenses/BSD-2-Clause)
 
-### Paper
+# Citations
 If you find the code useful please consider citing our papers:
 
 ```
@@ -174,7 +180,8 @@ If you find the code useful please consider citing our papers:
     year = {2020}
 }
 ```
-
-[100]: https://openaccess.thecvf.com/content/CVPR2023/papers/Wu_Incremental_3D_Semantic_Scene_Graph_Prediction_From_RGB_Sequences_CVPR_2023_paper.pdf
-[101]: https://openaccess.thecvf.com/content/CVPR2021/papers/Wu_SceneGraphFusion_Incremental_3D_Scene_Graph_Prediction_From_RGB-D_Sequences_CVPR_2021_paper.pdf
-[102]: https://openaccess.thecvf.com/content_CVPR_2020/papers/Wald_Learning_3D_Semantic_Scene_Graphs_From_3D_Indoor_Reconstructions_CVPR_2020_paper.pdf
+[IMP]: https://openaccess.thecvf.com/content_cvpr_2017/papers/Xu_Scene_Graph_Generation_CVPR_2017_paper.pdf
+[VGfM]: https://arxiv.org/abs/1807.05933
+[MonoSSG]: https://openaccess.thecvf.com/content/CVPR2023/papers/Wu_Incremental_3D_Semantic_Scene_Graph_Prediction_From_RGB_Sequences_CVPR_2023_paper.pdf
+[SGFN]: https://openaccess.thecvf.com/content/CVPR2021/papers/Wu_SceneGraphFusion_Incremental_3D_Scene_Graph_Prediction_From_RGB-D_Sequences_CVPR_2021_paper.pdf
+[3DSSG]: https://openaccess.thecvf.com/content_CVPR_2020/papers/Wald_Learning_3D_Semantic_Scene_Graphs_From_3D_Indoor_Reconstructions_CVPR_2020_paper.pdf
