@@ -49,7 +49,7 @@ Please make sure you agree the [3RScan Terms of Use](https://forms.gle/NvL5dvB4t
 
 Then run
 ```
-python scripts/Run_prepare_dataset_3RScan.py --download --thread 8
+python scripts/RUN_prepare_dataset_3RScan.py --download --thread 8
 ```
 
 ## Generate Experiment data
